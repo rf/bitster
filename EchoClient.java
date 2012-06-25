@@ -1,7 +1,5 @@
-
-
-import java.io.InputStream;
 import java.net.Socket;
+import java.io.*;
 
 /**
  * A simple network application that sends a single line of text to a listening
@@ -24,6 +22,25 @@ public class EchoClient {
 			System.err.println("Invalid number of arguments.");
 			return;
 		}
+
+      int port = Integer.parseInt(args[1]);
+      String host = args[0];
+
+      try {
+         Socket sock = createSocket(host, port);
+         String line = readLineFromInputStream(System.in);
+         PrintWriter out = new PrintWriter(sock.getOutputStream(), true);
+         out.println(line);
+
+         BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+
+         System.out.println(in.readLine());
+
+         sock.close();
+         in.close();
+      } catch (Exception e) {
+         System.out.println("something failed");
+      }
 	}
 
 	/**
@@ -39,7 +56,13 @@ public class EchoClient {
 	public static Socket createSocket(final String hostname, final int port) {
 		// TODO: Create the socket, and return it. If an exception is caught,
 		// return null.
-		return null;
+      try {
+         Socket ret;
+         ret = new Socket(hostname, port);
+         return ret;
+      } catch (Exception exception) {
+         return null;
+      }
 	}
 
 	/**
@@ -51,7 +74,12 @@ public class EchoClient {
 	public static String readLineFromStdIn() {
 		// TODO: Wrap a BufferedReader around System.in and return a single
 		// line.
-		return null;
+      try {
+         BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
+         String out = stdin.readLine();
+         stdin.close();
+         return out;
+      } catch (Exception e) { return null; }
 	}
 
 	/**
@@ -65,6 +93,12 @@ public class EchoClient {
 	public static String readLineFromInputStream(final InputStream input) {
 		// TODO: Wrap a BufferedReader around input and return a single line.
 		// Return null if an exception is caught.
-		return null;
+      try {
+         InputStreamReader streamReader = new InputStreamReader(input);
+         BufferedReader reader = new BufferedReader(streamReader);
+         String out = reader.readLine();
+         reader.close();
+         return out;
+      } catch (Exception e) { return null; }
 	}
 }
