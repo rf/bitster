@@ -1,3 +1,4 @@
+package libbitster;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 // # Actor
@@ -6,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 // overridden) upon receiving messages, and its `idle()` method when there are
 // no messages to handle.
 
-class Actor extends Thread {
+public class Actor extends Thread {
   protected ConcurrentLinkedQueue<Object> queue;
   private boolean running;
 
