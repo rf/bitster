@@ -1,3 +1,6 @@
+package bitstercli;
+import libbitster.Actor;
+
 class Bar extends Actor {
   private Actor friend;
 
