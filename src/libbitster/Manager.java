@@ -2,8 +2,10 @@ package libbitster;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Random;
 
 public class Manager extends Actor {
   
@@ -13,6 +15,9 @@ public class Manager extends Actor {
   
   // communicates with tracker
   private Deputy deputy;
+  
+  // Peer ID
+  private final ByteBuffer peerID;
   
   //Listens for incoming peer connections
   private ServerSocket listen;
@@ -37,6 +42,9 @@ public class Manager extends Actor {
     this.setDownloaded(0);
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
+    
+    // generate peer ID if we haven't already
+    this.peerID = generatePeerID();
     
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
@@ -84,6 +92,28 @@ public class Manager extends Actor {
     }
     return;
   }
+  
+  /**
+   * Generates a 20 character {@code byte} array for use as a 
+   * peer ID
+   * @return A randomly generated peer ID
+   */
+  private ByteBuffer generatePeerID()
+  {
+    byte[] id = new byte[20];
+    // generating random peer ID. BITS + 16 digits = 20 characters
+    Random r = new Random(System.currentTimeMillis());
+    id[0] = 'B';
+    id[1] = 'I';
+    id[2] = 'T';
+    id[3] = 'S';
+    for(int i = 4; i < 20; i++)
+    {
+      id[i] = (byte) ('A' +  r.nextInt(26));
+    }
+    
+    return ByteBuffer.wrap(id);
+  }
 
   public int getDownloaded() {
     return downloaded;
@@ -107,6 +137,10 @@ public class Manager extends Actor {
 
   private void setLeft(int left) {
     this.left = left;
+  }
+
+  public ByteBuffer getPeerID() {
+    return peerID;
   }
  
 }
