@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.net.ServerSocket;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.Random;
@@ -20,33 +21,52 @@ public class Deputy extends Actor {
   private String infoHash;
   private byte[] peerID;
   private TorrentInfo metainfo;
+  
+  //Listens for incoming peer connections
+  private ServerSocket listen;
 
   @Override
   protected void receive (Memo memo)
   {
     if(memo.getType().equals("info"))
     {
-      metainfo = (TorrentInfo) memo.getPayload();
-      announceURL = metainfo.announce_url.getProtocol() + "://" +
+      try
+      {
+        metainfo = (TorrentInfo) memo.getPayload();
+        
+        // assemble our announce URL from metainfo
+        announceURL = metainfo.announce_url.getProtocol() + "://" +
           metainfo.announce_url.getHost() + ":" + metainfo.announce_url.getPort()
           + metainfo.announce_url.getPath();
       
-      ByteBuffer rawInfoHash = metainfo.info_hash;
-      StringBuffer infoHashSB = new StringBuffer();
-      while(rawInfoHash.hasRemaining())
-      {
-        infoHashSB.append("%");
-        String hexEncode = Integer.toHexString(0xFF & rawInfoHash.get());
-        if(hexEncode.length() == 1)
-          infoHashSB.append("0");
-        infoHashSB.append(hexEncode);
+        // listen for connections
+        this.listen = new ServerSocket(6881);
+        
+        // encode our info hash
+        ByteBuffer rawInfoHash = metainfo.info_hash;
+        StringBuffer infoHashSB = new StringBuffer();
+        while(rawInfoHash.hasRemaining())
+        {
+          infoHashSB.append("%");
+          String hexEncode = Integer.toHexString(0xFF & rawInfoHash.get());
+          if(hexEncode.length() == 1)
+            infoHashSB.append("0");
+          infoHashSB.append(hexEncode);
+        }
+        infoHash = infoHashSB.toString();
+        
+        // generate peer ID if we haven't already
+        if(peerID == null)
+          peerID = generatePeerID();
+        
+        // we're done setting up variables, now connect
+        contactTracker();
+        
+      } catch (IOException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        return;
       }
-      infoHash = infoHashSB.toString();
-      
-      if(peerID == null)
-        peerID = generatePeerID();
-      
-      contactTracker();
     }
   }
   
@@ -108,11 +128,12 @@ public class Deputy extends Actor {
       System.out.println(finalURL.toString());
       try {
         URL tracker = new URL(finalURL.toString());
+        /* temporary crappy placeholder code */
         InputStream is = tracker.openStream();
-        byte b;
         byte[] bytes = new byte[is.available()];
         is.read(bytes);
         System.out.println(new String(bytes));
+        /* end temporary crappy placeholder code */
       } catch (MalformedURLException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
