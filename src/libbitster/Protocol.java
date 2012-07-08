@@ -23,10 +23,14 @@ class Protocol {
 
   // big buffer
   ByteBuffer readBuffer = ByteBuffer.allocateDirect(32000);
-  private int numRead;
+  private int numRead = 0;
+  private int length = -1;
 
-  ByteBuffer writeBuffer = ByteBuffer.allocateDirect(32000);
-  private int numWritten;
+  ByteBuffer writeBuffer;
+  private int numWritten = 0;
+
+  private boolean handshakeSent = false;
+  private boolean handshakeReceived = false;
 
   public Protocol (InetAddress host, int port) {
     this.host = host;
@@ -36,31 +40,32 @@ class Protocol {
 
   // select() on sockets, call talk() or listen() to perform io if necessary
   public void communicate () {
-    if (this.state == "init") this.establish();
-    else if (this.state != "error") {
+    if (state == "init") establish();
+    else if (state != "error") {
       try {
 
         // Select on the socket. "Is there stuff to do?"
-        if (this.selector.select(0) == 0) return; // nothing to do
-        Iterator<SelectionKey> keys = this.selector.selectedKeys().iterator();
+        if (selector.select(0) == 0) return; // nothing to do
+        Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
         while (keys.hasNext()) {
           SelectionKey key = keys.next();
           keys.remove();
-          if (!key.isValid()) continue; // WHY
-          if (key.isReadable()) this.listen(); // call talk if we can talk
-          if (key.isWritable()) this.talk();   // call listen if we can listen
+          if (!key.isValid()) continue;   // WHY
+          if (key.isReadable() && !handshakeReceived) listenHandshake();
+          else if (key.isReadable()) listen(); // call listen if we can listen
+          if (key.isWritable()) talk();        // call talk if we can talk
         }
 
-      } catch (Exception e) { this.error(e); }
+      } catch (Exception e) { error(e); }
     }
   }
 
   // handle errors
   private void error (Exception e) {
     e.printStackTrace();
-    this.state = "error";
-    this.exception = e;
+    state = "error";
+    exception = e;
   }
 
   // Establish the connection
@@ -69,28 +74,45 @@ class Protocol {
       channel = SocketChannel.open(new InetSocketAddress(host, port));
       channel.configureBlocking(false);
       channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-    } catch (Exception e) {
-      this.state = "error";
-      this.exception = e;
-    }
-  }
-  
-  // Send some data to the peer
-  private void talk () {
-    // try to write some bytes to the peer
-    // record the number of bytes sent
-    // if we sent the whole message
-      // pop it off of the queue
-      // serialize the next message to be sent
+      state = "handshake";
+      length = 68;  // handshake message is 68 bytes long
+    } catch (Exception e) { error(e); }
   }
 
+  // ## talk
+  // Send some data to the peer
+  private void talk () {
+    try {
+      // If we dont have a message in the writeBuffer, populate the writeBuffer
+      if (writeBuffer == null && outbox.size() > 0)
+        writeBuffer = outbox.poll().serialize();
+      else return; // we have nothing to say
+
+      numWritten += channel.write(writeBuffer); // try to write some bytes 
+      writeBuffer.position(numWritten);         // set the buffer's new pos
+
+      // If we sent the whole message, clear the buffer.
+      if (writeBuffer.remaining() == 0) writeBuffer = null;
+    } catch (Exception e) { error(e); }
+  }
+
+  // ## listen
   // Read data from the peer
   private void listen () {
-    // try to read some bytes from the peer
-    // record the number of bytes received
-    // if we received a whole message
-      // de-serialize it
-      // push it onto the queue
+    try {
+      if (length == readBuffer.position()) {  // if we received a whole message
+        inbox.offer(new Message(readBuffer)); // de-serialize it
+        readBuffer.clear();                   // push it onto the queue
+        length = -1;
+      }
+
+      numRead += channel.read(readBuffer); // try to read some bytes from peer
+      readBuffer.position(numRead);        // advance buffer
+
+      if (numRead >= 4 && state != "handshake") 
+        length = readBuffer.getInt(0); // grab length from msg
+
+    } catch (Exception e) { error(e); }
   }
 
   // called by the Broker to send messages
