@@ -1,9 +1,7 @@
 package libbitster;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URL;
+import java.nio.ByteBuffer;
+import java.util.Random;
 
 /**
  * Deputy is the {@link Actor} that communicates with the Tracker.
@@ -13,15 +11,47 @@ import java.net.URL;
  */
 public class Deputy extends Actor {
   
-  private URL tracker;
+  private String announceURL;
+  private ByteBuffer infoHash;
+  private byte[] peerID;
 
   @Override
-  protected void receive (Memo memo) {
-    if(memo.getType().equals("url"))
+  protected void receive (Memo memo)
+  {
+    if(memo.getType().equals("info"))
     {
-      tracker = (URL) memo.getPayload();
+      TorrentInfo metainfo = (TorrentInfo) memo.getPayload();
+      announceURL = metainfo.announce_url.getPath();
+      infoHash = metainfo.info_hash;
+      
+      if(peerID == null)
+        peerID = generatePeerID();
+      
       contactTracker();
     }
+  }
+  
+  /**
+   * Generates a 20 character {@code byte} array for use as a 
+   * peer ID
+   * @return A randomly generated peer ID
+   */
+  private byte[] generatePeerID()
+  {
+    byte[] id = new byte[20];
+    // generating random peer ID. BITS + 16 digits = 20 characters
+    Random r = new Random(System.currentTimeMillis());
+    peerID = new byte[20];
+    peerID[0] = 'B';
+    peerID[1] = 'I';
+    peerID[2] = 'T';
+    peerID[3] = 'S';
+    for(int i = 4; i < 20; i++)
+    {
+      peerID[i] = (byte) ('A' +  r.nextInt(26));
+    }
+    
+    return id;
   }
   
   /**
@@ -29,20 +59,11 @@ public class Deputy extends Actor {
    */
   private void contactTracker()
   {
-    if(tracker == null)
+    if(announceURL == null)
       return;
     else
     {
-      try {
-        BufferedReader in = new BufferedReader(
-            new InputStreamReader(tracker.openStream()));
-        
-        // TODO: do the actual HTTP get request
-        
-      } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+      
     }
   }
   
