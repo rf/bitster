@@ -16,10 +16,10 @@ public class Deputy extends Actor {
   private URL tracker;
 
   @Override
-  protected void receive (Object memo) {
-    if(memo instanceof URL)
+  protected void receive (Memo memo) {
+    if(memo.getType().equals("url"))
     {
-      tracker = (URL) memo;
+      tracker = (URL) memo.getPayload();
       contactTracker();
     }
   }

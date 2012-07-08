@@ -10,7 +10,7 @@ public class Manager extends Actor {
     super();
     this.metainfo = metainfo;
     deputy = new Deputy();
-    deputy.post(metainfo.announce_url);
+    deputy.post(new Memo("url", metainfo.announce_url));
   }
  
 }
