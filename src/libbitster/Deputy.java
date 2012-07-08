@@ -87,11 +87,10 @@ public class Deputy extends Actor {
       
       // add info hash
       finalURL.append("?info_hash=");
-      finalURL.append(infoHash.toString());
+      finalURL.append(infoHash);
       
       // add peer ID
       finalURL.append("&peer_id=");
-      String s = "";
       finalURL.append(new String(peerID));
       
       // add port
