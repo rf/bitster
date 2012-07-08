@@ -52,17 +52,7 @@ public class Deputy extends Actor {
         + metainfo.announce_url.getPath();
       
       // encode our info hash
-      ByteBuffer rawInfoHash = metainfo.info_hash;
-      StringBuffer infoHashSB = new StringBuffer();
-      while(rawInfoHash.hasRemaining())
-      {
-        infoHashSB.append("%");
-        String hexEncode = Integer.toHexString(0xFF & rawInfoHash.get());
-        if(hexEncode.length() == 1)
-          infoHashSB.append("0");
-        infoHashSB.append(hexEncode);
-      }
-      infoHash = infoHashSB.toString();
+      infoHash = escapeURL(metainfo.info_hash);
       
       // generate peer ID if we haven't already
       if(peerID == null)
@@ -72,6 +62,35 @@ public class Deputy extends Actor {
       
       // we're done setting up variables, now connect
       announce();
+  }
+  
+  /**
+   * Encode all characters in a string using URL escaping
+   * @param s The string to encode
+   * @return The encoded string
+   */
+  public String escapeURL(String s)
+  {
+    return escapeURL(ByteBuffer.wrap(s.getBytes()));
+  }
+  
+  /**
+   * Encode all characters in a ByteBuffer using URL escaping
+   * @param b The string ByteBuffer to encode
+   * @return The encoded string
+   */
+  public String escapeURL(ByteBuffer b)
+  {
+    StringBuffer sb = new StringBuffer();
+    while(b.hasRemaining())
+    {
+      sb.append("%");
+      String hexEncode = Integer.toHexString(0xFF & b.get());
+      if(hexEncode.length() == 1)
+        sb.append("0");
+      sb.append(hexEncode);
+    }
+    return sb.toString();
   }
 
   @Override
