@@ -26,7 +26,6 @@ public class Deputy extends Actor {
   
   private String announceURL;
   private String infoHash;
-  private byte[] peerID;
   //private TorrentInfo metainfo;
   private int listenPort;
   private int announceInterval;
@@ -53,10 +52,6 @@ public class Deputy extends Actor {
       
       // encode our info hash
       infoHash = escapeURL(metainfo.info_hash);
-      
-      // generate peer ID if we haven't already
-      if(peerID == null)
-        peerID = generatePeerID();
       
       this.state = "init";
       
@@ -117,28 +112,6 @@ public class Deputy extends Actor {
   }
   
   /**
-   * Generates a 20 character {@code byte} array for use as a 
-   * peer ID
-   * @return A randomly generated peer ID
-   */
-  private byte[] generatePeerID()
-  {
-    byte[] id = new byte[20];
-    // generating random peer ID. BITS + 16 digits = 20 characters
-    Random r = new Random(System.currentTimeMillis());
-    id[0] = 'B';
-    id[1] = 'I';
-    id[2] = 'T';
-    id[3] = 'S';
-    for(int i = 4; i < 20; i++)
-    {
-      id[i] = (byte) ('A' +  r.nextInt(26));
-    }
-    
-    return id;
-  }
-  
-  /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    */
   @SuppressWarnings("unchecked")
@@ -162,7 +135,7 @@ public class Deputy extends Actor {
       
       // add peer ID
       finalURL.append("&peer_id=");
-      finalURL.append(new String(peerID));
+      finalURL.append(new String(manager.getPeerID().array()));
       
       // add port
       finalURL.append("&port=");
