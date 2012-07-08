@@ -8,22 +8,22 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 // no messages to handle.
 
 public class Actor extends Thread {
-  protected ConcurrentLinkedQueue<Object> queue;
+  protected ConcurrentLinkedQueue<Memo> queue;
   private boolean running;
 
   public Actor () {
     super();
-    queue = new ConcurrentLinkedQueue<Object>();
+    queue = new ConcurrentLinkedQueue<Memo>();
     start();
   }
 
   // `post`s a message to this actor.
-  public void post (Object memo) {
+  public void post (Memo memo) {
     queue.offer(memo);
   }
 
   // `receive` and `idle` are meant to be overridden.
-  protected void receive (Object memo) {
+  protected void receive (Memo memo) {
     System.out.println(this + " received " + memo);
   }
 
@@ -35,7 +35,7 @@ public class Actor extends Thread {
   public final void run () {
     running = true;
     while (running) {
-      Object memo = queue.poll();       // If there's a message, process it.
+      Memo memo = queue.poll();       // If there's a message, process it.
       if (memo != null) receive(memo);
                                         // If the queue is empty, call the idle
       if (queue.size() == 0) idle();    // function.
