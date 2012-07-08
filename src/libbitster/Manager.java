@@ -12,9 +12,6 @@ public class Manager extends Actor {
   // communicates with tracker
   private Deputy deputy;
   
-  // Listens for incoming peer connections
-  private ServerSocket listen;
-  
   /**
    * Instantiates the Manager and its Deputy, sending a memo containing the 
    * tracker's announce URL.
@@ -24,16 +21,9 @@ public class Manager extends Actor {
   public Manager(TorrentInfo metainfo)
   {
     super();
-    this.metainfo = metainfo;
-    try {
-      this.listen = new ServerSocket(6881);
-      
-      deputy = new Deputy();
-      deputy.post(new Memo("info", metainfo));
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }    
+    this.metainfo = metainfo;         
+    deputy = new Deputy();
+    deputy.post(new Memo("info", metainfo));   
   }
   
   protected void receive (Memo memo) {
