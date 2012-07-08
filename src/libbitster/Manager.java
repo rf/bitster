@@ -67,8 +67,12 @@ public class Manager extends Actor {
     
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
-      System.out.println("Manager: peers received!");
       peers = (ArrayList<Map<String, String>>) memo.getPayload();
+      if(peers.isEmpty())
+        System.out.println("Manager: peer list is empty!");
+      else
+        System.out.println("Manager: peers received!");
+      
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
