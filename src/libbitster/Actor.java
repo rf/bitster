@@ -32,7 +32,7 @@ public class Actor extends Thread {
     try { sleep(1000); } catch (Exception e) {} 
   }
 
-  public void run () {
+  public final void run () {
     running = true;
     while (running) {
       Object memo = queue.poll();       // If there's a message, process it.
