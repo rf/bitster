@@ -9,11 +9,18 @@ package libbitster;
 public class Memo {
   private String type;
   private Object payload;
+  private Actor sender;
   
-  public Memo(String type, Object payload)
+  public Memo(String type, Object payload, Actor sender)
   {
     this.type = type;
     this.payload = payload;
+    this.sender = sender;
+  }
+  
+  public Actor getSender()
+  {
+    return sender;
   }
   
   public String getType()
