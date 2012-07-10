@@ -62,7 +62,7 @@ class Message {
   }
 
   public String toString () {
-    return block.toString();
+    return "Message, length: " + length + " type: " + type;
   }
 
   public static Message createHave (int index) {
