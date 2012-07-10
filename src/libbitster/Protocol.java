@@ -118,15 +118,13 @@ class Protocol {
       else  // Otherwise it's a handshake
         length = ((int) readBuffer.get(0)) + 49;
 
-      if (length == numRead) {                // if we received a whole message
-        readBuffer.position(0);
-        if (state == "handshake") parseHandshake();
-        else {
-          inbox.offer(new Message(readBuffer)); // de-serialize it
-          readBuffer.clear();                   // push it onto the queue
-          length = -1;
-          numRead = 0;
-        }
+      if (length == numRead) {                      // if we got a whole message
+        readBuffer.position(0);                     // reset pos for parsing
+        if (state == "handshake") parseHandshake(); // parse and handle it
+        else inbox.offer(new Message(readBuffer)); 
+        readBuffer.clear();                         // reset state
+        length = -1;
+        numRead = 0;
       }
 
     } catch (Exception e) { error(e); }
