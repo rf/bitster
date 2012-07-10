@@ -121,7 +121,7 @@ class Protocol {
       else if (length == -1 && state == "handshake") 
         // `length` here is actually just the length of the protocol identifier
         // string.  We need to add 49 to account for the rest of the message.
-        length = ((Integer) readBuffer.get(0)) + 49;
+        length = ((int) readBuffer.get(0)) + 49;
 
       if (length == numRead) {                      // if we got a whole message
         readBuffer.position(0);                     // reset pos for parsing
