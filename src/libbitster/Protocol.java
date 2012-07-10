@@ -83,7 +83,6 @@ class Protocol {
       channel.configureBlocking(false);
       channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
       state = "handshake";
-      length = 68;  // handshake message is 68 bytes long
     } catch (Exception e) { error(e); }
   }
 
@@ -116,6 +115,8 @@ class Protocol {
       // the readBuffer.
       if (length == -1 && numRead >= 4 && state != "handshake") 
         length = readBuffer.getInt(0); // grab length from msg
+      else  // Otherwise it's a handshake
+        length = ((int) readBuffer.get(0)) + 49;
 
       if (length == numRead) {                // if we received a whole message
         if (state == "handshake") parseHandshake();
@@ -164,7 +165,6 @@ class Protocol {
 
     handshake.position(0);
     peerId = (ByteBuffer) handshake.slice().position(48).limit(68);
-    ToolKit.print(peerId);
     state = "normal";
   }
 
