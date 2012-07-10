@@ -1,8 +1,7 @@
 package libbitster;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -18,6 +17,7 @@ import java.util.Map;
  */
 public class Deputy extends Actor {
   
+  @SuppressWarnings("unused")
   private String state; // states:
   // 'init': just created, waiting to establish a connection
   // 'error': error occured, exception property will be populated
@@ -25,7 +25,6 @@ public class Deputy extends Actor {
   
   private String announceURL;
   private String infoHash;
-  //private TorrentInfo metainfo;
   private int listenPort;
   private int announceInterval;
   private Manager manager;
@@ -40,7 +39,6 @@ public class Deputy extends Actor {
    */
   public Deputy(TorrentInfo metainfo, int port, Manager manager)
   {
-      //this.metainfo = metainfo;
       this.listenPort = port;
       this.manager = manager;
       
@@ -61,28 +59,33 @@ public class Deputy extends Actor {
   /**
    * Encode all characters in a string using URL escaping
    * @param s The string to encode
-   * @return The encoded string
+   * @return The US-ASCII encoded string
    */
-  public String escapeURL(String s)
+  public static String escapeURL(String s)
   {
-    return escapeURL(ByteBuffer.wrap(s.getBytes()));
+    try {
+      return escapeURL(ByteBuffer.wrap(s.getBytes("US-ASCII")));
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException("Your computer somehow doesn't support US-ASCII, you backward...");
+    }
   }
   
   /**
    * Encode all characters in a ByteBuffer using URL escaping
    * @param b The string ByteBuffer to encode
-   * @return The encoded string
+   * @return The US-ASCII encoded string
    */
-  public String escapeURL(ByteBuffer b)
+  public static String escapeURL(ByteBuffer bb)
   {
+    final char[] HEX_CHARS = 
+      { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
     StringBuffer sb = new StringBuffer();
-    while(b.hasRemaining())
+    while(bb.hasRemaining())
     {
-      sb.append("%");
-      String hexEncode = Integer.toHexString(0xFF & b.get());
-      if(hexEncode.length() == 1)
-        sb.append("0");
-      sb.append(hexEncode);
+      byte b = bb.get();
+      sb.append('%');
+      sb.append(HEX_CHARS[( 0x0F & (b >> 4) )]);
+      sb.append(HEX_CHARS[(0x0F & b)]);
     }
     return sb.toString();
   }
