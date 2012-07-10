@@ -196,7 +196,7 @@ class Protocol {
         p.communicate();
         System.out.println(p);
         Message m = p.receive();
-        if (m != null) System.out.println(m);
+        if (m != null) System.out.println("message received: " + m);
         Thread.sleep(100);
       }
 
