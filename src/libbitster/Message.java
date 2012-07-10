@@ -9,7 +9,7 @@ class Message {
   ByteBuffer block;
 
   public Message (ByteBuffer from) {
-
+    block = from;
   }
 
   public Message (int type) {
@@ -22,6 +22,10 @@ class Message {
 
   public ByteBuffer serialize () {
     return null;
+  }
+
+  public String toString () {
+    return block.toString();
   }
 
   public static Message createHave (int index) {
