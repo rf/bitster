@@ -119,6 +119,7 @@ class Protocol {
         length = ((int) readBuffer.get(0)) + 49;
 
       if (length == numRead) {                // if we received a whole message
+        readBuffer.position(0);
         if (state == "handshake") parseHandshake();
         else {
           inbox.offer(new Message(readBuffer)); // de-serialize it
@@ -138,7 +139,6 @@ class Protocol {
 
   private void parseHandshake () {
     byte[] bytes = new byte[68];
-    readBuffer.position(0);
     readBuffer.get(bytes, 0, 68);  // Copy the handshake out of the readBuffer
     ByteBuffer handshake = ByteBuffer.wrap(bytes);
 
