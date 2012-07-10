@@ -114,7 +114,8 @@ class Protocol {
       // and we're not reading a handshake message, then grab the length out of
       // the readBuffer.
       if (length == -1 && numRead >= 4 && state != "handshake") 
-        length = readBuffer.getInt(0); // grab length from msg
+        // add 4 to account for the length of the integer specifying the length
+        length = readBuffer.getInt(0) + 4;
       else  // Otherwise it's a handshake
         length = ((int) readBuffer.get(0)) + 49;
 
