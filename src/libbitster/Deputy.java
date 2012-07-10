@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 /**
  * Deputy is the {@link Actor} that communicates with the Tracker.
@@ -181,15 +180,7 @@ public class Deputy extends Actor {
         
         this.state = "normal";
                
-      } catch (MalformedURLException e) {
-        this.exception = e;
-        this.state = "error";
-        e.printStackTrace();
-      } catch (IOException e) {
-        this.exception = e;
-        this.state = "error";
-        e.printStackTrace();
-      } catch (BencodingException e) {
+      } catch (Exception e) {
         this.exception = e;
         this.state = "error";
         e.printStackTrace();
