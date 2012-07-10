@@ -179,7 +179,7 @@ public class Deputy extends Actor {
         manager.post(new Memo("peers", peers, this));
         
         // get our announce interval
-        announceInterval = (int) response.get(ByteBuffer.wrap("interval".getBytes()));
+        announceInterval = (Integer) response.get(ByteBuffer.wrap("interval".getBytes()));
         
         this.state = "normal";
                
