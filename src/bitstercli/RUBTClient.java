@@ -10,7 +10,7 @@ import libbitster.BencodingException;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
 
-public class CliDriver {
+public class RUBTClient {
 
   /**
    * @param args Takes in a torrent file and a destination file name as arguments 
