@@ -180,7 +180,7 @@ class Protocol {
       length = readBuffer.getInt(0) + 4;
 
     // If we expect a handshake and we don't have a length yet,
-    else if (length == -1 && state == "handshake") 
+    else if (length == -1 && numRead >= 1 && state == "handshake") 
       // `length` here is actually just the length of the protocol identifier
       // string.  We need to add 49 to account for the rest of the message.
       length = ((int) readBuffer.get(0)) + 49;
@@ -211,8 +211,11 @@ class Protocol {
       while (true) {
         p.communicate();
         System.out.println(p);
-        Message m = p.receive();
-        if (m != null) System.out.println("message received: " + m);
+        Message m = p.receive;
+        while (m != null) {
+          System.out.println("message received: " + m);
+          m = p.receive();
+        }
         Thread.sleep(100);
       }
 
