@@ -156,8 +156,8 @@ class Message {
 
   public String toString () {
     
-    if(type < 0 || type > 7)
-      return "";
+    if(type > 7) return "";
+    if(type < 0) return "keepalive";
     
     String str = TYPES[type].toLowerCase();
     
