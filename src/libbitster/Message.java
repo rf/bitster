@@ -81,6 +81,11 @@ class Message {
     }
   }
 
+  // keepalive
+  public Message () {
+    this.type = -1;
+  }
+
   public Message (int type) {
     this.type = type;
   }
@@ -97,6 +102,12 @@ class Message {
     ByteBuffer buff = null;
     
     switch (type) {
+      // keepalive
+      case -1:
+        buff = ByteBuffer.allocate(4);
+        buff.putInt(0);
+      break;
+
       case CHOKE:
       case UNCHOKE:
       case INTERESTED:
