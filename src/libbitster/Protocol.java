@@ -133,6 +133,11 @@ class Protocol {
   private void listen () {
     try {
       numRead += channel.read(readBuffer); // try to read some bytes from peer
+      // EOF
+      if (numRead == -1) {
+        error(new Exception("eof"));
+        return;
+      }
       readBuffer.position(numRead);        // advance buffer
 
       // Messages parsing is actually in the communicate loop.  We call `parse`
@@ -221,6 +226,7 @@ class Protocol {
         while (m != null) {
           System.out.println("message received: " + m);
           m = p.receive();
+          p.send(new Message(Message.UNCHOKE));
         }
         Thread.sleep(100);
       }
