@@ -2,7 +2,9 @@ var net = require('net');
 var sock = net.createServer(function (c) {
   console.log('got connection');
   c.on('data', function (buf) {
-    console.log('got: ' + buf.toString());
+    console.log('received');
+    console.log(buf);
+    console.log('end received');
   });
   var len = new Buffer([19]);
   var proto = new Buffer('BitTorrent Protocol');
