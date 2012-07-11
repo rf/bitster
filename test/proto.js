@@ -28,7 +28,7 @@ var sock = net.createServer(function (c) {
             c.write(new Buffer([0, 0, 0, 1, 0]));
 
             setTimeout(function () {
-              c.write(new Buffer([0, 0, 0, 1, 2]));
+              c.write(new Buffer([0, 0, 0, 1, 2, 0, 0, 0, 1, 2, 0, 0, 0, 1, 2]));
             }, 1000);
 
           }, 1000);
