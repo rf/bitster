@@ -1,3 +1,5 @@
+package libbitster;
+
 import java.nio.*; 
 import java.net.*; 
 import java.util.*; 
