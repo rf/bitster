@@ -28,7 +28,7 @@ class Protocol {
   private int numRead = 0;
   private int length = -1;
 
-  ByteBuffer writeBuffer;
+  ByteBuffer writeBuffer = null;
   private int numWritten = 0;
 
   private boolean handshakeSent = false;
@@ -100,6 +100,7 @@ class Protocol {
       channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
       ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
+      writeBuffer = handshake;
 
       state = "handshake";
     } catch (Exception e) { error(e); }
@@ -112,13 +113,18 @@ class Protocol {
       // If we dont have a message in the writeBuffer, populate the writeBuffer
       if (writeBuffer == null && outbox.size() > 0)
         writeBuffer = outbox.poll().serialize();
-      else return; // we have nothing to say
+
+      // If writeBuffer is still not populated, we have nothing to say
+      if (writeBuffer == null) return;
 
       numWritten += channel.write(writeBuffer); // try to write some bytes 
       writeBuffer.position(numWritten);         // set the buffer's new pos
 
       // If we sent the whole message, clear the buffer.
-      if (writeBuffer.remaining() == 0) writeBuffer = null;
+      if (writeBuffer.remaining() == 0) {
+        writeBuffer = null;
+        numWritten = 0;
+      }
     } catch (Exception e) { error(e); }
   }
 
@@ -211,7 +217,7 @@ class Protocol {
       while (true) {
         p.communicate();
         System.out.println(p);
-        Message m = p.receive;
+        Message m = p.receive();
         while (m != null) {
           System.out.println("message received: " + m);
           m = p.receive();
