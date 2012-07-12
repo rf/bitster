@@ -63,6 +63,7 @@ public class Manager extends Actor {
     }
     
     deputy = new Deputy(metainfo, listen.getLocalPort(), this);
+    deputy.start();
   }
   
   @Override
