@@ -144,7 +144,6 @@ public class Deputy extends Actor {
       finalURL.append("&port=");
       finalURL.append(this.listenPort);
       
-      /* TODO: Change up/down/left gathering into a memo? */
       // add uploaded
       finalURL.append("&uploaded=");
       finalURL.append(manager.getUploaded());
