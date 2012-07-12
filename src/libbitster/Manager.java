@@ -66,12 +66,6 @@ public class Manager extends Actor {
     deputy.start();
   }
   
-  @Override
-  protected void idle()
-  {
-    try { sleep(1000); } catch (Exception e) {}
-  }
-  
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
     

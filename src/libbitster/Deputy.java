@@ -104,7 +104,7 @@ public class Deputy extends Actor {
    */
   @Override
   protected void idle () {
-    try { sleep(1000); } catch (Exception e) {}
+    try { Thread.sleep(1000); } catch (Exception e) {}
     
     if(Calendar.getInstance().getTimeInMillis() - this.lastAnnounce.getTimeInMillis()
         > 1000*this.announceInterval)
