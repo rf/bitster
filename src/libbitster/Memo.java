@@ -33,4 +33,7 @@ public class Memo {
     return payload;
   }
 
+  public String toString () {
+    return "Memo type: " + type + " payload: " + payload;
+  }
 }
