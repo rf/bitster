@@ -1,8 +1,9 @@
 package libbitster;
 
-import java.io.InputStream;
+import java.io.DataInputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -17,7 +18,6 @@ import java.util.Map;
  */
 public class Deputy extends Actor {
   
-  @SuppressWarnings("unused")
   private String state; // states:
   // 'init': just created, waiting to establish a connection
   // 'error': error occured, exception property will be populated
@@ -64,9 +64,9 @@ public class Deputy extends Actor {
   public static String escapeURL(String s)
   {
     try {
-      return escapeURL(ByteBuffer.wrap(s.getBytes("US-ASCII")));
+      return escapeURL(ByteBuffer.wrap(s.getBytes("UTF-8")));
     } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException("Your computer somehow doesn't support US-ASCII, you backward...");
+      throw new RuntimeException("Your computer somehow doesn't support UTF-8. Hang your head in shame.");
     }
   }
   
@@ -143,7 +143,6 @@ public class Deputy extends Actor {
       finalURL.append("&port=");
       finalURL.append(this.listenPort);
       
-      /* TODO: Change up/down/left gathering into a memo? */
       // add uploaded
       finalURL.append("&uploaded=");
       finalURL.append(manager.getUploaded());
@@ -159,11 +158,12 @@ public class Deputy extends Actor {
       try {
         // send request to tracker
         URL tracker = new URL(finalURL.toString());
+        URLConnection trackerConn = tracker.openConnection();
         
         // read response
-        InputStream is = tracker.openStream();
-        byte[] bytes = new byte[is.available()];
-        is.read(bytes);
+        byte[] bytes = new byte[trackerConn.getContentLength()];
+        DataInputStream dis = new DataInputStream(trackerConn.getInputStream());    
+        dis.readFully(bytes);
         
         // bdecode response
         @SuppressWarnings("rawtypes")
@@ -172,14 +172,16 @@ public class Deputy extends Actor {
         // get our peer list and work it into something nicer
         @SuppressWarnings("rawtypes")
         ArrayList<Map> rawPeers =
-            (ArrayList<Map>) response.get(ByteBuffer.wrap("peers".getBytes()));
+            (ArrayList<Map>) response.get(
+                ByteBuffer.wrap(new byte[]{'p','e','e','r','s'}));
         ArrayList<Map<String,String>> peers = parsePeers(rawPeers);
         
         // send updated peer list to manager
         manager.post(new Memo("peers", peers, this));
         
         // get our announce interval
-        announceInterval = (Integer) response.get(ByteBuffer.wrap("interval".getBytes()));
+        announceInterval = (Integer) response.get(
+            ByteBuffer.wrap(new byte[]{'i','n','t','e','r','v','a','l'}));
         
         this.state = "normal";
                
@@ -205,23 +207,31 @@ public class Deputy extends Actor {
       HashMap<String,String> peerInfo = new HashMap<String,String>();
       
       // get this peer's peer ID
-      ByteBuffer peer_id_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap("peer id".getBytes()));
+      ByteBuffer peer_id_bytes = 
+          (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','e','e','r',' ','i','d'}));
       String peer_id = new String(peer_id_bytes.array());
       peerInfo.put("peer id", peer_id);
       
       // get this peer's ip
-      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap("ip".getBytes()));
+      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'i','p'}));
       String ip = new String(ip_bytes.array());
       peerInfo.put("ip", ip);
       
       // get this peer's port
-      Integer port = (Integer) rawPeerList.get(i).get(ByteBuffer.wrap("port".getBytes()));
+      Integer port = (Integer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','o','r','t'}));
       peerInfo.put("port", port.toString());
       
       // add it to our peer list
       processedPeerList.add(peerInfo);
     }
     return processedPeerList;
+  }
+
+  /**
+   * @return the state
+   */
+  public String getState() {
+    return state;
   }
   
 }
