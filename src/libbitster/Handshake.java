@@ -3,8 +3,8 @@ package libbitster;
 import java.nio.*;
 
 // Handles creation and parsing of Handshake messages
-class Handshake {
-  private static boolean bufferEquals (ByteBuffer a, ByteBuffer b, int num) {
+public class Handshake {
+  public static boolean bufferEquals (ByteBuffer a, ByteBuffer b, int num) {
     try {
       for (int i = 0; i < num; i++) if (a.get() != b.get()) return false;
       return true;

@@ -3,7 +3,7 @@ package libbitster;
 import java.nio.*;
 import java.util.BitSet;
 
-class Message {
+public class Message {
   private int length = -1;
   private int type = -1;
   private int begin = -1;
@@ -219,4 +219,6 @@ class Message {
   }
 
   //TODO: Getters and setters, more create*(), testing
+
+  public int getType () { return type; }
 }

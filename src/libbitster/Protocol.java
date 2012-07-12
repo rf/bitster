@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.*; 
 import java.nio.channels.*;
 
-class Protocol {
+public class Protocol {
   private String state; // states:
   // 'init': just created, waiting to establish a connection
   // 'error': error occured, exception property will be populated
@@ -207,6 +207,8 @@ class Protocol {
     if (inbox.size() > 0) return inbox.poll();
     else return null;
   }
+
+  public String getState () { return state; }
 
   public String toString () {
     return "Protocol, state: " + state + " curr recv msg len: " + length + 
