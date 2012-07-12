@@ -18,7 +18,6 @@ import java.util.Map;
  */
 public class Deputy extends Actor {
   
-  @SuppressWarnings("unused")
   private String state; // states:
   // 'init': just created, waiting to establish a connection
   // 'error': error occured, exception property will be populated
@@ -226,6 +225,13 @@ public class Deputy extends Actor {
       processedPeerList.add(peerInfo);
     }
     return processedPeerList;
+  }
+
+  /**
+   * @return the state
+   */
+  public String getState() {
+    return state;
   }
   
 }
