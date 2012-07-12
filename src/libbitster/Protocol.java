@@ -212,25 +212,4 @@ class Protocol {
     return "Protocol, state: " + state + " curr recv msg len: " + length + 
       " numRead: " + numRead + " numWritten: " + numWritten + " peerid: " + theirPeerId;
   }
-
-  public static void main (String[] args) {
-    try {
-      ByteBuffer infohash = ByteBuffer.wrap(new String("asdfasdfasdfasdfasdf").getBytes());
-      ByteBuffer ourPeerId = ByteBuffer.wrap(new String("asdfasdfasdfasdfasdf").getBytes());
-      Protocol p = new Protocol(InetAddress.getByName("localhost"), 4000, infohash, ourPeerId);
-
-      while (true) {
-        p.communicate();
-        System.out.println(p);
-        Message m = p.receive();
-        while (m != null) {
-          System.out.println("message received: " + m);
-          m = p.receive();
-          p.send(new Message(Message.UNCHOKE));
-        }
-        Thread.sleep(100);
-      }
-
-    } catch (Exception e) { e.printStackTrace(); return; }
-  }
 }

@@ -218,16 +218,5 @@ class Message {
     return msg;
   }
 
-  //TODO: Getters and setters, more create*(), testing, remove main()
-  
-  public static void main(String[] args) {
-    Message msg = new Message(BITFIELD);
-    msg.bitfield = new BitSet(8);
-    msg.bitfieldByteLength = 1;
-    msg.bitfield.set(7);
-    msg.bitfield.set(2);
-    msg = new Message(msg.serialize());
-    
-    System.err.println(msg);
-  }
+  //TODO: Getters and setters, more create*(), testing
 }
