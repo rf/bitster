@@ -10,12 +10,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class Actor implements Runnable {
   protected ConcurrentLinkedQueue<Memo> queue;
   private boolean running;
-  private Thread thread;
+  private Thread thread = null;
 
   public Actor () {
     super();
     queue = new ConcurrentLinkedQueue<Memo>();
-    start();
   }
 
   // `post`s a message to this actor.
@@ -45,9 +44,11 @@ public class Actor implements Runnable {
     while (running) tick();
   }
 
-  public void start () {
-    thread = new Thread(this);
-    thread.start();
+  public synchronized void start () {
+    if (thread == null) {
+      thread = new Thread(this);
+      thread.start();
+    }
   }
 
   // Sets `running` to false and stops the thread.
