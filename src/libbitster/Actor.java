@@ -7,9 +7,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 // overridden) upon receiving messages, and its `idle()` method when there are
 // no messages to handle.
 
-public class Actor extends Thread {
+public class Actor implements Runnable {
   protected ConcurrentLinkedQueue<Memo> queue;
   private boolean running;
+  private Thread thread;
 
   public Actor () {
     super();
@@ -29,17 +30,24 @@ public class Actor extends Thread {
 
   // Default `idle` method, just sleeps.
   protected void idle () {
-    try { sleep(1000); } catch (Exception e) {} 
+    try { Thread.sleep(1000); } catch (Exception e) {} 
+  }
+
+  public void tick () {
+    Memo memo = queue.poll();       // If there's a message, process it.
+    if (memo != null) receive(memo);
+                                      // If the queue is empty, call the idle
+    if (queue.size() == 0) idle();    // function.
   }
 
   public final void run () {
     running = true;
-    while (running) {
-      Memo memo = queue.poll();       // If there's a message, process it.
-      if (memo != null) receive(memo);
-                                        // If the queue is empty, call the idle
-      if (queue.size() == 0) idle();    // function.
-    }
+    while (running) tick();
+  }
+
+  public void start () {
+    thread = new Thread(this);
+    thread.start();
   }
 
   // Sets `running` to false and stops the thread.
