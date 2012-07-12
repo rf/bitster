@@ -25,6 +25,7 @@ public class RUBTClient {
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       Manager manager = new Manager(metainfo);
+      manager.start();
     } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
