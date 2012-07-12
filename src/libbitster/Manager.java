@@ -45,6 +45,7 @@ public class Manager extends Actor {
     
     // generate peer ID if we haven't already
     this.peerID = generatePeerID();
+    System.out.println(new String(this.peerID.array()));
     
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
@@ -84,6 +85,8 @@ public class Manager extends Actor {
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
+        Map<String,String> currPeer = peers.get(i);
+        System.out.println(currPeer);
         if(peers.get(i).get("peer id").startsWith("RUBT11"))
         {
           // set up a broker
@@ -101,15 +104,23 @@ public class Manager extends Actor {
   private ByteBuffer generatePeerID()
   {
     byte[] id = new byte[20];
-    // generating random peer ID. BITS + 16 digits = 20 characters
+    // generating random peer ID. BTS- + 16 alphanums = 20 characters
     Random r = new Random(System.currentTimeMillis());
     id[0] = 'B';
-    id[1] = 'I';
-    id[2] = 'T';
-    id[3] = 'S';
+    id[1] = 'T';
+    id[2] = 'S';
+    id[3] = '-';
     for(int i = 4; i < 20; i++)
     {
-      id[i] = (byte) ('A' +  r.nextInt(26));
+      int rand = r.nextInt(36);
+      if(rand < 10)
+        id[i] = (byte) ('0' + rand);
+      else
+      {
+        rand -= 10;
+        id[i] = (byte) ('A' + rand);
+      }
+        
     }
     
     return ByteBuffer.wrap(id);
