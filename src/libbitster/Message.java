@@ -14,6 +14,7 @@ class Message {
   private int bitfieldByteLength;
   ByteBuffer block;
 
+  public static final int KEEP_ALIVE = -1;
   public static final int CHOKE = 0;
   public static final int UNCHOKE = 1;
   public static final int INTERESTED = 2;
@@ -47,13 +48,17 @@ class Message {
   
         switch (type) {
           case HAVE:
+            //Good enough for CHOKE, UNCHOKE, INTERESTED, and NOT_INTERTESTED
             index = from.getInt();
           break;
   
           case BITFIELD:
+            //Subtract size of message header to get bitfield length in bytes
             bitfieldByteLength = length - 1;
+            //Constructor want the number of bits
             bitfield = new BitSet( bitfieldByteLength * 8 );
 
+            //Check each bit of each byte in the buffer and set the bitfield bits appropriately
             //The most significant bit of the most significant byte is piece 1 (big endian)
             for(int byteOffs = 0; byteOffs < bitfieldByteLength; ++byteOffs) {
               byte currByte = from.get();
@@ -74,35 +79,24 @@ class Message {
           case PIECE:
             index = from.getInt();
             begin = from.getInt();
+            //Subtract size of message header to get the number of bytes in this piece
             byte[] bytes = new byte[length - 9];
             from.get(bytes, 0, length - 9);
             block = ByteBuffer.wrap(bytes);
           break;
         }
       }
+      else
+        type = KEEP_ALIVE;
     }
     catch(BufferUnderflowException ex) {
       throw new IllegalArgumentException("Parse error");
     }
   }
 
-  //TODO: Shouldn't these constructors be private or deleted since we are using create*() factory methods?
-  
-  // keepalive
-  public Message () {
-    this.type = -1;
-  }
-
-  public Message (int type) {
+  //Use create*() factory methods instead
+  private Message (int type) {
     this.type = type;
-  }
-
-  public Message (int type, int begin, int index, int length, ByteBuffer block) {
-    this.type = type;
-    this.begin = begin;
-    this.index = index;
-    this.length = length;
-    this.block = block;
   }
 
   /*
@@ -143,10 +137,13 @@ class Message {
         
         //Convert bitfield to bytes and append to buff
         byte b;
+        //For each group of 8-bits
         for(int bitOffs = 0, bitLen = bitfieldByteLength * 8; bitOffs < bitLen; bitOffs += 8) {
           
           b = 0;
+          //For each bit in this byte
           for(int bit = 0; bit < 8; ++bit) {
+            //Set bit in current byte at index bit if set in the bitfield
             b |= bitfield.get(bitOffs + bit) ? (0x80 >> bit):0;
           }
           
@@ -210,6 +207,41 @@ class Message {
   }
 
   /*
+   * Creates a KEEP_ALIVE message
+   */
+  public static Message createKeepAlive() {
+    return new Message(KEEP_ALIVE);
+  }
+  
+  /*
+   * Creates a CHOKE message
+   */
+  public static Message createChoke() {
+    return new Message(CHOKE);
+  }
+
+  /*
+   * Creates a UNCHOKE message
+   */
+  public static Message createUnchoke() {
+    return new Message(UNCHOKE);
+  }
+
+  /*
+   * Creates an INTERESTED message
+   */
+  public static Message createInterested() {
+    return new Message(INTERESTED);
+  }
+
+  /*
+   * Creates a NOT_INTERESTED message
+   */
+  public static Message createNotInterested() {
+    return new Message(NOT_INTERESTED);
+  }
+  
+  /*
    * Creates a HAVE message
    * @param index The piece index
    */
@@ -217,6 +249,19 @@ class Message {
     Message msg = new Message(HAVE);
     msg.index = index;
     
+    return msg;
+  }
+  
+  /*
+   * Creates a BITFIELD message
+   * Size is needed because Java appears to allocate memory for a BitSet in powers of 2 (which makes sense BTW)
+   * @param bitfield A BitSet where each bit represents whether the corresponding piece is available
+   * @param size The size of the bitfield in bytes, NOT in bits (note that all unused bits should not be set)
+   */
+  public static Message createBitfield(final BitSet bitfield, int size) {
+    Message msg = new Message(BITFIELD);
+    msg.bitfield = bitfield;
+    msg.bitfieldByteLength = size;
     return msg;
   }
   
@@ -241,7 +286,7 @@ class Message {
    * @param begin The byte offset within the piece
    * @param block The data associated with the piece part
    */
-  public static Message createPiece (int index, int begin, ByteBuffer block) {
+  public static Message createPiece (int index, int begin, final ByteBuffer block) {
     Message msg = new Message(PIECE);
     msg.index = index;
     msg.begin = begin;
