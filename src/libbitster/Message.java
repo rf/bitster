@@ -205,7 +205,7 @@ class Message {
     Message msg = new Message(REQUEST);
     msg.index = index;
     msg.begin = begin;
-    msg.length = length;
+    msg.blockLength = length;
     
     return msg;
   }
@@ -231,6 +231,7 @@ class Message {
   
   /*
    * Gets the length of this entire message (when serialized) in bytes
+   * WARNING - This is only valid when a message has been constructed from a ByteBuffer
    * @return The message length
    */
   public int getLength() {
@@ -239,6 +240,7 @@ class Message {
   
   /*
    * Returns the length of a block in bytes for a part of piece for REQUEST messages, otherwise -1
+   * Note that this method will return -1 for PIECE messages
    * @return The block length within a piece
    * @see getBegin()
    */
@@ -261,5 +263,33 @@ class Message {
    */
   public int getBegin() {
     return begin;
+  }
+  
+  /*
+   * Returns a block of data which can be thought of as a piece of a piece for PIECE messages
+   * @return A block of data
+   */
+  public final ByteBuffer getBlock() {
+    return block;
+  }
+  
+  /*
+   * Returns the bitfield for BITFIELD messages, otherwise null
+   * @return The bitfield
+   * @see getBitfieldLength()
+   */
+  public final BitSet getBitfield() {
+    return bitfield;
+  }
+  
+  /*
+   * Returns the length of a bitfield for BITFIELD messages in bytes, NOT in bits
+   * Unfortunately, a message itself does not know the number of bits
+   * This number is equivalent to the following formula: ceiling(bitfieldLengthInBits / 8.0)
+   * @return The length of a bitfield in bytes
+   * @see getBitfield()
+   */
+  public int getBitfieldLength() {
+    return bitfieldByteLength;
   }
 }
