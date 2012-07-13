@@ -85,10 +85,12 @@ public class Protocol {
 
   // handle errors
   private void error (Exception e) {
-    e.printStackTrace();
     state = "error";
     exception = e;
+    close();
+  }
 
+  public void close () {
     try { channel.close(); } catch (Exception e2) {} // close socket
   }
 

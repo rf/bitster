@@ -4,18 +4,23 @@ import java.net.*;
 import java.util.*;
 
 public class Broker extends Actor {
+  private String state;
+  public Exception exception;
+
   private Protocol peer;
   private Manager manager;
 
   // choked and interesting refer to the local state:
-  public boolean choked;      // We are choked by the peer.
-  public boolean interesting; // We are interesting to the peer.
+  private boolean choked;      // We are choked by the peer.
+  private boolean interesting; // We are interesting to the peer.
 
   // choking and interested refer to the remote state:
-  public boolean choking;     // We are choking this peer.
-  public boolean interested;  // We are interested in the peer.
+  private boolean choking;     // We are choking this peer.
+  private boolean interested;  // We are interested in the peer.
 
   private BitSet pieces;
+
+  private int numReceived = 0; // # of recvd packets
 
   public Broker (InetAddress host, int port, Manager manager) {
     peer = new Protocol(
@@ -43,9 +48,19 @@ public class Broker extends Actor {
     }
   }
 
+  private void error (Exception e) {
+    state = "error";
+    exception = e;
+    peer.close();
+  }
+
   // ## listen
   // Receive a message via tcp
   private void message (Message message) {
+    if (numReceived > 0 && message.getType() == Message.BITFIELD) 
+      error(new Exception("protocol error"));
+    numReceived += 1;
+
     switch (message.getType()) {
 
       // Handle basic messages
@@ -53,8 +68,12 @@ public class Broker extends Actor {
       case Message.UNCHOKE:        choked = false;                   break;
       case Message.INTERESTED:     interesting = true;               break;
       case Message.NOT_INTERESTED: interesting = false;              break;
-      case Message.HAVE:           pieces.flip(message.getIndex());  break;
       case Message.BITFIELD:       pieces = message.getBitfield();   break;
+
+      case Message.HAVE:
+        if (pieces == null) pieces = new BitSet();
+        pieces.flip(message.getIndex());
+      break;
 
       case Message.PIECE:
         manager.post(new Memo("block", message, this));
