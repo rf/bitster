@@ -1,3 +1,5 @@
+package libbitster;
+
 import java.nio.charset.*;
 import java.nio.*;
 
