@@ -1,16 +1,54 @@
 package libbitster;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
 public class Piece {
   private int number;
+  private int blockSize;
   private byte[] data;
+  private BitSet compleated;
   
-  public Piece(int size) {
+  public Piece(int number, int blockSize, int size) {
+    if(blockSize > size)
+      throw new IllegalArgumentException("blockSize must be < size");
     
+    this.number = number;
+    this.blockSize = blockSize;
+    
+    try {
+      data = new byte[size];
+    }
+    catch(Exception ex) {
+      throw new OutOfMemoryError();
+    }
+    
+    compleated = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
   }
   
-  public void addBlock(int begin, ByteBuffer bytes) {
+  public void addBlock(int begin, ByteBuffer block) {
+    if(block == null || block.position() != 0)
+      throw new IllegalArgumentException("block is either null or is not at the beginning of the buffer");
     
+    //Make sure we are on correct boundaries
+    if(begin % blockSize != 0)
+      throw new IllegalArgumentException("begin must be aligned on a " + blockSize + " byte boundry");
+    if(begin + block.limit() > data.length || begin < 0)
+      throw new IllegalArgumentException("block under/overflows the buffer for this piece");
+    
+    //Check to make sure not special case where final block would be smaller than the rest
+    //Also check to make sure 'block' is of length 'blockSize'
+    if( (begin < (data.length / blockSize) * blockSize) && (block.limit() != blockSize) )
+      throw new IllegalArgumentException("block is of not " + blockSize + " bytes long");
+    else if(block.limit() != data.length % blockSize) //Last block which is smaller
+      throw new IllegalArgumentException("block is not " + (data.length % blockSize) + " bytes long for final block");
+    
+    //Copy block over to this piece
+    for(int i = begin, l = begin + block.limit(); i < l; ++i)
+      data[i] = block.get();
+  }
+  
+  public boolean finished() {
+    return false; //TODO
   }
 }
