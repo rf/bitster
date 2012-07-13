@@ -5,6 +5,7 @@ import java.util.BitSet;
 
 public class Message {
   private int length = -1;
+  private int blockLength = -1;
   private int type = -1;
   private int begin = -1;
   private int index = -1;
@@ -63,7 +64,7 @@ public class Message {
           case REQUEST:
             index = from.getInt();
             begin = from.getInt();
-            length = from.getInt();
+            blockLength = from.getInt();
           break;
   
           case PIECE:
@@ -148,7 +149,7 @@ public class Message {
         buff.put((byte) type);
         buff.putInt(index);
         buff.putInt(begin);
-        buff.putInt(length);
+        buff.putInt(blockLength);
       break;
 
       case PIECE:
@@ -218,7 +219,47 @@ public class Message {
     return msg;
   }
 
-  //TODO: Getters and setters, more create*(), testing
-
-  public int getType () { return type; }
+  //TODO: more create*(), testing
+  
+  /*
+   * Gets the type of this message
+   * @return The message type
+   */
+  public int getType() {
+    return type;
+  }
+  
+  /*
+   * Gets the length of this entire message (when serialized) in bytes
+   * @return The message length
+   */
+  public int getLength() {
+    return length;
+  }
+  
+  /*
+   * Returns the length of a block in bytes for a part of piece for REQUEST messages, otherwise -1
+   * @return The block length within a piece
+   * @see getBegin()
+   */
+  public int getBlockLength() {
+    return blockLength;
+  }
+  
+  /*
+   * Returns the piece number if this message is of type HAVE, REQUEST, or PIECE, otherwise -1
+   * @return The piece index
+   */
+  public int getIndex() {
+    return index;
+  }
+  
+  /*
+   * Returns The offset in bytes to the beginning of a block within a piece for REQUEST and PIECE messages, otherwise -1
+   * @return The offset to the beginning of a block within a piece
+   * @see getBlockLength()
+   */
+  public int getBegin() {
+    return begin;
+  }
 }
