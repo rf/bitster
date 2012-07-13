@@ -1,6 +1,6 @@
 package test;
 
-import libbitster.Timeout;
+import libbitster.Util;
 import libbitster.Actor;
 import libbitster.Memo;
 
@@ -9,7 +9,7 @@ class Foo2 extends Actor {
 
   public Foo2 () {
     super();
-    Timeout.set(100, new Memo("test", "100ms", this));
+    Util.setTimeout(100, new Memo("test", "100ms", this));
   }
 
   protected void receive (Memo memo) {
@@ -28,7 +28,7 @@ public class TestTimeout {
         System.out.println("message was received");
         assert(foo.m.getType() == "test");
         foo.shutdown();
-        Timeout.off();
+        Util.shutdown();
         break;
       }
     }
