@@ -3,6 +3,13 @@ package libbitster;
 import java.net.*;
 import java.util.*;
 
+// The `Broker` class manages a connection with a peer.  It uses the
+// `Protocol` class for the actual communication.  It accepts the following
+// memos:
+//
+//  * `message`: payload is a message to be delivered to the peer
+
+>>>>>>> Stashed changes
 public class Broker extends Actor {
   private String state;
   public Exception exception;
@@ -10,11 +17,11 @@ public class Broker extends Actor {
   private Protocol peer;
   private Manager manager;
 
-  // choked and interesting refer to the local state:
+  // Choked and interesting refer to the local state:
   private boolean choked;      // We are choked by the peer.
   private boolean interesting; // We are interesting to the peer.
 
-  // choking and interested refer to the remote state:
+  // Choking and interested refer to the remote state:
   private boolean choking;     // We are choking this peer.
   private boolean interested;  // We are interested in the peer.
 
@@ -38,12 +45,14 @@ public class Broker extends Actor {
 
     choking = true;       // We are choking the peer.
     interested = false;   // We are not interested in the peer.
+
+    state = "normal";
   }
 
   // ## receive
   // Receive a memo
   protected void receive (Memo memo) {
-    if (memo.getType() == "request") {
+    if (memo.getType() == "message") {
       peer.send((Message) memo.getPayload());
     }
   }
@@ -88,4 +97,10 @@ public class Broker extends Actor {
     Message m;
     while ((m = peer.receive()) != null) message(m); // grab any available msgs
   }
+
+  // Accessors.
+  public boolean choked () { return choked; }
+  public boolean choking () { return choking; }
+  public boolean interested () { return interested; }
+  public boolean interesting () { return interesting; }
 }
