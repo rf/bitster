@@ -33,6 +33,10 @@ class Message {
                                           "REQUEST", 
                                           "PIECE" };
 
+  /*
+   * Creates a message from a ByteBuffer filled with serialized message data
+   * @param from The ByteBuffer containing the message data
+   */
   public Message (ByteBuffer from) {
     try { //Catch all BufferUnderflowExceptions
       block = from;
@@ -82,6 +86,8 @@ class Message {
     }
   }
 
+  //TODO: Shouldn't these constructors be private or deleted since we are using create*() factory methods?
+  
   // keepalive
   public Message () {
     this.type = -1;
@@ -99,6 +105,11 @@ class Message {
     this.block = block;
   }
 
+  /*
+   * Serializes this message into a binary format described by
+   * http://wiki.theory.org/BitTorrentSpecification#Messages
+   * @return A ByteBuffer containing the serialized form of this message
+   */
   public ByteBuffer serialize () {
     ByteBuffer buff = null;
     
@@ -166,6 +177,10 @@ class Message {
     return buff;
   }
 
+  /*
+   * Returns a string describing this message
+   * @return a string describing this message
+   */
   public String toString () {
     
     if(type > 7) return "";
@@ -194,6 +209,10 @@ class Message {
     return str;
   }
 
+  /*
+   * Creates a HAVE message
+   * @param index The piece index
+   */
   public static Message createHave (int index) {
     Message msg = new Message(HAVE);
     msg.index = index;
@@ -201,6 +220,12 @@ class Message {
     return msg;
   }
   
+  /*
+   * Creates a REQUEST message
+   * @param index The piece index
+   * @param begin The byte offset within the piece
+   * @param length The number of bytes
+   */
   public static Message createRequest (int index, int begin, int length) {
     Message msg = new Message(REQUEST);
     msg.index = index;
@@ -210,6 +235,12 @@ class Message {
     return msg;
   }
 
+  /*
+   * Creates a PIECE message
+   * @param index The piece index
+   * @param begin The byte offset within the piece
+   * @param block The data associated with the piece part
+   */
   public static Message createPiece (int index, int begin, ByteBuffer block) {
     Message msg = new Message(PIECE);
     msg.index = index;
