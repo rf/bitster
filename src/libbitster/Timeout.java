@@ -19,7 +19,7 @@ public class Timeout extends Actor {
   }
 
   protected void idle () {
-    try { Thread.sleep(1000); } catch (Exception e) {}
+    try { Thread.sleep(100); } catch (Exception e) {}
 
     int curr = (int) Calendar.getInstance().getTimeInMillis();
 
@@ -55,6 +55,10 @@ public class Timeout extends Actor {
   public static synchronized void set (int timeout, Memo memo) {
     if (instance == null) instance = new Timeout();
     instance.setTimeout(timeout, memo);
+  }
+
+  public static void off () {
+    if (instance != null) instance.shutdown();
   }
 }
 

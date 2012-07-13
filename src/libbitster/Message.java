@@ -3,7 +3,7 @@ package libbitster;
 import java.nio.*;
 import java.util.BitSet;
 
-class Message {
+public class Message {
   private int length = -1;
   private int blockLength = -1;
   private int type = -1;
