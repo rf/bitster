@@ -145,8 +145,12 @@ public class Manager extends Actor {
     this.left = left;
   }
 
-  public ByteBuffer getPeerID() {
+  public ByteBuffer getPeerID () {
     return peerID;
+  }
+
+  public ByteBuffer getInfoHash () {
+    return metainfo.info_hash;
   }
  
 }
