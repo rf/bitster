@@ -1,12 +1,34 @@
 package libbitster;
 
+import java.nio.charset.*;
+import java.nio.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+public class Util {
+  public static ByteBuffer s (String input) {
+    try {
+      Charset utf8 = Charset.forName("UTF-8");
+      byte[] ret = input.getBytes(utf8);
+      return ByteBuffer.wrap(ret);
+    } catch (UnsupportedCharsetException e) {
+      throw new RuntimeException("Your jvm doesn't support UTF-8, which is impossible");
+    }
+  }
+
+  public static void setTimeout (int timeout, Memo memo) {
+    Timeout.set(timeout, memo);
+  }
+
+  public static void shutdown () {
+    Timeout.off();
+  }
+}
 
 // A class for scheduling memos to be delivered back to the sender after a 
 // specified interval. Singleton.
 
-public class Timeout extends Actor {
+class Timeout extends Actor {
   private int last = 0;
 
   private ConcurrentLinkedQueue<TimeoutInfo> timeouts;
