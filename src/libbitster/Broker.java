@@ -27,7 +27,7 @@ public class Broker extends Actor {
 
   private BitSet pieces;
 
-  private int numReceived = 0; // # of recvd packets
+  private int numReceived = 0; // # of recvd messages
 
   public Broker (InetAddress host, int port, Manager manager) {
     peer = new Protocol(
@@ -84,6 +84,7 @@ public class Broker extends Actor {
         pieces.flip(message.getIndex());
       break;
 
+      // Send pieces to our `Manager`.
       case Message.PIECE:
         manager.post(new Memo("block", message, this));
       break;
