@@ -1,9 +1,9 @@
 package libbitster;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.io.DataInputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -25,7 +25,6 @@ public class Deputy extends Actor {
   
   private String announceURL;
   private String infoHash;
-  //private TorrentInfo metainfo;
   private int listenPort;
   private int announceInterval;
   private Manager manager;
@@ -40,7 +39,6 @@ public class Deputy extends Actor {
    */
   public Deputy(TorrentInfo metainfo, int port, Manager manager)
   {
-      //this.metainfo = metainfo;
       this.listenPort = port;
       this.manager = manager;
       
@@ -61,28 +59,33 @@ public class Deputy extends Actor {
   /**
    * Encode all characters in a string using URL escaping
    * @param s The string to encode
-   * @return The encoded string
+   * @return The US-ASCII encoded string
    */
-  public String escapeURL(String s)
+  public static String escapeURL(String s)
   {
-    return escapeURL(ByteBuffer.wrap(s.getBytes()));
+    try {
+      return escapeURL(ByteBuffer.wrap(s.getBytes("UTF-8")));
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException("Your computer somehow doesn't support UTF-8. Hang your head in shame.");
+    }
   }
   
   /**
    * Encode all characters in a ByteBuffer using URL escaping
    * @param b The string ByteBuffer to encode
-   * @return The encoded string
+   * @return The US-ASCII encoded string
    */
-  public String escapeURL(ByteBuffer b)
+  public static String escapeURL(ByteBuffer bb)
   {
+    final char[] HEX_CHARS = 
+      { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
     StringBuffer sb = new StringBuffer();
-    while(b.hasRemaining())
+    while(bb.hasRemaining())
     {
-      sb.append("%");
-      String hexEncode = Integer.toHexString(0xFF & b.get());
-      if(hexEncode.length() == 1)
-        sb.append("0");
-      sb.append(hexEncode);
+      byte b = bb.get();
+      sb.append('%');
+      sb.append(HEX_CHARS[( 0x0F & (b >> 4) )]);
+      sb.append(HEX_CHARS[(0x0F & b)]);
     }
     return sb.toString();
   }
@@ -101,7 +104,7 @@ public class Deputy extends Actor {
    */
   @Override
   protected void idle () {
-    try { sleep(1000); } catch (Exception e) {}
+    try { Thread.sleep(1000); } catch (Exception e) {}
     
     if(Calendar.getInstance().getTimeInMillis() - this.lastAnnounce.getTimeInMillis()
         > 1000*this.announceInterval)
@@ -140,7 +143,6 @@ public class Deputy extends Actor {
       finalURL.append("&port=");
       finalURL.append(this.listenPort);
       
-      /* TODO: Change up/down/left gathering into a memo? */
       // add uploaded
       finalURL.append("&uploaded=");
       finalURL.append(manager.getUploaded());
@@ -156,11 +158,12 @@ public class Deputy extends Actor {
       try {
         // send request to tracker
         URL tracker = new URL(finalURL.toString());
+        URLConnection trackerConn = tracker.openConnection();
         
         // read response
-        InputStream is = tracker.openStream();
-        byte[] bytes = new byte[is.available()];
-        is.read(bytes);
+        byte[] bytes = new byte[trackerConn.getContentLength()];
+        DataInputStream dis = new DataInputStream(trackerConn.getInputStream());    
+        dis.readFully(bytes);
         
         // bdecode response
         @SuppressWarnings("rawtypes")
@@ -169,14 +172,16 @@ public class Deputy extends Actor {
         // get our peer list and work it into something nicer
         @SuppressWarnings("rawtypes")
         ArrayList<Map> rawPeers =
-            (ArrayList<Map>) response.get(ByteBuffer.wrap("peers".getBytes()));
+            (ArrayList<Map>) response.get(
+                ByteBuffer.wrap(new byte[]{'p','e','e','r','s'}));
         ArrayList<Map<String,String>> peers = parsePeers(rawPeers);
         
         // send updated peer list to manager
         manager.post(new Memo("peers", peers, this));
         
         // get our announce interval
-        announceInterval = (int) response.get(ByteBuffer.wrap("interval".getBytes()));
+        announceInterval = (Integer) response.get(
+            ByteBuffer.wrap(new byte[]{'i','n','t','e','r','v','a','l'}));
         
         this.state = "normal";
                
@@ -202,23 +207,31 @@ public class Deputy extends Actor {
       HashMap<String,String> peerInfo = new HashMap<String,String>();
       
       // get this peer's peer ID
-      ByteBuffer peer_id_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap("peer id".getBytes()));
+      ByteBuffer peer_id_bytes = 
+          (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','e','e','r',' ','i','d'}));
       String peer_id = new String(peer_id_bytes.array());
       peerInfo.put("peer id", peer_id);
       
       // get this peer's ip
-      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap("ip".getBytes()));
+      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'i','p'}));
       String ip = new String(ip_bytes.array());
       peerInfo.put("ip", ip);
       
       // get this peer's port
-      Integer port = (Integer) rawPeerList.get(i).get(ByteBuffer.wrap("port".getBytes()));
+      Integer port = (Integer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','o','r','t'}));
       peerInfo.put("port", port.toString());
       
       // add it to our peer list
       processedPeerList.add(peerInfo);
     }
     return processedPeerList;
+  }
+
+  /**
+   * @return the state
+   */
+  public String getState() {
+    return state;
   }
   
 }

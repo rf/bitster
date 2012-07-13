@@ -10,7 +10,7 @@ import libbitster.BencodingException;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
 
-public class CliDriver {
+public class RUBTClient {
 
   /**
    * @param args Takes in a torrent file and a destination file name as arguments 
@@ -25,6 +25,7 @@ public class CliDriver {
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       Manager manager = new Manager(metainfo);
+      manager.start();
     } catch (FileNotFoundException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();

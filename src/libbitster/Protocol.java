@@ -1,3 +1,5 @@
+package libbitster;
+
 import java.nio.*; 
 import java.net.*; 
 import java.util.*; 
@@ -26,18 +28,25 @@ class Protocol {
   private int numRead = 0;
   private int length = -1;
 
-  ByteBuffer writeBuffer;
+  ByteBuffer writeBuffer = null;
   private int numWritten = 0;
 
   private boolean handshakeSent = false;
   private boolean handshakeReceived = false;
 
   private ByteBuffer infoHash;
-  private ByteBuffer peerId;
+  private ByteBuffer theirPeerId;
+  private ByteBuffer ourPeerId;
 
-  public Protocol (InetAddress host, int port, ByteBuffer infoHash) {
+  public Protocol (
+    InetAddress host, 
+    int port, 
+    ByteBuffer infoHash, 
+    ByteBuffer peerId       // our peer id
+  ) {
     this.host = host;
     this.port = port;
+    this.ourPeerId = peerId;
     this.infoHash = infoHash;
     this.state = "init";
     this.outbox = new LinkedList<Message>();
@@ -63,6 +72,13 @@ class Protocol {
           if (key.isWritable()) talk();        // call talk if we can talk
         }
 
+        // If we have more data than the length of the message we're expecting,
+        // parse messages out of the readBuffer.
+        if (numRead >= length && length != -1) parse();
+
+        // Try to find the length of the message in the read buffer
+        findLength();
+
       } catch (Exception e) { error(e); }
     }
   }
@@ -82,6 +98,10 @@ class Protocol {
       channel = SocketChannel.open(new InetSocketAddress(host, port));
       channel.configureBlocking(false);
       channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+
+      ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
+      writeBuffer = handshake;
+
       state = "handshake";
     } catch (Exception e) { error(e); }
   }
@@ -93,13 +113,18 @@ class Protocol {
       // If we dont have a message in the writeBuffer, populate the writeBuffer
       if (writeBuffer == null && outbox.size() > 0)
         writeBuffer = outbox.poll().serialize();
-      else return; // we have nothing to say
+
+      // If writeBuffer is still not populated, we have nothing to say
+      if (writeBuffer == null) return;
 
       numWritten += channel.write(writeBuffer); // try to write some bytes 
       writeBuffer.position(numWritten);         // set the buffer's new pos
 
       // If we sent the whole message, clear the buffer.
-      if (writeBuffer.remaining() == 0) writeBuffer = null;
+      if (writeBuffer.remaining() == 0) {
+        writeBuffer = null;
+        numWritten = 0;
+      }
     } catch (Exception e) { error(e); }
   }
 
@@ -108,64 +133,68 @@ class Protocol {
   private void listen () {
     try {
       numRead += channel.read(readBuffer); // try to read some bytes from peer
+      // EOF
+      if (numRead == -1) {
+        error(new Exception("eof"));
+        return;
+      }
       readBuffer.position(numRead);        // advance buffer
 
-      // If we've read at least four bytes, we haven't gotten a length yet,
-      // and we're not reading a handshake message, then grab the length out of
-      // the readBuffer.
-      if (length == -1 && numRead >= 4 && state != "handshake") 
-        length = readBuffer.getInt(0); // grab length from msg
-      else  // Otherwise it's a handshake
-        length = ((int) readBuffer.get(0)) + 49;
-
-      if (length == numRead) {                // if we received a whole message
-        readBuffer.position(0);
-        if (state == "handshake") parseHandshake();
-        else {
-          inbox.offer(new Message(readBuffer)); // de-serialize it
-          readBuffer.clear();                   // push it onto the queue
-          length = -1;
-          numRead = 0;
-        }
-      }
+      // Messages parsing is actually in the communicate loop.  We call `parse`
+      // if we've read 'enough' data to have a whole message.
 
     } catch (Exception e) { error(e); }
   }
 
-  private boolean bufferEquals (ByteBuffer a, ByteBuffer b, int num) {
-    for (int i = 0; i < num; i++) if (a.get() != b.get()) return false;
-    return true;
+  // ## parse
+  // Parse the message and reset the state of the listen logic.
+  private void parse () {
+    readBuffer.position(0);
+    if (state == "handshake") {
+      try {
+        byte[] bytes = new byte[length];
+        // Copy the handshake out of the readBuffer
+        readBuffer.get(bytes, 0, length);  
+        ByteBuffer handshake = ByteBuffer.wrap(bytes);
+        theirPeerId = Handshake.verify(infoHash, handshake);
+        state = "normal";
+      } catch (Exception e) { error(e); }
+    } else inbox.offer(new Message(readBuffer)); 
+
+    // Amount of next message which has already been read.
+    int nextMsgRead = numRead - length;
+
+    // Copy the bits at the end of the message we just parsed to the beginning
+    // of the read buffer.
+
+    // A possible optimizaion here would be to use a ring buffer.
+
+    byte[] nextMsgPart = new byte[nextMsgRead];
+    readBuffer.position(length);
+    readBuffer.get(nextMsgPart, 0, nextMsgRead);
+
+    readBuffer.position(0);
+    readBuffer.put(nextMsgPart);
+
+    length = -1;
+    numRead = nextMsgRead;
   }
 
-  private void parseHandshake () {
-    byte[] bytes = new byte[68];
-    readBuffer.get(bytes, 0, 68);  // Copy the handshake out of the readBuffer
-    ByteBuffer handshake = ByteBuffer.wrap(bytes);
+  // ## findLength
+  // Grab the length of the next message out of the read buffer if possible
+  public void findLength () {
+    // If we've read at least four bytes, we haven't gotten a length yet,
+    // and we're not reading a handshake message, then grab the length out of
+    // the readBuffer.
+    if (length == -1 && numRead >= 4 && state != "handshake") 
+      // add 4 to account for the length of the integer specifying the length
+      length = readBuffer.getInt(0) + 4;
 
-    ByteBuffer id = (ByteBuffer) handshake.slice().position(1).limit(20);
-    // TODO: do the string stuff properly
-    ByteBuffer correctid = 
-      ByteBuffer.wrap(new String("BitTorrent Protocol").getBytes());
-
-    if (!bufferEquals(id, correctid, 19)) {         // verify the protocol id
-      error(new Exception("handshake"));
-      return;
-    } 
-
-    handshake.position(0);
-    ByteBuffer receivedInfoHash =  // Parse out the info hash
-      (ByteBuffer) handshake.slice().position(28).limit(48);
-
-    if (!bufferEquals(receivedInfoHash, infoHash, 20)) { // verify the info hash
-      error(new Exception("handshake"));
-      return;
-    }
-
-    infoHash.position(0);
-
-    handshake.position(0);
-    peerId = (ByteBuffer) handshake.slice().position(48).limit(68);
-    state = "normal";
+    // If we expect a handshake and we don't have a length yet,
+    else if (length == -1 && numRead >= 1 && state == "handshake") 
+      // `length` here is actually just the length of the protocol identifier
+      // string.  We need to add 49 to account for the rest of the message.
+      length = ((int) readBuffer.get(0)) + 49;
   }
 
   // called by the Broker to send messages
@@ -181,22 +210,6 @@ class Protocol {
 
   public String toString () {
     return "Protocol, state: " + state + " curr recv msg len: " + length + 
-      " numRead: " + numRead + " numWritten: " + numWritten + " peerid: " + peerId;
-  }
-
-  public static void main (String[] args) {
-    try {
-      ByteBuffer infohash = ByteBuffer.wrap(new String("asdfasdfasdfasdfasdf").getBytes());
-      Protocol p = new Protocol(InetAddress.getByName("localhost"), 4000, infohash);
-
-      while (true) {
-        p.communicate();
-        System.out.println(p);
-        Message m = p.receive();
-        if (m != null) System.out.println(m);
-        Thread.sleep(100);
-      }
-
-    } catch (Exception e) { e.printStackTrace(); return; }
+      " numRead: " + numRead + " numWritten: " + numWritten + " peerid: " + theirPeerId;
   }
 }

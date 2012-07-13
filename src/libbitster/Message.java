@@ -81,6 +81,11 @@ class Message {
     }
   }
 
+  // keepalive
+  public Message () {
+    this.type = -1;
+  }
+
   public Message (int type) {
     this.type = type;
   }
@@ -97,6 +102,12 @@ class Message {
     ByteBuffer buff = null;
     
     switch (type) {
+      // keepalive
+      case -1:
+        buff = ByteBuffer.allocate(4);
+        buff.putInt(0);
+      break;
+
       case CHOKE:
       case UNCHOKE:
       case INTERESTED:
@@ -156,8 +167,8 @@ class Message {
 
   public String toString () {
     
-    if(type < 0 || type > 7)
-      return "";
+    if(type > 7) return "";
+    if(type < 0) return "keepalive";
     
     String str = TYPES[type].toLowerCase();
     
@@ -207,16 +218,5 @@ class Message {
     return msg;
   }
 
-  //TODO: Getters and setters, more create*(), testing, remove main()
-  
-  public static void main(String[] args) {
-    Message msg = new Message(BITFIELD);
-    msg.bitfield = new BitSet(8);
-    msg.bitfieldByteLength = 1;
-    msg.bitfield.set(7);
-    msg.bitfield.set(2);
-    msg = new Message(msg.serialize());
-    
-    System.err.println(msg);
-  }
+  //TODO: Getters and setters, more create*(), testing
 }
