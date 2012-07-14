@@ -16,6 +16,14 @@ public class Util {
     }
   }
 
+  public static String buff2str (ByteBuffer input) {
+    int oldpos = input.position();
+    StringBuilder ss = new StringBuilder();
+    for (int i = 0; i < input.array().length; i++) 
+      ss.append((char) input.array()[i]);
+    return ss.toString();
+  }
+
   public static void setTimeout (int timeout, Memo memo) {
     Timeout.set(timeout, memo);
   }
