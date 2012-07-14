@@ -4,6 +4,7 @@ import java.nio.*;
 import java.net.*; 
 import java.util.*; 
 import java.nio.channels.*;
+import java.util.logging.*;
 
 public class Protocol {
   private String state; // states:
@@ -11,6 +12,8 @@ public class Protocol {
   // 'error': error occured, exception property will be populated
   // 'handshake': waiting for handshake message
   // 'normal': operating normally (may add more such states later)
+
+  private final static Logger log = Logger.getLogger("Protocol");
 
   private InetAddress host;
   private int port;
@@ -162,6 +165,7 @@ public class Protocol {
         readBuffer.get(bytes, 0, length);  
         ByteBuffer handshake = ByteBuffer.wrap(bytes);
         theirPeerId = Handshake.verify(infoHash, handshake);
+        log.info("Handshake successful, peer id: " + Util.buff2str(theirPeerId));
         state = "normal";
       } catch (Exception e) { error(e); }
     } else inbox.offer(new Message(readBuffer)); 
