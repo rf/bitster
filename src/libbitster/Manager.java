@@ -3,9 +3,10 @@ package libbitster;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Map;
 import java.util.Random;
+import java.net.*;
 
 public class Manager extends Actor {
 
@@ -23,7 +24,7 @@ public class Manager extends Actor {
   private ServerSocket listen;
 
   // current list of peers
-  private ArrayList<Map<String, String>> peers;
+  private ArrayList<Map<String, Object>> peers;
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
   // torrent info
@@ -72,7 +73,7 @@ public class Manager extends Actor {
 
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
-      peers = (ArrayList<Map<String, String>>) memo.getPayload();
+      peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if(peers.isEmpty())
         System.out.println("Manager: peer list is empty!");
       else
@@ -81,12 +82,18 @@ public class Manager extends Actor {
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
-        Map<String,String> currPeer = peers.get(i);
+        Map<String,Object> currPeer = peers.get(i);
         System.out.println(currPeer);
-        if(peers.get(i).get("peer id").startsWith("RUBT11"))
+        ByteBuffer prefix = Util.s("RUBT11");
+        ByteBuffer id = peers.get(i).get("peerId");
+        if(Util.bufferEquals(id, prefix, 6))
         {
           // set up a broker
-          // brokers.append(new Broker(
+          brokers.add(new Broker(
+            InetAddress.getByName((String) peers.get(i).get("ip")),
+            (Integer) peers.get(i).get("port"),
+            this
+          ));
         }
       }
     }
