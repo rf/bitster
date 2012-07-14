@@ -51,6 +51,8 @@ public class Broker extends Actor {
     interested = false;   // We are not interested in the peer.
 
     state = "normal";
+
+    start();  // start my thread
   }
 
   // ## receive
