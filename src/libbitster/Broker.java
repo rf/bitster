@@ -32,13 +32,13 @@ public class Broker extends Actor {
   private final static Logger log = Logger.getLogger("Broker");
 
   public Broker (InetAddress host, int port, Manager manager) {
-    log.finer("Initializing Broker for host: " + host);
+    log.finer("Broker init for host: " + host);
 
     peer = new Protocol(
       host, 
       port, 
       manager.getInfoHash(),
-      manager.getPeerID()
+      manager.getPeerId()
     );
 
     this.manager = manager;
@@ -52,6 +52,8 @@ public class Broker extends Actor {
 
     state = "normal";
 
+    Util.setTimeout(120000, new Memo("keepalive", null, this));
+
     start();  // start my thread
   }
 
@@ -60,6 +62,11 @@ public class Broker extends Actor {
   protected void receive (Memo memo) {
     if (memo.getType() == "message") {
       peer.send((Message) memo.getPayload());
+    }
+
+    else if (memo.getType() == "keepalive") {
+      peer.send(Message.createKeepAlive());
+      Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
   }
 

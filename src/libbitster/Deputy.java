@@ -137,7 +137,7 @@ public class Deputy extends Actor {
 
       // add peer ID
       finalURL.append("&peer_id=");
-      finalURL.append(new String(manager.getPeerID().array()));
+      finalURL.append(new String(manager.getPeerId().array()));
 
       // add port
       finalURL.append("&port=");
