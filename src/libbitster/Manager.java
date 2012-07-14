@@ -189,7 +189,7 @@ public class Manager extends Actor {
             int size = p.sizeOf(index);
 
             b.post(new Memo("request", Message.createRequest(
-              index, index * blockSize, size
+              p.getNumber(), index * blockSize, size
             ), this));
           } 
 
