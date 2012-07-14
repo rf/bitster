@@ -37,6 +37,8 @@ public class Manager extends Actor {
   // torrent info
   private int downloaded, uploaded, left;
 
+  private Funnel funnel;
+
   /**
    * Instantiates the Manager and its Deputy, sending a memo containing the
    * tracker's announce URL.
@@ -133,6 +135,16 @@ public class Manager extends Actor {
 
       }
     }
+
+    else if (memo.getType() == "block") {
+      Message msg = (Message) memo.getPayload();
+      pieces.get(msg.getIndex()).addBlock(msg.getBegin(), msg.getBlock());
+      downloaded += msg.getBlockLength();
+      left -= msg.getBlockLength();
+
+      log.info("Got block, " + left + " left to download.");
+    }
+
     return;
   }
 
