@@ -7,6 +7,7 @@ import java.util.*;
 import java.util.Map;
 import java.util.Random;
 import java.net.*;
+import java.util.logging.Logger;
 
 public class Manager extends Actor {
 
@@ -18,7 +19,7 @@ public class Manager extends Actor {
   private Deputy deputy;
 
   // Peer ID
-  private final ByteBuffer peerID;
+  private final ByteBuffer peerId;
 
   //Listens for incoming peer connections
   private ServerSocket listen;
@@ -26,6 +27,8 @@ public class Manager extends Actor {
   // current list of peers
   private ArrayList<Map<String, Object>> peers;
   private LinkedList<Broker> brokers; // broker objects for peer communication
+
+  private final static Logger log = Logger.getLogger("Manager");
 
   // torrent info
   private int downloaded, uploaded, left;
@@ -39,15 +42,16 @@ public class Manager extends Actor {
   public Manager(TorrentInfo metainfo)
   {
     super();
-    this.metainfo = metainfo;
 
+    log.finer("Manager init");
+
+    this.metainfo = metainfo;
     this.setDownloaded(0);
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
 
     // generate peer ID if we haven't already
-    this.peerID = generatePeerID();
-    System.out.println(new String(this.peerID.array()));
+    this.peerId = generatePeerID();
 
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
@@ -66,6 +70,8 @@ public class Manager extends Actor {
 
     deputy = new Deputy(metainfo, listen.getLocalPort(), this);
     deputy.start();
+
+    log.finer("Our peer id: " + Util.buff2str(peerId));
   }
 
   @SuppressWarnings("unchecked")
@@ -73,6 +79,7 @@ public class Manager extends Actor {
 
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
+      log.finer("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if(peers.isEmpty())
         System.out.println("Manager: peer list is empty!");
@@ -154,8 +161,8 @@ public class Manager extends Actor {
     this.left = left;
   }
 
-  public ByteBuffer getPeerID () {
-    return peerID;
+  public ByteBuffer getPeerId () {
+    return peerId;
   }
 
   public ByteBuffer getInfoHash () {
