@@ -13,6 +13,7 @@ public class Piece {
   private byte[] data;
   private byte[] hash;
   private BitSet completed;
+  private BitSet requested;
   private final static Logger log = Logger.getLogger("Piece");
 
   private int size; // size of the whole piece
@@ -38,6 +39,7 @@ public class Piece {
 
     //One bit for each block
     completed = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
+    requested = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
   }
 
   /*
@@ -102,6 +104,17 @@ public class Piece {
     return true;
   }
 
+  public boolean requested () {
+    int blocks = (int)Math.ceil((double)data.length / (double)blockSize);
+
+    //If any block is not completed than the piece is not finished
+    for(int i=0; i<blocks; ++i)
+      if(!requested.get(i))
+        return false;
+
+    return true;
+  }
+
   /*
    * Gets the piece index
    * @return The piece number
@@ -124,14 +137,15 @@ public class Piece {
 
   // Get the next block we need to retrieve
   public final int next () {
-    int next = completed.nextClearBit(0);
-    completed.set(next);
+    int next = requested.nextClearBit(0);
+    if (next > size / blockSize) return -1;
+    requested.set(next);
     return next;
   }
 
   // Size of one particular block
   public final int sizeOf (int index) {
-    if ((blockSize * index) < size) return blockSize - (size % blockSize);
+    if ((blockSize * (index + 1)) > size) return blockSize - (size % blockSize);
     else return blockSize;
   }
 
