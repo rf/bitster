@@ -16,6 +16,23 @@ public class Util {
     }
   }
 
+  public static boolean bufferEquals (ByteBuffer a, ByteBuffer b, int num) {
+    try {
+      for (int i = 0; i < num; i++) if (a.get() != b.get()) return false;
+      return true;
+    } catch (BufferUnderflowException e) { return false; }
+  }
+
+  public static String buff2str (ByteBuffer input) {
+    if (input == null) return "null buffer";
+    int oldpos = input.position();
+    StringBuilder ss = new StringBuilder();
+    for (int i = 0; i < input.array().length; i++) 
+      ss.append((char) input.array()[i]);
+    input.position(oldpos);
+    return ss.toString();
+  }
+
   public static void setTimeout (int timeout, Memo memo) {
     Timeout.set(timeout, memo);
   }
