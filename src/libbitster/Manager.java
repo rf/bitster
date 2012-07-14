@@ -8,6 +8,13 @@ import java.util.*;
 import java.net.*;
 import java.util.logging.*;
 
+/**
+ * Coordinates actions of all the {@link Actor}s and manages
+ * the application's operation. 
+ * @author Martin Miralles-Cordal
+ * @author Russell Frank
+ * @author Theodore Surgent
+ */
 public class Manager extends Actor {
 
   private final int blockSize = 16384;
