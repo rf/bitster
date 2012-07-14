@@ -1,6 +1,5 @@
 package libbitster;
 
-import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -12,7 +11,6 @@ public class Piece {
   private int number;
   private int blockSize;
   private byte[] data;
-  private byte[] hash;
   private BitSet completed;
   
   /*
@@ -21,25 +19,17 @@ public class Piece {
    * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
    * @param size The size of this piece, must be >= blockSize
    */
-  public Piece(int number, int blockSize, int size, byte[] hash) {
+  public Piece(int number, int blockSize, int size) {
     //Sanity checks
     if(number < 0 || blockSize <= 0 || size <= 0)
       throw new IllegalArgumentException("Arguments must be > 0 (except number which may = 0)");
     if(blockSize > size)
       throw new IllegalArgumentException("blockSize must be < size");
-    if(hash == null || hash.length != 20)
-      throw new IllegalArgumentException("hash should be 20 bytes long");
     
     this.number = number;
     this.blockSize = blockSize;
-    this.hash = hash;
     
-    try {
-      data = new byte[size];
-    }
-    catch(Exception ex) {
-      throw new OutOfMemoryError();
-    }
+    data = new byte[size];
     
     //One bit for each block
     completed = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
@@ -94,6 +84,14 @@ public class Piece {
   }
   
   /*
+   * Gets the piece index
+   * @return The piece number
+   */
+  public int getNumber() {
+    return number;
+  }
+  
+  /*
    * Gets the data associated with this piece after being finished
    * If the piece is not finished you get a lovely IllegalStateException instead ;)
    * @return The data associated with this piece
@@ -109,7 +107,7 @@ public class Piece {
    * Returns true if the data associated with this piece matches the expected hash
    * @return true if this piece is valid
    */
-  public boolean isValid() {
+  public boolean isValid(byte[] expectedHash) {
     MessageDigest sha1;
     byte[] hash;
         
@@ -122,6 +120,6 @@ public class Piece {
     
     hash = sha1.digest(data);
     
-    return Arrays.equals(this.hash, hash);
+    return Arrays.equals(hash, expectedHash);
   }
 }
