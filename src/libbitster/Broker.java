@@ -147,7 +147,7 @@ public class Broker extends Actor {
       Iterator<Message> i = outbox.iterator();
       while (i.hasNext()) {
         Message msg = i.next();
-        log.info("Sending: " + msg);
+        log.info("Sending " + msg);
         peer.send(msg);
         i.remove();
       }

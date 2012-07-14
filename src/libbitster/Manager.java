@@ -157,7 +157,10 @@ public class Manager extends Actor {
       downloaded += msg.getBlockLength();
       left -= msg.getBlockLength();
 
-      if (p.finished()) funnel.post(new Memo("piece", p, this));
+      if (p.finished()) {
+        log.info("Posting piece " + p.getNumber() + " to funnel");
+        funnel.post(new Memo("piece", p, this));
+      }
 
       log.info("Got block, " + left + " left to download.");
     }
@@ -188,10 +191,9 @@ public class Manager extends Actor {
 
           if (p != null) {
             int index = p.next();
-            int size = p.sizeOf(index);
 
             b.post(new Memo("request", Message.createRequest(
-              p.getNumber(), index * blockSize, size
+              p.getNumber(), index * blockSize, p.sizeOf(index)
             ), this));
           } 
 
@@ -246,7 +248,7 @@ public class Manager extends Actor {
     Piece p;
     while (i.hasNext()) {
       p = i.next();
-      if (!p.finished()) return p;
+      if (!p.requested()) return p;
     }
 
     return null;
