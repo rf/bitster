@@ -2,6 +2,7 @@ package libbitster;
 
 import java.net.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 // The `Broker` class manages a connection with a peer.  It uses the
 // `Protocol` class for the actual communication.  It accepts the following
@@ -9,7 +10,6 @@ import java.util.*;
 //
 //  * `message`: payload is a message to be delivered to the peer
 
->>>>>>> Stashed changes
 public class Broker extends Actor {
   private String state;
   public Exception exception;
@@ -29,7 +29,11 @@ public class Broker extends Actor {
 
   private int numReceived = 0; // # of recvd messages
 
+  private final static Logger log = Logger.getLogger("Broker");
+
   public Broker (InetAddress host, int port, Manager manager) {
+    log.finer("Initializing Broker for host: " + host);
+
     peer = new Protocol(
       host, 
       port, 
@@ -97,6 +101,12 @@ public class Broker extends Actor {
     peer.communicate(); // pump that shit
     Message m;
     while ((m = peer.receive()) != null) message(m); // grab any available msgs
+
+    if (peer.getState() == "error") {
+      log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
+        "error: " + peer.exception);
+      state = "error";
+    }
   }
 
   // Accessors.
