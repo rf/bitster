@@ -83,6 +83,7 @@ public class Message {
             byte[] bytes = new byte[length - 9];
             from.get(bytes, 0, length - 9);
             block = ByteBuffer.wrap(bytes);
+            blockLength = length - 9;
           break;
         }
       }
@@ -195,7 +196,7 @@ public class Message {
       break;
   
       case REQUEST:
-        str += ":" + index + ":" + begin + ":" + length;
+        str += ":" + index + ":" + begin + ":" + blockLength;
       break;
   
       case PIECE:

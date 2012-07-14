@@ -131,7 +131,7 @@ public class Piece {
 
   // Size of one particular block
   public final int sizeOf (int index) {
-    if (blockSize * index < size) return size - (blockSize * index);
+    if ((blockSize * index) < size) return blockSize - (size % blockSize);
     else return blockSize;
   }
 
