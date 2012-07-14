@@ -8,26 +8,27 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import java.io.*;
+
 public class Funnel extends Actor {
   private int size;
   private int pieceSize;
   private AtomicInteger added;
   private List<Piece> pieces;
-  private String filename;
+  private File dest;
 
   /*
    * Creates Funnel representing a single file being downloaded
    * @param size The size of the expected file
    * @param pieceSize The size of each piece being received except possibly the last (usually 2^14 or 16KB)
    */
-  public Funnel(String filename, int size, int pieceSize) {
+  public Funnel(File dest, int size, int pieceSize) {
     if(size < 0 || pieceSize < 0 || size < pieceSize)
       throw new IllegalArgumentException();
 
     this.size = size;
     this.pieceSize = pieceSize;
     this.added = new AtomicInteger(0);
-    this.filename = filename;
     int numPieces = (int)Math.ceil((double)size / (double)pieceSize);
     pieces = new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null));
   }
@@ -108,19 +109,11 @@ public class Funnel extends Actor {
     if(!finished())
       throw new IllegalStateException("File is not finished being downloaded");
 
-    FileOutputStream fileOut = new FileOutputStream(filename);
+    FileOutputStream fileOut = new FileOutputStream(dest);
 
     for(int piece = 0, numPieces = pieces.size(); piece < numPieces; ++piece)
       fileOut.write(pieces.get(piece).getData());
 
     fileOut.close();
-  }
-
-  public String getFilename() {
-      return filename;
-  }
-
-  public void setFilename(String filename) {
-    this.filename = filename;
   }
 }

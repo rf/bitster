@@ -71,6 +71,8 @@ public class Manager extends Actor {
 
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
+    funnel = new Funnel(dest, metainfo.file_length, metainfo.piece_length);
+    funnel.start();
 
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
@@ -149,9 +151,13 @@ public class Manager extends Actor {
 
     else if (memo.getType() == "block") {
       Message msg = (Message) memo.getPayload();
-      pieces.get(msg.getIndex()).addBlock(msg.getBegin(), msg.getBlock());
+      Piece p = pieces.get(msg.getIndex());
+
+      p.addBlock(msg.getBegin(), msg.getBlock());
       downloaded += msg.getBlockLength();
       left -= msg.getBlockLength();
+
+      if (p.finished()) funnel.post(new Memo("piece", p, this));
 
       log.info("Got block, " + left + " left to download.");
     }
