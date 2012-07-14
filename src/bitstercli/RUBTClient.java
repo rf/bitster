@@ -10,6 +10,10 @@ import libbitster.BencodingException;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
 
+/**
+ * Driver class for Bitster
+ * @author Martin Miralles-Cordal
+ */
 public class RUBTClient {
 
   /**
