@@ -3,33 +3,38 @@ package libbitster;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Map;
 import java.util.Random;
+import java.net.*;
+import java.util.logging.*;
 
 public class Manager extends Actor {
-  
+
   // the contents of the metainfo file
   @SuppressWarnings("unused")
   private TorrentInfo metainfo;
-  
+
   // communicates with tracker
   private Deputy deputy;
-  
+
   // Peer ID
-  private final ByteBuffer peerID;
-  
+  private final ByteBuffer peerId;
+
   //Listens for incoming peer connections
   private ServerSocket listen;
-  
+
   // current list of peers
-  private ArrayList<Map<String, String>> peers;
-  
+  private ArrayList<Map<String, Object>> peers;
+  private LinkedList<Broker> brokers; // broker objects for peer communication
+
+  private final static Logger log = Logger.getLogger("Manager");
+
   // torrent info
   private int downloaded, uploaded, left;
-  
+
   /**
-   * Instantiates the Manager and its Deputy, sending a memo containing the 
+   * Instantiates the Manager and its Deputy, sending a memo containing the
    * tracker's announce URL.
    * @param metainfo A {@link TorrentInfo} object containing information about
    * a torrent.
@@ -37,16 +42,21 @@ public class Manager extends Actor {
   public Manager(TorrentInfo metainfo)
   {
     super();
+
+    log.setLevel(Level.FINEST);
+
+    log.info("Manager init");
+
     this.metainfo = metainfo;
-    
     this.setDownloaded(0);
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
-    
+
+    brokers = new LinkedList<Broker>();
+
     // generate peer ID if we haven't already
-    this.peerID = generatePeerID();
-    System.out.println(new String(this.peerID.array()));
-    
+    this.peerId = generatePeerID();
+
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -61,38 +71,61 @@ public class Manager extends Actor {
         }
       }
     }
-    
+
     deputy = new Deputy(metainfo, listen.getLocalPort(), this);
     deputy.start();
+
+    log.info("Our peer id: " + Util.buff2str(peerId));
   }
-  
+
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
-    
+
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
-      peers = (ArrayList<Map<String, String>>) memo.getPayload();
+      log.info("Received peer list");
+      peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if(peers.isEmpty())
-        System.out.println("Manager: peer list is empty!");
+        log.warning("Peer list empty!");
       else
-        System.out.println("Manager: peers received!");
-      
+        log.info("Peer list recieved!");
+
+      // TODO: fix this to check against connected peers so we dont have
+      // duplicates
+      if (brokers.size() > 0) return;
+
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
-        Map<String,String> currPeer = peers.get(i);
-        System.out.println(currPeer);
-        if(peers.get(i).get("peer id").startsWith("RUBT11"))
+        Map<String,Object> currPeer = peers.get(i);
+        ByteBuffer prefix = Util.s("RUBT11");
+        ByteBuffer id = (ByteBuffer) peers.get(i).get("peerId");
+        if(Util.bufferEquals(id, prefix, 6))
         {
-          // set up a broker
+          try {
+            InetAddress ip = 
+              InetAddress.getByName((String) peers.get(i).get("ip"));
+            // set up a broker
+            brokers.add(new Broker(
+              ip,
+              (Integer) peers.get(i).get("port"),
+              this
+            ));
+          } catch (UnknownHostException e) { /*impossible*/ }
         }
       }
     }
     return;
   }
-  
+
+  protected void idle () {
+    try { Thread.sleep(10); } catch (InterruptedException e) {}
+
+    for (Broker broker : brokers) broker.tick();          // tick each broker
+  }
+
   /**
-   * Generates a 20 character {@code byte} array for use as a 
+   * Generates a 20 character {@code byte} array for use as a
    * peer ID
    * @return A randomly generated peer ID
    */
@@ -115,9 +148,9 @@ public class Manager extends Actor {
         rand -= 10;
         id[i] = (byte) ('A' + rand);
       }
-        
+
     }
-    
+
     return ByteBuffer.wrap(id);
   }
 
@@ -145,8 +178,12 @@ public class Manager extends Actor {
     this.left = left;
   }
 
-  public ByteBuffer getPeerID() {
-    return peerID;
+  public ByteBuffer getPeerId () {
+    return peerId;
   }
- 
+
+  public ByteBuffer getInfoHash () {
+    return metainfo.info_hash;
+  }
+
 }

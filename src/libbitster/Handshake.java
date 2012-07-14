@@ -24,11 +24,10 @@ public class Handshake {
 
     ByteBuffer id = (ByteBuffer) handshake.slice().position(1).limit(20);
     // TODO: do the string stuff properly
-    ByteBuffer correctid = 
-      ByteBuffer.wrap("BitTorrent Protocol".getBytes());
+    ByteBuffer correctid = Util.s("BitTorrent protocol");
 
     if (!bufferEquals(id, correctid, 19)) {         // verify the protocol id
-      throw new Exception("handshake");
+      throw new Exception("handshake: incorrect protocol id");
     } 
 
     handshake.position(0);
@@ -36,12 +35,14 @@ public class Handshake {
       (ByteBuffer) handshake.slice().position(28).limit(48);
 
     if (!bufferEquals(receivedInfoHash, infoHash, 20)) { // verify the info hash
-      throw new Exception("handshake");
+      throw new Exception("handshake: infohash doesnt match");
     }
 
     infoHash.position(0);
-    handshake.position(0);
-    ByteBuffer peerId = (ByteBuffer) handshake.slice().position(48).limit(68);
+    handshake.position(48);
+    byte[] peerIdBytes = new byte[20];
+    handshake.get(peerIdBytes, 0, 20);
+    ByteBuffer peerId = ByteBuffer.wrap(peerIdBytes);
 
     return peerId;
   }
@@ -50,9 +51,12 @@ public class Handshake {
   // Creates a handshake ByteBuffer
 
   public static ByteBuffer create (ByteBuffer infoHash, ByteBuffer peerId) {
+    infoHash.position(0);
+    peerId.position(0);
+
     ByteBuffer handshake = ByteBuffer.allocate(68);
     handshake.put((byte) 19);
-    handshake.put("BitTorrent Protocol".getBytes());
+    handshake.put("BitTorrent protocol".getBytes());
     handshake.putInt(0);  // 8 bytes with value 0
     handshake.putInt(0);  // TODO: do this in a non-shitty way
 

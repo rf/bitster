@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.logging.*;
 
 import libbitster.BencodingException;
 import libbitster.Manager;
@@ -16,6 +17,8 @@ public class RUBTClient {
    * @param args Takes in a torrent file and a destination file name as arguments 
    */
   public static void main(String[] args) {
+    Logger log = Logger.getLogger("bitster");
+
     try {
       File f = new File(args[0]);
       byte[] torrentBytes = new byte[(int) f.length()]; 
