@@ -20,10 +20,10 @@ public class Manager extends Actor {
   private final int blockSize = 16384;
 
   // the contents of the metainfo file
-  @SuppressWarnings("unused")
   private TorrentInfo metainfo;
   
   // destination file
+  @SuppressWarnings("unused")
   private File dest;
 
   // communicates with tracker
@@ -127,18 +127,16 @@ public class Manager extends Actor {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
         ByteBuffer prefix = Util.s("RUBT11");
-        ByteBuffer id = (ByteBuffer) peers.get(i).get("peerId");
-
+        ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
         if(Util.bufferEquals(id, prefix, 6))
         {
           try {
             InetAddress ip = 
-              InetAddress.getByName((String) peers.get(i).get("ip"));
-
+              InetAddress.getByName((String) currPeer.get("ip"));
             // set up a broker
             brokers.add(new Broker(
               ip,
-              (Integer) peers.get(i).get("port"),
+              (Integer) currPeer.get("port"),
               this
             ));
           } catch (UnknownHostException e) { /*impossible*/ }
