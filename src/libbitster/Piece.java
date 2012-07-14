@@ -9,6 +9,12 @@ public class Piece {
   private byte[] data;
   private BitSet completed;
   
+  /*
+   * Creates an empty piece
+   * @param number The piece index
+   * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
+   * @param size The size of this piece, must be >= blockSize
+   */
   public Piece(int number, int blockSize, int size) {
     //Sanity checks
     if(number < 0 || blockSize <= 0 || size <= 0)
@@ -30,6 +36,11 @@ public class Piece {
     completed = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
   }
   
+  /*
+   * Adds a block of bytes to the piece
+   * @param begin The byte offset within the piece, must be aligned to a blockSize boundary
+   * @param block The block of bytes to add
+   */
   public void addBlock(int begin, ByteBuffer block) {
     if(block == null || block.position() != 0)
       throw new IllegalArgumentException("block is either null or is not at the beginning of the buffer");
@@ -58,6 +69,10 @@ public class Piece {
     completed.set(begin % blockSize);
   }
   
+  /*
+   * Returns true when all blocks have been added to this piece
+   * @return true when finished, otherwise false
+   */
   public boolean finished() {
     int blocks = (int)Math.ceil((double)data.length / (double)blockSize);
     
@@ -69,6 +84,11 @@ public class Piece {
     return true;
   }
   
+  /*
+   * Gets the data associated with this piece after being finished
+   * If the piece is not finished you get a lovely IllegalStateException instead ;)
+   * @return The data associated with this piece
+   */
   public final byte[] getData() {
     if(!finished())
       throw new IllegalStateException("Piece is not finished");
