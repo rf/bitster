@@ -5,12 +5,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.logging.Logger;
 
 public class Piece {
   private int number;
   private int blockSize;
   private byte[] data;
+  private byte[] hash;
   private BitSet completed;
+  private final static Logger log = Logger.getLogger("Piece");
   
   /*
    * Creates an empty piece
@@ -18,7 +21,7 @@ public class Piece {
    * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
    * @param size The size of this piece, must be >= blockSize
    */
-  public Piece(int number, int blockSize, int size) {
+  public Piece(byte[] hash, int number, int blockSize, int size) {
     //Sanity checks
     if(number < 0 || blockSize <= 0 || size <= 0)
       throw new IllegalArgumentException("Arguments must be > 0 (except number which may = 0)");
@@ -44,27 +47,41 @@ public class Piece {
       throw new IllegalArgumentException("block is either null or is not at the beginning of the buffer");
     
     //Make sure we are on correct boundaries
-    if(begin % blockSize != 0)
-      throw new IllegalArgumentException("begin must be aligned on a " + blockSize + " byte boundry");
-    if(begin + block.limit() > data.length || begin < 0)
-      throw new IllegalArgumentException("block under/overflows the buffer for this piece");
+    if(begin % blockSize != 0) {
+      String msg = "begin must be aligned on a " + blockSize + " byte boundry";
+      log.finer(msg);
+      throw new IllegalArgumentException(msg);
+    }
+    if(begin + block.limit() > data.length || begin < 0) {
+      String msg = "block under/overflows the buffer for this piece";
+      log.finer(msg);
+      throw new IllegalArgumentException(msg);
+    }
     
-    //If this piece was already downloaded then there is nothing to to
-    if(completed.get(begin % blockSize))
+    //If this block was already downloaded then there is nothing to to
+    if(completed.get(begin / blockSize)) {
+      log.finer("The block " + (begin / blockSize) + " was already downloaded");
       return;
+    }
     
     //Check to make sure not special case where final block would be smaller than the rest
     //Also check to make sure 'block' is of length 'blockSize'
-    if( (begin < (data.length / blockSize) * blockSize) && (block.limit() != blockSize) )
-      throw new IllegalArgumentException("block is of not " + blockSize + " bytes long");
-    else if(block.limit() != data.length % blockSize) //Last block which is smaller
-      throw new IllegalArgumentException("block is not " + (data.length % blockSize) + " bytes long for final block");
+    if( (begin < (data.length / blockSize) * blockSize) && (block.limit() != blockSize) ) {
+      String msg = "block is of not " + blockSize + " bytes long";
+      log.finer(msg);
+      throw new IllegalArgumentException(msg);
+    }
+    else if(block.limit() != data.length % blockSize) { //Last block which is smaller
+      String msg = "block is not " + (data.length % blockSize) + " bytes long for final block";
+      log.finer(msg);
+      throw new IllegalArgumentException(msg);
+    }
     
     //Copy block over to this piece
     for(int i = begin, l = begin + block.limit(); i < l; ++i)
       data[i] = block.get();
     
-    completed.set(begin % blockSize);
+    completed.set(begin / blockSize);
   }
   
   /*
@@ -106,7 +123,7 @@ public class Piece {
    * Returns true if the data associated with this piece matches the expected hash
    * @return true if this piece is valid
    */
-  public boolean isValid(byte[] expectedHash) {
+  public boolean isValid() {
     MessageDigest sha1;
     byte[] hash;
         
@@ -119,6 +136,6 @@ public class Piece {
     
     hash = sha1.digest(data);
     
-    return Arrays.equals(hash, expectedHash);
+    return Arrays.equals(hash, this.hash);
   }
 }

@@ -1,6 +1,5 @@
 package libbitster;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -14,25 +13,27 @@ public class Funnel extends Actor {
   private int pieceSize;
   private AtomicInteger added;
   private List<Piece> pieces;
+  private String filename;
   
   /*
    * Creates Funnel representing a single file being downloaded
    * @param size The size of the expected file
    * @param pieceSize The size of each piece being received except possibly the last (usually 2^14 or 16KB)
    */
-  public Funnel(int size, int pieceSize) {
+  public Funnel(String filename, int size, int pieceSize) {
     if(size < 0 || pieceSize < 0 || size < pieceSize)
       throw new IllegalArgumentException();
     
     this.size = size;
     this.pieceSize = pieceSize;
     this.added = new AtomicInteger(0);
+    this.filename = filename;
     int numPieces = (int)Math.ceil((double)size / (double)pieceSize);
-    pieces = Collections.synchronizedList(new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null)));
+    pieces = new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null));
   }
   
   /*
-   * Expects a memo containing a Piece as its payload
+   * Currently expects a memo containing a Piece as its payload (will change in future implementation)
    * @see libbitster.Actor#receive(libbitster.Memo)
    */
   protected void receive (Memo memo) {
@@ -40,6 +41,8 @@ public class Funnel extends Actor {
       throw new IllegalArgumentException("Funnel expects a Piece");
     
     Piece piece = (Piece)memo.getPayload();
+    if(!piece.isValid())
+      throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
     if(!piece.finished())
       throw new IllegalArgumentException("The piece being received by Funnel is not finished");
     
@@ -101,7 +104,7 @@ public class Funnel extends Actor {
    * Saves the data to a file if finished
    * @param filename The name of the file to use when saving the data
    */
-  public void saveToFile(String filename) throws IOException {
+  public void saveToFile() throws IOException {
     if(!finished())
       throw new IllegalStateException("File is not finished being downloaded");
     
@@ -111,5 +114,13 @@ public class Funnel extends Actor {
       fileOut.write(pieces.get(piece).getData());
     
     fileOut.close();
+  }
+  
+  public String getFilename() {
+      return filename;
+  }
+  
+  public void setFilename(String filename) {
+    this.filename = filename;
   }
 }
