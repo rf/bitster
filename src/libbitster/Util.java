@@ -24,10 +24,12 @@ public class Util {
   }
 
   public static String buff2str (ByteBuffer input) {
+    if (input == null) return "null buffer";
     int oldpos = input.position();
     StringBuilder ss = new StringBuilder();
     for (int i = 0; i < input.array().length; i++) 
       ss.append((char) input.array()[i]);
+    input.position(oldpos);
     return ss.toString();
   }
 

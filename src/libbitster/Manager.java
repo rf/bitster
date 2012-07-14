@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.Map;
 import java.util.Random;
 import java.net.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 public class Manager extends Actor {
 
@@ -43,12 +43,16 @@ public class Manager extends Actor {
   {
     super();
 
-    log.finer("Manager init");
+    log.setLevel(Level.FINEST);
+
+    log.info("Manager init");
 
     this.metainfo = metainfo;
     this.setDownloaded(0);
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
+
+    brokers = new LinkedList<Broker>();
 
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
@@ -71,7 +75,7 @@ public class Manager extends Actor {
     deputy = new Deputy(metainfo, listen.getLocalPort(), this);
     deputy.start();
 
-    log.finer("Our peer id: " + Util.buff2str(peerId));
+    log.info("Our peer id: " + Util.buff2str(peerId));
   }
 
   @SuppressWarnings("unchecked")
@@ -79,32 +83,41 @@ public class Manager extends Actor {
 
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
-      log.finer("Received peer list");
+      log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if(peers.isEmpty())
-        System.out.println("Manager: peer list is empty!");
+        log.warning("Peer list empty!");
       else
-        System.out.println("Manager: peers received!");
+        log.info("Peer list recieved!");
 
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
-        System.out.println(currPeer);
         ByteBuffer prefix = Util.s("RUBT11");
-        ByteBuffer id = peers.get(i).get("peerId");
+        ByteBuffer id = (ByteBuffer) peers.get(i).get("peerId");
         if(Util.bufferEquals(id, prefix, 6))
         {
-          // set up a broker
-          brokers.add(new Broker(
-            InetAddress.getByName((String) peers.get(i).get("ip")),
-            (Integer) peers.get(i).get("port"),
-            this
-          ));
+          try {
+            InetAddress ip = 
+              InetAddress.getByName((String) peers.get(i).get("ip"));
+            // set up a broker
+            brokers.add(new Broker(
+              ip,
+              (Integer) peers.get(i).get("port"),
+              this
+            ));
+          } catch (UnknownHostException e) { /*impossible*/ }
         }
       }
     }
     return;
+  }
+
+  protected void idle () {
+    try { Thread.sleep(10); } catch (InterruptedException e) {}
+
+    for (Broker broker : brokers) broker.tick();
   }
 
   /**

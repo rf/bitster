@@ -86,7 +86,10 @@ public class Protocol {
   // handle errors
   private void error (Exception e) {
     state = "error";
-    exception = e;
+    if (!(e instanceof CancelledKeyException)) {
+      exception = e;
+      e.printStackTrace();
+    }
     close();
   }
 

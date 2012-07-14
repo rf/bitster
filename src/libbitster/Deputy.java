@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * Deputy is the {@link Actor} that communicates with the Tracker.
@@ -17,6 +18,8 @@ import java.util.Map;
  *
  */
 public class Deputy extends Actor {
+
+  private final static Logger log = Logger.getLogger("Deputy");
 
   private String state; // states:
   // 'init': just created, waiting to establish a connection
@@ -125,7 +128,7 @@ public class Deputy extends Actor {
     {
       // reset our timer
       this.lastAnnounce = Calendar.getInstance();
-      System.out.println("Announcing...");
+      log.finer("Announcing...");
 
       StringBuffer finalURL = new StringBuffer();
       // add announce URL

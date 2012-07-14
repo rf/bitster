@@ -2,7 +2,7 @@ package libbitster;
 
 import java.net.*;
 import java.util.*;
-import java.util.logging.Logger;
+import java.util.logging.*;
 
 // The `Broker` class manages a connection with a peer.  It uses the
 // `Protocol` class for the actual communication.  It accepts the following
@@ -32,7 +32,9 @@ public class Broker extends Actor {
   private final static Logger log = Logger.getLogger("Broker");
 
   public Broker (InetAddress host, int port, Manager manager) {
-    log.finer("Broker init for host: " + host);
+    super();
+    log.setLevel(Level.FINEST);
+    log.info("Broker init for host: " + host);
 
     peer = new Protocol(
       host, 
@@ -53,8 +55,6 @@ public class Broker extends Actor {
     state = "normal";
 
     Util.setTimeout(120000, new Memo("keepalive", null, this));
-
-    start();  // start my thread
   }
 
   // ## receive
@@ -112,8 +112,10 @@ public class Broker extends Actor {
     while ((m = peer.receive()) != null) message(m); // grab any available msgs
 
     if (peer.getState() == "error") {
-      log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
-        "error: " + peer.exception);
+      if (state != "error") { // we haven't displayed the error msg yet
+        log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
+          "error: " + peer.exception);
+      }
       state = "error";
     }
   }
