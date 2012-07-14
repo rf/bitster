@@ -1,12 +1,18 @@
 package libbitster;
 
+import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.BitSet;
 
 public class Piece {
   private int number;
   private int blockSize;
   private byte[] data;
+  private byte[] hash;
   private BitSet completed;
   
   /*
@@ -15,15 +21,18 @@ public class Piece {
    * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
    * @param size The size of this piece, must be >= blockSize
    */
-  public Piece(int number, int blockSize, int size) {
+  public Piece(int number, int blockSize, int size, byte[] hash) {
     //Sanity checks
     if(number < 0 || blockSize <= 0 || size <= 0)
       throw new IllegalArgumentException("Arguments must be > 0 (except number which may = 0)");
     if(blockSize > size)
       throw new IllegalArgumentException("blockSize must be < size");
+    if(hash == null || hash.length != 20)
+      throw new IllegalArgumentException("hash should be 20 bytes long");
     
     this.number = number;
     this.blockSize = blockSize;
+    this.hash = hash;
     
     try {
       data = new byte[size];
@@ -94,5 +103,25 @@ public class Piece {
       throw new IllegalStateException("Piece is not finished");
       
     return data;
+  }
+  
+  /*
+   * Returns true if the data associated with this piece matches the expected hash
+   * @return true if this piece is valid
+   */
+  public boolean isValid() {
+    MessageDigest sha1;
+    byte[] hash;
+        
+    try {
+      sha1 = MessageDigest.getInstance("SHA-1");
+    }
+    catch (NoSuchAlgorithmException e) {
+      throw new UnsupportedOperationException("JVM does not support SHA-1?");
+    }
+    
+    hash = sha1.digest(data);
+    
+    return Arrays.equals(this.hash, hash);
   }
 }
