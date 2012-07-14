@@ -15,6 +15,11 @@ public class Funnel extends Actor {
   private AtomicInteger added;
   private List<Piece> pieces;
   
+  /*
+   * Creates Funnel representing a single file being downloaded
+   * @param size The size of the expected file
+   * @param pieceSize The size of each piece being received except possibly the last (usually 2^14 or 16KB)
+   */
   public Funnel(int size, int pieceSize) {
     if(size < 0 || pieceSize < 0 || size < pieceSize)
       throw new IllegalArgumentException();
@@ -26,6 +31,10 @@ public class Funnel extends Actor {
     pieces = Collections.synchronizedList(new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null)));
   }
   
+  /*
+   * Expects a memo containing a Piece as its payload
+   * @see libbitster.Actor#receive(libbitster.Memo)
+   */
   protected void receive (Memo memo) {
     if(!(memo.getPayload() instanceof Piece))
       throw new IllegalArgumentException("Funnel expects a Piece");
@@ -48,10 +57,20 @@ public class Funnel extends Actor {
     }
   }
   
+  /*
+   * Returns true when all the pieces have been received
+   * @return true when finished
+   */
   public boolean finished() {
     return added.equals(pieces.size());
   }
   
+  /*
+   * Gets a part of a piece, or a block within a piece
+   * @param pieceNumber The index of the desired piece
+   * @param start The byte offset from the start of the piece
+   * @param length The number of bytes to get
+   */
   public ByteBuffer get(int pieceNumber, int start, int length) {
     if(pieceNumber < 0 || pieceNumber >= pieces.size())
       throw new IndexOutOfBoundsException("pieceNumber is out of bounds");
@@ -78,6 +97,10 @@ public class Funnel extends Actor {
     return buff;
   }
   
+  /*
+   * Saves the data to a file if finished
+   * @param filename The name of the file to use when saving the data
+   */
   public void saveToFile(String filename) throws IOException {
     if(!finished())
       throw new IllegalStateException("File is not finished being downloaded");
