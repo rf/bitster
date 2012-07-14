@@ -11,6 +11,8 @@ import java.util.logging.*;
 
 public class Manager extends Actor {
 
+  private final int blockSize = 16384;
+
   // the contents of the metainfo file
   @SuppressWarnings("unused")
   private TorrentInfo metainfo;
@@ -27,6 +29,8 @@ public class Manager extends Actor {
   // current list of peers
   private ArrayList<Map<String, Object>> peers;
   private LinkedList<Broker> brokers; // broker objects for peer communication
+
+  private ArrayList<Piece> pieces;
 
   private final static Logger log = Logger.getLogger("Manager");
 
@@ -53,6 +57,7 @@ public class Manager extends Actor {
     this.setLeft(metainfo.file_length);
 
     brokers = new LinkedList<Broker>();
+    pieces = new ArrayList<Piece>();
 
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
@@ -76,6 +81,19 @@ public class Manager extends Actor {
     deputy.start();
 
     log.info("Our peer id: " + Util.buff2str(peerId));
+
+    int i, total = metainfo.file_length;
+    for (i = 0; i < metainfo.piece_hashes.length; i++) {
+      pieces.add(new Piece(
+        metainfo.piece_hashes[i].array(), 
+        i, 
+        blockSize, 
+        // If the last piece is truncated (which it probably is) total will
+        // be less than piece_length and will be the last piece's length.
+        Math.min(metainfo.piece_length, total)
+      ));
+      total -= metainfo.piece_length;
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -85,10 +103,7 @@ public class Manager extends Actor {
     {
       log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if(peers.isEmpty())
-        log.warning("Peer list empty!");
-      else
-        log.info("Peer list recieved!");
+      if(peers.isEmpty()) log.warning("Peer list empty!");
 
       // TODO: fix this to check against connected peers so we dont have
       // duplicates
@@ -100,11 +115,13 @@ public class Manager extends Actor {
         Map<String,Object> currPeer = peers.get(i);
         ByteBuffer prefix = Util.s("RUBT11");
         ByteBuffer id = (ByteBuffer) peers.get(i).get("peerId");
+
         if(Util.bufferEquals(id, prefix, 6))
         {
           try {
             InetAddress ip = 
               InetAddress.getByName((String) peers.get(i).get("ip"));
+
             // set up a broker
             brokers.add(new Broker(
               ip,
@@ -113,6 +130,7 @@ public class Manager extends Actor {
             ));
           } catch (UnknownHostException e) { /*impossible*/ }
         }
+
       }
     }
     return;
@@ -121,7 +139,36 @@ public class Manager extends Actor {
   protected void idle () {
     try { Thread.sleep(10); } catch (InterruptedException e) {}
 
-    for (Broker broker : brokers) broker.tick();          // tick each broker
+    Iterator<Broker> i = brokers.iterator();
+    Broker b;
+    while (i.hasNext()) {
+      b = i.next();
+      b.tick();
+      if (b.state() == "error") i.remove();
+      else {
+        if (b.interested() && b.numQueued() < 5 && left > 0) {
+
+          // We are interested in the peer, we have less than 5 requests
+          // queued on the peer, and we have more shit to download.  We should
+          // queue up a request on the peer.
+
+          //log.info("We're interested in a peer. Finding something to req");
+
+          // TODO: actually check if the peer has this piece
+          Piece p = next();
+
+          if (p != null) {
+            int index = p.next();
+            int size = p.sizeOf(index);
+
+            b.post(new Memo("request", Message.createRequest(
+              index, index * blockSize, size
+            ), this));
+          } 
+
+        }
+      }
+    }
   }
 
   /**
@@ -152,6 +199,28 @@ public class Manager extends Actor {
     }
 
     return ByteBuffer.wrap(id);
+  }
+
+  public boolean isInteresting (BitSet peer) {
+    Iterator<Piece> i = pieces.iterator();
+    Piece p;
+    while (i.hasNext()) {
+      p = i.next();
+      if (!p.finished() && peer.get(p.getNumber())) return true;
+    }
+
+    return false;
+  }
+
+  private Piece next () {
+    Iterator<Piece> i = pieces.iterator();
+    Piece p;
+    while (i.hasNext()) {
+      p = i.next();
+      if (!p.finished()) return p;
+    }
+
+    return null;
   }
 
   public int getDownloaded() {
