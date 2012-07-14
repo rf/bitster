@@ -27,7 +27,7 @@ public class Protocol {
   public Exception exception;         // set to an exception if one occurs
 
   // big buffer
-  ByteBuffer readBuffer = ByteBuffer.allocate(32000);
+  ByteBuffer readBuffer = ByteBuffer.allocate(128000);
   private int numRead = 0;
   private int length = -1;
 
