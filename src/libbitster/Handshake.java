@@ -39,9 +39,9 @@ public class Handshake {
     }
 
     infoHash.position(0);
-    handshake.position(0);
+    handshake.position(48);
     byte[] peerIdBytes = new byte[20];
-    handshake.get(peerIdBytes, 48, 1);
+    handshake.get(peerIdBytes, 0, 20);
     ByteBuffer peerId = ByteBuffer.wrap(peerIdBytes);
 
     return peerId;
@@ -51,6 +51,9 @@ public class Handshake {
   // Creates a handshake ByteBuffer
 
   public static ByteBuffer create (ByteBuffer infoHash, ByteBuffer peerId) {
+    infoHash.position(0);
+    peerId.position(0);
+
     ByteBuffer handshake = ByteBuffer.allocate(68);
     handshake.put((byte) 19);
     handshake.put("BitTorrent protocol".getBytes());
