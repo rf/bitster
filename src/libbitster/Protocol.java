@@ -211,6 +211,7 @@ public class Protocol {
   }
 
   public String getState () { return state; }
+  public ByteBuffer getPeerId () { return theirPeerId; }
 
   public String toString () {
     return "Protocol, state: " + state + " curr recv msg len: " + length + 
