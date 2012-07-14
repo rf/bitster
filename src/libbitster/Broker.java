@@ -65,6 +65,7 @@ public class Broker extends Actor {
     }
 
     else if (memo.getType() == "keepalive") {
+      log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
