@@ -90,6 +90,10 @@ public class Manager extends Actor {
       else
         log.info("Peer list recieved!");
 
+      // TODO: fix this to check against connected peers so we dont have
+      // duplicates
+      if (brokers.size() > 0) return;
+
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
@@ -117,7 +121,7 @@ public class Manager extends Actor {
   protected void idle () {
     try { Thread.sleep(10); } catch (InterruptedException e) {}
 
-    for (Broker broker : brokers) broker.tick();
+    for (Broker broker : brokers) broker.tick();          // tick each broker
   }
 
   /**
