@@ -1,14 +1,20 @@
 package libbitster;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.Map;
-import java.util.Random;
 import java.net.*;
 import java.util.logging.*;
 
+/**
+ * Coordinates actions of all the {@link Actor}s and manages
+ * the application's operation. 
+ * @author Martin Miralles-Cordal
+ * @author Russell Frank
+ * @author Theodore Surgent
+ */
 public class Manager extends Actor {
 
   private final int blockSize = 16384;
@@ -16,6 +22,9 @@ public class Manager extends Actor {
   // the contents of the metainfo file
   @SuppressWarnings("unused")
   private TorrentInfo metainfo;
+  
+  // destination file
+  private File dest;
 
   // communicates with tracker
   private Deputy deputy;
@@ -44,8 +53,9 @@ public class Manager extends Actor {
    * tracker's announce URL.
    * @param metainfo A {@link TorrentInfo} object containing information about
    * a torrent.
+   * @param dest The file to save the download as
    */
-  public Manager(TorrentInfo metainfo)
+  public Manager(TorrentInfo metainfo, File dest)
   {
     super();
 
@@ -54,6 +64,7 @@ public class Manager extends Actor {
     log.info("Manager init");
 
     this.metainfo = metainfo;
+    this.dest = dest;
     this.setDownloaded(0);
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
