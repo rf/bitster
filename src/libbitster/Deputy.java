@@ -174,7 +174,7 @@ public class Deputy extends Actor {
         ArrayList<Map> rawPeers =
             (ArrayList<Map>) response.get(
                 ByteBuffer.wrap(new byte[]{'p','e','e','r','s'}));
-        ArrayList<Map<String,String>> peers = parsePeers(rawPeers);
+        ArrayList<Map<String,Object>> peers = parsePeers(rawPeers);
 
         // send updated peer list to manager
         manager.post(new Memo("peers", peers, this));
@@ -197,20 +197,19 @@ public class Deputy extends Actor {
    * Takes the raw peer list from the tracker response and processes it into something
    * that's nicer to work with
    * @param rawPeerList The {@code ArrayList<{@code Map}>} of peers sent from announce()
-   * @return An ArrayList<Map<String, String>> of peers and their information
+   * @return An ArrayList<Map<String, Object>> of peers and their information
    */
-  private ArrayList<Map<String, String>> parsePeers(@SuppressWarnings("rawtypes") ArrayList<Map> rawPeerList)
+  private ArrayList<Map<String, Object>> parsePeers(@SuppressWarnings("rawtypes") ArrayList<Map> rawPeerList)
   {
-    ArrayList<Map<String, String>> processedPeerList = new ArrayList<Map<String, String>>();
+    ArrayList<Map<String, Object>> processedPeerList = new ArrayList<Map<String, Object>>();
     for(int i = 0; i < rawPeerList.size(); ++i)
     {
-      HashMap<String,String> peerInfo = new HashMap<String,String>();
+      HashMap<String,Object> peerInfo = new HashMap<String,Object>();
 
       // get this peer's peer ID
       ByteBuffer peer_id_bytes =
           (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','e','e','r',' ','i','d'}));
-      String peer_id = new String(peer_id_bytes.array());
-      peerInfo.put("peer id", peer_id);
+      peerInfo.put("peerId", peer_id_bytes);
 
       // get this peer's ip
       ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'i','p'}));
@@ -219,7 +218,7 @@ public class Deputy extends Actor {
 
       // get this peer's port
       Integer port = (Integer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','o','r','t'}));
-      peerInfo.put("port", port.toString());
+      peerInfo.put("port", port);
 
       // add it to our peer list
       processedPeerList.add(peerInfo);
