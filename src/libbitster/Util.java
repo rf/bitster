@@ -16,6 +16,13 @@ public class Util {
     }
   }
 
+  public static boolean bufferEquals (ByteBuffer a, ByteBuffer b, int num) {
+    try {
+      for (int i = 0; i < num; i++) if (a.get() != b.get()) return false;
+      return true;
+    } catch (BufferUnderflowException e) { return false; }
+  }
+
   public static String buff2str (ByteBuffer input) {
     int oldpos = input.position();
     StringBuilder ss = new StringBuilder();
