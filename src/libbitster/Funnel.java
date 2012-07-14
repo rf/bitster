@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import java.io.*;
+import java.util.logging.Logger;
 
 public class Funnel extends Actor {
   private int size;
@@ -16,7 +17,7 @@ public class Funnel extends Actor {
   private AtomicInteger added;
   private List<Piece> pieces;
   private File dest;
-
+  private final static Logger log = Logger.getLogger("Funnel");
   /*
    * Creates Funnel representing a single file being downloaded
    * @param size The size of the expected file
@@ -42,8 +43,11 @@ public class Funnel extends Actor {
       throw new IllegalArgumentException("Funnel expects a Piece");
 
     Piece piece = (Piece)memo.getPayload();
-    if(!piece.isValid())
-      throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
+    if(!piece.isValid()) {
+      //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
+      log.severe("Piece " + piece.getNumber() + " failed hash check");
+      return;
+    }
     if(!piece.finished())
       throw new IllegalArgumentException("The piece being received by Funnel is not finished");
 
