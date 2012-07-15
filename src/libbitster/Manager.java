@@ -18,6 +18,7 @@ import java.util.logging.*;
 public class Manager extends Actor {
 
   private final int blockSize = 16384;
+  private String state;
 
   // the contents of the metainfo file
   private TorrentInfo metainfo;
@@ -59,6 +60,7 @@ public class Manager extends Actor {
   {
     super();
 
+    state = "booting";
     log.setLevel(Level.FINEST);
 
     log.info("Manager init");
@@ -169,6 +171,7 @@ public class Manager extends Actor {
   protected void idle () {
     try { Thread.sleep(10); } catch (InterruptedException e) {}
 
+    state = "downloading";
     Iterator<Broker> i = brokers.iterator();
     Broker b;
     while (i.hasNext()) {
@@ -197,6 +200,22 @@ public class Manager extends Actor {
 
         }
       }
+    }
+
+    if (left == 0) {
+      log.info("Download complete.");
+      i = brokers.iterator();
+      while (i.hasNext()) {
+        b = i.next();
+        b.close();
+        i.remove();
+      }
+      state = "done";
+      try { funnel.saveToFile(); }
+      catch (Exception e) { e.printStackTrace(); }
+      funnel.shutdown();
+      Util.shutdown();
+      shutdown();
     }
   }
 

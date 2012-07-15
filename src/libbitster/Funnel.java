@@ -14,7 +14,6 @@ import java.util.logging.Logger;
 public class Funnel extends Actor {
   private int size;
   private int pieceSize;
-  private AtomicInteger added;
   private List<Piece> pieces;
   private File dest;
   private final static Logger log = Logger.getLogger("Funnel");
@@ -27,9 +26,9 @@ public class Funnel extends Actor {
     if(size < 0 || pieceSize < 0 || size < pieceSize)
       throw new IllegalArgumentException();
 
+    this.dest = dest;
     this.size = size;
     this.pieceSize = pieceSize;
-    this.added = new AtomicInteger(0);
     int numPieces = (int)Math.ceil((double)size / (double)pieceSize);
     pieces = new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null));
   }
@@ -58,11 +57,7 @@ public class Funnel extends Actor {
     if(piece.getNumber() == pieces.size() - 1 && piece.getData().length < ((size - 1) % pieceSize) + 1)
       throw new IllegalArgumentException("Piece " + piece.getNumber() + " is too small");
 
-    if(pieces.get(piece.getNumber()) == null)
-    {
-      added.incrementAndGet();
-      pieces.set(piece.getNumber(), piece);
-    }
+    pieces.set(piece.getNumber(), piece);
   }
 
   /*
@@ -70,7 +65,7 @@ public class Funnel extends Actor {
    * @return true when finished
    */
   public boolean finished() {
-    return added.equals(pieces.size());
+    return true;
   }
 
   /*
@@ -115,8 +110,9 @@ public class Funnel extends Actor {
 
     FileOutputStream fileOut = new FileOutputStream(dest);
 
-    for(int piece = 0, numPieces = pieces.size(); piece < numPieces; ++piece)
-      fileOut.write(pieces.get(piece).getData());
+    for (Piece p : pieces) {
+      if (p != null) fileOut.write(p.getData());
+    }
 
     fileOut.close();
   }

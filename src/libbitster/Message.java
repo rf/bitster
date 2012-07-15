@@ -69,13 +69,13 @@ public class Message {
               }
             }
           break;
-  
+
           case REQUEST:
             index = from.getInt();
             begin = from.getInt();
             blockLength = from.getInt();
           break;
-  
+
           case PIECE:
             index = from.getInt();
             begin = from.getInt();
@@ -87,6 +87,7 @@ public class Message {
           break;
         }
       }
+
       else
         type = KEEP_ALIVE;
     }
