@@ -130,7 +130,7 @@ public class Deputy extends Actor {
   }
   @SuppressWarnings("unchecked")
   /**
-   * 
+   * Sends an HTTP GET request and gets fresh info from the tracker.
    * @param args extra parameters for the HTTP GET request. Must start with "&".
    */
   private void announce(ByteBuffer args)
