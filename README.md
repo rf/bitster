@@ -1,5 +1,17 @@
 # Bitster
 
+## Usage
+
+```
+$ java bitstercli/RUBTClient [torrent file] [output file]
+```
+
+For example:
+
+```
+$ java bitstercli/RUBTClient ../project1.torrent out.jpg
+```
+
 ## Overview
 
 Bitster uses several `Actors` running in threads and non-blocking io for
