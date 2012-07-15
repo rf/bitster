@@ -99,6 +99,12 @@ Represents an external message that is passed between peers in the BT peer
 protocol. Has factory methods for creating `Message`s and can deserialize a
 `Message` from a `ByteBuffer`.
 
+#### Piece
+
+Represents a piece of a file. Used by the `Manager` class to send pieces that
+have been received from the `Broker` to the `Funnel` to be merged into a completed
+file. Has methods to add blocks of data to a piece and perform SHA-1 validation.
+
 #### Protocol
 
 Handles all of the low-level protocol detail. Polls the socket and performs io
