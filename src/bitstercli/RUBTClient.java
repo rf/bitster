@@ -41,7 +41,10 @@ public class RUBTClient {
     // validate argument 2
     File dest = new File(args[1]);
     if(dest.exists())
+    {
       log.log(Level.SEVERE, "Error: destination file exists.");
+      return;
+    }
     else
     {
       try {
