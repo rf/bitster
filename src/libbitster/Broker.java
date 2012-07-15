@@ -28,6 +28,9 @@ public class Broker extends Actor {
   private BitSet pieces;
 
   private int numReceived = 0; // # of recvd messages
+  private int numQueued = 0;
+
+  private LinkedList<Message> outbox;
 
   private final static Logger log = Logger.getLogger("Broker");
 
@@ -35,6 +38,8 @@ public class Broker extends Actor {
     super();
     log.setLevel(Level.FINEST);
     log.info("Broker init for host: " + host);
+
+    outbox = new LinkedList<Message>();
 
     peer = new Protocol(
       host, 
@@ -59,9 +64,19 @@ public class Broker extends Actor {
 
   // ## receive
   // Receive a memo
+
   protected void receive (Memo memo) {
-    if (memo.getType() == "message") {
-      peer.send((Message) memo.getPayload());
+    if (memo.getType() == "request") {
+      numQueued += 1;
+      if (choked) {
+        log.info("We're choked, queuing message");
+        outbox.add((Message) memo.getPayload());
+      } 
+      
+      else {
+        log.info("Sending " + (Message) memo.getPayload());
+        peer.send((Message) memo.getPayload());
+      }
     }
 
     else if (memo.getType() == "keepalive") {
@@ -77,6 +92,8 @@ public class Broker extends Actor {
     peer.close();
   }
 
+  public void close () { peer.close(); }
+
   // ## listen
   // Receive a message via tcp
   private void message (Message message) {
@@ -84,22 +101,29 @@ public class Broker extends Actor {
       error(new Exception("protocol error"));
     numReceived += 1;
 
+    log.info(message.toString());
+
     switch (message.getType()) {
 
       // Handle basic messages
-      case Message.CHOKE:          choked = true;                    break;
-      case Message.UNCHOKE:        choked = false;                   break;
-      case Message.INTERESTED:     interesting = true;               break;
-      case Message.NOT_INTERESTED: interesting = false;              break;
-      case Message.BITFIELD:       pieces = message.getBitfield();   break;
+      case Message.CHOKE:          choked = true;                       break;
+      case Message.UNCHOKE:        choked = false;                      break;
+      case Message.INTERESTED:     interesting = true;                  break;
+      case Message.NOT_INTERESTED: interesting = false;                 break;
+      case Message.BITFIELD:       
+        pieces = message.getBitfield();   
+        checkInterested();
+      break;
 
       case Message.HAVE:
         if (pieces == null) pieces = new BitSet();
-        pieces.flip(message.getIndex());
+        pieces.set(message.getIndex());
+        checkInterested();
       break;
 
       // Send pieces to our `Manager`.
       case Message.PIECE:
+        numQueued -= 1;
         manager.post(new Memo("block", message, this));
       break;
 
@@ -119,6 +143,27 @@ public class Broker extends Actor {
       }
       state = "error";
     }
+
+    if (outbox.size() > 0 && !choked) {
+      log.info("We're unchoked and there are messages in the queue, flushing");
+      Iterator<Message> i = outbox.iterator();
+      while (i.hasNext()) {
+        Message msg = i.next();
+        log.info("Sending " + msg);
+        peer.send(msg);
+        i.remove();
+      }
+    } 
+  }
+
+  private void checkInterested () {
+    if (manager.isInteresting(pieces)) {
+      log.info("We are interested in the peer");
+      interested = true;
+      choking = false;
+      peer.send(Message.createUnchoke());
+      peer.send(Message.createInterested());
+    }
   }
 
   // Accessors.
@@ -126,4 +171,6 @@ public class Broker extends Actor {
   public boolean choking () { return choking; }
   public boolean interested () { return interested; }
   public boolean interesting () { return interesting; }
+  public String state () { return state; }
+  public int numQueued () { return numQueued; }
 }

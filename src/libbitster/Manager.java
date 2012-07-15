@@ -17,6 +17,9 @@ import java.util.logging.*;
  */
 public class Manager extends Actor {
 
+  private final int blockSize = 16384;
+  private String state;
+
   // the contents of the metainfo file
   private TorrentInfo metainfo;
   
@@ -37,10 +40,14 @@ public class Manager extends Actor {
   private ArrayList<Map<String, Object>> peers;
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
+  private ArrayList<Piece> pieces;
+
   private final static Logger log = Logger.getLogger("Manager");
 
   // torrent info
   private int downloaded, uploaded, left;
+
+  private Funnel funnel;
 
   /**
    * Instantiates the Manager and its Deputy, sending a memo containing the
@@ -53,6 +60,7 @@ public class Manager extends Actor {
   {
     super();
 
+    state = "booting";
     log.setLevel(Level.FINEST);
 
     log.info("Manager init");
@@ -64,6 +72,9 @@ public class Manager extends Actor {
     this.setLeft(metainfo.file_length);
 
     brokers = new LinkedList<Broker>();
+    pieces = new ArrayList<Piece>();
+    funnel = new Funnel(dest, metainfo.file_length, metainfo.piece_length);
+    funnel.start();
 
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
@@ -87,6 +98,19 @@ public class Manager extends Actor {
     deputy.start();
 
     log.info("Our peer id: " + Util.buff2str(peerId));
+
+    int i, total = metainfo.file_length;
+    for (i = 0; i < metainfo.piece_hashes.length; i++) {
+      pieces.add(new Piece(
+        metainfo.piece_hashes[i].array(), 
+        i, 
+        blockSize, 
+        // If the last piece is truncated (which it probably is) total will
+        // be less than piece_length and will be the last piece's length.
+        Math.min(metainfo.piece_length, total)
+      ));
+      total -= metainfo.piece_length;
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -96,10 +120,7 @@ public class Manager extends Actor {
     {
       log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if(peers.isEmpty())
-        log.warning("Peer list empty!");
-      else
-        log.info("Peer list recieved!");
+      if(peers.isEmpty()) log.warning("Peer list empty!");
 
       // TODO: fix this to check against connected peers so we dont have
       // duplicates
@@ -124,15 +145,80 @@ public class Manager extends Actor {
             ));
           } catch (UnknownHostException e) { /*impossible*/ }
         }
+
       }
     }
+
+    else if (memo.getType() == "block") {
+      Message msg = (Message) memo.getPayload();
+      Piece p = pieces.get(msg.getIndex());
+
+      p.addBlock(msg.getBegin(), msg.getBlock());
+      downloaded += msg.getBlockLength();
+      left -= msg.getBlockLength();
+
+      if (p.finished()) {
+        log.info("Posting piece " + p.getNumber() + " to funnel");
+        funnel.post(new Memo("piece", p, this));
+      }
+
+      log.info("Got block, " + left + " left to download.");
+    }
+
+    else if (memo.getType() == "done") {
+      state = "done";
+      deputy.post(new Memo("done", null, this));
+    }
+
     return;
   }
 
   protected void idle () {
     try { Thread.sleep(10); } catch (InterruptedException e) {}
 
-    for (Broker broker : brokers) broker.tick();          // tick each broker
+    state = "downloading";
+    Iterator<Broker> i = brokers.iterator();
+    Broker b;
+    while (i.hasNext()) {
+      b = i.next();
+      b.tick();
+      if (b.state() == "error") i.remove();
+      else {
+        if (b.interested() && b.numQueued() < 5 && left > 0) {
+
+          // We are interested in the peer, we have less than 5 requests
+          // queued on the peer, and we have more shit to download.  We should
+          // queue up a request on the peer.
+
+          //log.info("We're interested in a peer. Finding something to req");
+
+          // TODO: actually check if the peer has this piece
+          Piece p = next();
+
+          if (p != null) {
+            int index = p.next();
+
+            b.post(new Memo("request", Message.createRequest(
+              p.getNumber(), index * blockSize, p.sizeOf(index)
+            ), this));
+          } 
+
+        }
+      }
+    }
+
+    if (left == 0) {
+      log.info("Download complete.");
+      i = brokers.iterator();
+      while (i.hasNext()) {
+        b = i.next();
+        b.close();
+        i.remove();
+      }
+      funnel.post(new Memo("save", null, this));
+      Util.shutdown();
+      shutdown();
+    }
   }
 
   /**
@@ -163,6 +249,33 @@ public class Manager extends Actor {
     }
 
     return ByteBuffer.wrap(id);
+  }
+
+  // ## isInteresting
+  // Returns true if the given bitset is interesting to us.  Run by Brokers.
+  public boolean isInteresting (BitSet peer) {
+    Iterator<Piece> i = pieces.iterator();
+    Piece p;
+    while (i.hasNext()) {
+      p = i.next();
+      if (!p.finished() && peer.get(p.getNumber())) return true;
+    }
+
+    return false;
+  }
+
+  // ## next
+  // Get the next piece we need to download.
+  // TODO: replace with a better algorithm for finding next piece.
+  private Piece next () {
+    Iterator<Piece> i = pieces.iterator();
+    Piece p;
+    while (i.hasNext()) {
+      p = i.next();
+      if (!p.requested()) return p;
+    }
+
+    return null;
   }
 
   public int getDownloaded() {
@@ -196,5 +309,7 @@ public class Manager extends Actor {
   public ByteBuffer getInfoHash () {
     return metainfo.info_hash;
   }
+
+  public String getState () { return state; }
 
 }

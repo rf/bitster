@@ -69,13 +69,13 @@ public class Message {
               }
             }
           break;
-  
+
           case REQUEST:
             index = from.getInt();
             begin = from.getInt();
             blockLength = from.getInt();
           break;
-  
+
           case PIECE:
             index = from.getInt();
             begin = from.getInt();
@@ -83,9 +83,11 @@ public class Message {
             byte[] bytes = new byte[length - 9];
             from.get(bytes, 0, length - 9);
             block = ByteBuffer.wrap(bytes);
+            blockLength = length - 9;
           break;
         }
       }
+
       else
         type = KEEP_ALIVE;
     }
@@ -195,7 +197,7 @@ public class Message {
       break;
   
       case REQUEST:
-        str += ":" + index + ":" + begin + ":" + length;
+        str += ":" + index + ":" + begin + ":" + blockLength;
       break;
   
       case PIECE:
