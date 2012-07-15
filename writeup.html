@@ -1,0 +1,91 @@
+<h1>Bitster</h1>
+<h2>Overview</h2>
+<p>Bitster uses several <code>Actors</code> running in threads and non-blocking io for
+concurrency.  We have the following <code>Actors</code> in threads:
+
+</p>
+<ol>
+<li><code>Deputy</code>: communicates with the tracker.</li>
+<li><code>Manager</code>: determines what to download and instructs its pool of <code>Brokers</code>
+to download pieces from peers.</li>
+<li><code>Funnel</code>: receives pieces and &#39;funnels&#39; them into a buffer if they pass a
+hash check.</li>
+<li><code>Timeout</code>: provides a simple interface for scheduling events in the future.</li>
+</ol>
+<p>The <code>Actors</code> communicate with <code>Memo</code>s, simple objects with a string type and
+<code>Object</code> payload.  Not all <code>Actor</code>s are run in their own thread, however;
+<code>Broker</code>s handle communication with peers, and are <code>tick()</code>ed by their
+<code>Manager</code>.  Each time they are <code>tick()</code>ed, they also inform their <code>Protocol</code>
+instance to <code>communicate()</code>.  The <code>Protocol</code> class will then poll the socket to
+see if there is any data to be read or if data can be written.  If so, it will
+perform the necessary io.  If a message is available from a peer, it will place
+it onto an <code>inbox</code> queue for processing by the <code>Broker</code>.
+
+</p>
+<h2>Classes</h2>
+<h3>Actors</h3>
+<h4>Deputy</h4>
+<p><em>Runs in a thread.</em> Communicates with the tracker.  It does not use non blocking io; since it&#39;s
+running in its own thread, and HTTP is a request / response protocol, we
+decided to use traditional blocking io here.  It accepts a <code>list</code> memo,
+indicating that we&#39;d like a peer list, and a <code>done</code> memo, indicating that it
+should inform the tracker that we&#39;re done.
+
+</p>
+<h4>Manager</h4>
+<p><em>Runs in a thread.</em> Handles the pool of <code>Broker</code>s, <code>tick()</code>ing them regularly, figures out what to
+download and instructs the <code>Broker</code>s to download.
+
+</p>
+<h4>Funnel</h4>
+<p><em>Runs in a thread.</em> Receives pieces from the <code>Manager</code>, verifies them, and
+places them into some buffer.  Can also write that buffer to disk.  Runs in its
+own thread to offload the hashing elsewhere; also, we plan to replace the
+ByteBuffer with an <code>mmap()</code>ed file, so the io it is doing <em>may</em> be blocking.
+
+</p>
+<h4>Timeout</h4>
+<p><em>Runs in a thread.</em> Allows <code>Memo</code>s to be scheduled to be &quot;returned to sender&quot;
+after a period of time.
+
+</p>
+<h4>Broker</h4>
+<p><em>Does not run in a thread.</em> Handles communication with the peer. Does not deal
+with the low-level protocol mumbo-jumbo; contains a high-level representation
+of the peer&#39;s state, handles protocol messages, forwards completed data
+off to the manager.
+
+</p>
+<h3>Other Classes</h3>
+<h4>Actor</h4>
+<p>Base class for actors. Implements <code>Runnable</code> and can be <code>start()</code>ed in its own
+thread.  Has a <code>tick()</code> method which will call the <code>idle()</code> function once and
+the <code>receive()</code> function with any <code>Memo</code>s on the queue.
+
+</p>
+<h4>Handshake</h4>
+<p>Verifies and creates peer protocol handshakes.  Used in <code>Protocol</code>.
+
+</p>
+<h4>Memo</h4>
+<p>Represents an internal message that is passed between <code>Actor</code>s (as opposed to 
+a BT peer protocol <code>Message</code> which is passed between peers via TCP).  Has a string
+type and <code>Object</code> payload.
+
+</p>
+<h4>Message</h4>
+<p>Represents an external message that is passed between peers in the BT peer
+protocol. Has factory methods for creating <code>Message</code>s and can deserialize a
+<code>Message</code> from a <code>ByteBuffer</code>.
+
+</p>
+<h4>Protocol</h4>
+<p>Handles all of the low-level protocol detail. Polls the socket and performs io
+when necessary. Parses out the length of messages and hands off a <code>ByteBuffer</code>
+to <code>Message</code> (or <code>Handshake</code>) when it holds a complete message.
+
+</p>
+<h4>Util</h4>
+<p>Contains the <code>Timeout</code> Actor, also contains a few other utility methods.
+</p>
+
