@@ -26,7 +26,7 @@ public class RUBTClient {
     // check if we have a valid number of arguments
     if(args.length != 2)
     {
-      log.log(Level.SEVERE, "Error: Invalid number of arguments.");
+      log.severe("Error: Invalid number of arguments.");
       return;
     }
     
@@ -34,7 +34,7 @@ public class RUBTClient {
     File torrentFile = new File(args[0]);
     if(!torrentFile.exists() || torrentFile.isDirectory())
     {
-      log.log(Level.SEVERE, "Error: " + args[0] + " is not a file.");
+      log.severe("Error: " + args[0] + " is not a file.");
       return;
     }
     
@@ -42,7 +42,7 @@ public class RUBTClient {
     File dest = new File(args[1]);
     if(dest.exists())
     {
-      log.log(Level.SEVERE, "Error: destination file exists.");
+      log.severe("Error: destination file exists.");
       return;
     }
     else
@@ -52,7 +52,7 @@ public class RUBTClient {
           dest.createNewFile();
           dest.delete();
       } catch (IOException e) {
-        log.log(Level.SEVERE, "Error: invalid destination file.");
+        log.severe("Error: invalid destination file.");
         return;
       }
     }
@@ -68,10 +68,10 @@ public class RUBTClient {
       manager.start();
 
     } catch (IOException e) {
-      log.log(Level.SEVERE, "Error: unable to read torrent file.");
+      log.severe("Error: unable to read torrent file.");
       return;
     } catch (BencodingException e) {
-      log.log(Level.SEVERE, "Error: invalid or corrupt torrent file.");
+      log.severe("Error: invalid or corrupt torrent file.");
       return;
     }
   }
