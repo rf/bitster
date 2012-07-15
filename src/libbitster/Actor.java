@@ -1,11 +1,10 @@
 package libbitster;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-// # Actor
-// Simple actor class. Can receive messages. Once it is instantiated, it's a
-// thread, spinning, calling its `receive()` method (which should be
-// overridden) upon receiving messages, and its `idle()` method when there are
-// no messages to handle.
+// Simple Actor class capable of sending and receiving `Memo`s. Can be run in
+// its own thread.
+//
+// author: Russ Frank
 
 public class Actor implements Runnable {
   protected ConcurrentLinkedQueue<Memo> queue;
