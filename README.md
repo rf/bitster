@@ -1,5 +1,11 @@
 # Bitster
 
+## Group Members
+
+ * Martin Miralles-Cordal
+ * Russell Frank
+ * Theodore Surgent
+
 ## Usage
 
 ```
