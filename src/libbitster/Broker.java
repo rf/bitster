@@ -92,6 +92,8 @@ public class Broker extends Actor {
     peer.close();
   }
 
+  public void close () { peer.close(); }
+
   // ## listen
   // Receive a message via tcp
   private void message (Message message) {

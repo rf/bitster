@@ -36,6 +36,7 @@ public class Piece {
 
     data = new byte[size];
     this.size = size;
+    this.hash = hash;
 
     //One bit for each block
     completed = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
