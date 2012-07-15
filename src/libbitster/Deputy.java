@@ -103,6 +103,7 @@ public class Deputy extends Actor {
     else if(memo.getType().equals("done"))
     {
       announce(Util.s("&event=completed"));
+      shutdown();
     }
   }
 
@@ -141,7 +142,7 @@ public class Deputy extends Actor {
     {
       // reset our timer
       this.lastAnnounce = Calendar.getInstance();
-      log.info("Announcing...");
+      log.info("Contacting tracker.");
 
       StringBuffer finalURL = new StringBuffer();
       // add announce URL
