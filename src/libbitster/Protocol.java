@@ -6,6 +6,11 @@ import java.util.*;
 import java.nio.channels.*;
 import java.util.logging.*;
 
+// Handles communication with a peer.  Polls the socket, then writes and reads
+// if necessary.
+//
+// author: Russ Frank
+
 public class Protocol {
   private String state; // states:
   // 'init': just created, waiting to establish a connection

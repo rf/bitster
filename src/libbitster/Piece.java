@@ -7,6 +7,10 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.logging.Logger;
 
+// Tracks the state of a piece, assembles it together and verifies it against
+// a given hash.
+// author: Theodore Surgent
+
 public class Piece {
   private int number;
   private int blockSize;

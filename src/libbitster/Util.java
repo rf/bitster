@@ -5,6 +5,10 @@ import java.nio.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+// Utility class.
+//
+// author: Russ Frank
+
 public class Util {
   public static ByteBuffer s (String input) {
     try {
