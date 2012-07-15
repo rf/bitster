@@ -87,6 +87,13 @@ public class Broker extends Actor {
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
+
+    else if (memo.getType() == "have") {
+      Piece p = (Piece) memo.getPayload();
+      peer.send(Message.createHave(p.getNumber()));
+      log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+        " that we have piece " + p.getNumber());
+    }
   }
 
   private void error (Exception e) {
