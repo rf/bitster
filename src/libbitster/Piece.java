@@ -18,7 +18,7 @@ public class Piece {
 
   private int size; // size of the whole piece
 
-  /*
+  /**
    * Creates an empty piece
    * @param number The piece index
    * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
@@ -43,7 +43,7 @@ public class Piece {
     requested = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
   }
 
-  /*
+  /**
    * Adds a block of bytes to the piece
    * @param begin The byte offset within the piece, must be aligned to a blockSize boundary
    * @param block The block of bytes to add
@@ -90,7 +90,7 @@ public class Piece {
     completed.set(begin / blockSize);
   }
 
-  /*
+  /**
    * Returns true when all blocks have been added to this piece
    * @return true when finished, otherwise false
    */
@@ -116,7 +116,7 @@ public class Piece {
     return true;
   }
 
-  /*
+  /**
    * Gets the piece index
    * @return The piece number
    */
@@ -124,7 +124,7 @@ public class Piece {
     return number;
   }
 
-  /*
+  /**
    * Gets the data associated with this piece after being finished
    * If the piece is not finished you get a lovely IllegalStateException instead ;)
    * @return The data associated with this piece
@@ -150,7 +150,7 @@ public class Piece {
     else return blockSize;
   }
 
-  /*
+  /**
    * Returns true if the data associated with this piece matches the expected hash
    * @return true if this piece is valid
    */

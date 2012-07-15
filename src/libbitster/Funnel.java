@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import java.io.*;
 import java.util.logging.Logger;
@@ -17,7 +16,7 @@ public class Funnel extends Actor {
   private List<Piece> pieces;
   private File dest;
   private final static Logger log = Logger.getLogger("Funnel");
-  /*
+  /**
    * Creates Funnel representing a single file being downloaded
    * @param size The size of the expected file
    * @param pieceSize The size of each piece being received except possibly the last (usually 2^14 or 16KB)
@@ -33,7 +32,7 @@ public class Funnel extends Actor {
     pieces = new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null));
   }
 
-  /*
+  /**
    * Currently expects a memo containing a Piece as its payload (will change in future implementation)
    * @see libbitster.Actor#receive(libbitster.Memo)
    */
@@ -83,7 +82,7 @@ public class Funnel extends Actor {
     return true;
   }
 
-  /*
+  /**
    * Gets a part of a piece, or a block within a piece
    * @param pieceNumber The index of the desired piece
    * @param start The byte offset from the start of the piece
@@ -115,7 +114,7 @@ public class Funnel extends Actor {
     return buff;
   }
 
-  /*
+  /**
    * Saves the data to a file if finished
    * @param filename The name of the file to use when saving the data
    */
