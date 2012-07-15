@@ -3,6 +3,9 @@ package libbitster;
 import java.nio.*;
 
 // Handles creation and parsing of Handshake messages
+//
+// author: Russ Frank
+
 public class Handshake {
   public static boolean bufferEquals (ByteBuffer a, ByteBuffer b, int num) {
     try {
