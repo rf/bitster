@@ -9,6 +9,9 @@ import java.util.logging.*;
 // memos:
 //
 //  * `message`: payload is a message to be delivered to the peer
+//  * `kepalive`: send a keepalive to the peer. This is scheduled with Timeout.
+//
+// author: Russ Frank
 
 public class Broker extends Actor {
   private String state;

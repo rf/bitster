@@ -10,6 +10,10 @@ import java.util.List;
 import java.io.*;
 import java.util.logging.Logger;
 
+// Assembles pieces together into a file, actually runs the piece verification,
+// and can write the completed data to a file.
+// author: Theodore Surgent
+
 public class Funnel extends Actor {
   private int size;
   private int pieceSize;

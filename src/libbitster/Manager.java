@@ -15,6 +15,7 @@ import java.util.logging.*;
  * @author Russell Frank
  * @author Theodore Surgent
  */
+
 public class Manager extends Actor {
 
   private final int blockSize = 16384;
