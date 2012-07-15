@@ -1,18 +1,92 @@
 # Bitster
 
-Our implementation is based on `Actor`s running in several threads.  Most 
-`Actor`s run in their own thread; `Broker`s, however, are `tick()`ed manually
-by their parent thread, the `Manager`.  `Actor`s which have their own threads
-include:
+## Overview
 
-1. `Deputy`: handles communication with the tracker.
-2. `Manager`: handles the collection of `Broker` objects which communicate with 
-   peers.  Also manages which pieces are being downloaded, etc.
-3. `Funnel`: Receives pieces and 'funnels' them into some buffer.
+Bitster uses several `Actors` running in threads and non-blocking io for
+concurrency.  We have the following `Actors` in threads:
 
-The peer protocol code resides in the class `Protocol`.  This code utilizes the
-java nio library for non blocking IO operations.  It selects on the socket and
-performs io when necessary. It buffers incoming messages, then parses them out
-into `Message` objects when received and places them into a queue for processing
-by the `Broker` object which owns this `Protocol` object.
+1. `Deputy`: communicates with the tracker.
+2. `Manager`: determines what to download and instructs its pool of `Brokers`
+   to download pieces from peers.
+3. `Funnel`: receives pieces and 'funnels' them into a buffer if they pass a
+   hash check.
+4. `Timeout`: provides a simple interface for scheduling events in the future.
 
+The `Actors` communicate with `Memo`s, simple objects with a string type and
+`Object` payload.  Not all `Actor`s are run in their own thread, however;
+`Broker`s handle communication with peers, and are `tick()`ed by their
+`Manager`.  Each time they are `tick()`ed, they also inform their `Protocol`
+instance to `communicate()`.  The `Protocol` class will then poll the socket to
+see if there is any data to be read or if data can be written.  If so, it will
+perform the necessary io.  If a message is available from a peer, it will place
+it onto an `inbox` queue for processing by the `Broker`.
+
+## Classes
+
+### Actors
+
+#### Deputy
+
+*Runs in a thread.* Communicates with the tracker.  It does not use non blocking io; since it's
+running in its own thread, and HTTP is a request / response protocol, we
+decided to use traditional blocking io here.  It accepts a `list` memo,
+indicating that we'd like a peer list, and a `done` memo, indicating that it
+should inform the tracker that we're done.
+
+#### Manager
+
+*Runs in a thread.* Handles the pool of `Broker`s, `tick()`ing them regularly, figures out what to
+download and instructs the `Broker`s to download.
+
+#### Funnel
+
+*Runs in a thread.* Receives pieces from the `Manager`, verifies them, and
+places them into some buffer.  Can also write that buffer to disk.  Runs in its
+own thread to offload the hashing elsewhere; also, we plan to replace the
+ByteBuffer with an `mmap()`ed file, so the io it is doing *may* be blocking.
+
+#### Timeout
+
+*Runs in a thread.* Allows `Memo`s to be scheduled to be "returned to sender"
+after a period of time.
+
+#### Broker
+
+*Does not run in a thread.* Handles communication with the peer. Does not deal
+with the low-level protocol mumbo-jumbo; contains a high-level representation
+of the peer's state, handles protocol messages, forwards completed data
+off to the manager.
+
+### Other Classes
+
+#### Actor
+
+Base class for actors. Implements `Runnable` and can be `start()`ed in its own
+thread.  Has a `tick()` method which will call the `idle()` function once and
+the `receive()` function with any `Memo`s on the queue.
+
+#### Handshake
+
+Verifies and creates peer protocol handshakes.  Used in `Protocol`.
+
+#### Memo
+
+Represents an internal message that is passed between `Actor`s (as opposed to 
+a BT peer protocol `Message` which is passed between peers via TCP).  Has a string
+type and `Object` payload.
+
+#### Message
+
+Represents an external message that is passed between peers in the BT peer
+protocol. Has factory methods for creating `Message`s and can deserialize a
+`Message` from a `ByteBuffer`.
+
+#### Protocol
+
+Handles all of the low-level protocol detail. Polls the socket and performs io
+when necessary. Parses out the length of messages and hands off a `ByteBuffer`
+to `Message` (or `Handshake`) when it holds a complete message.
+
+#### Util
+
+Contains the `Timeout` Actor, also contains a few other utility methods.
