@@ -111,6 +111,8 @@ public class Manager extends Actor {
       ));
       total -= metainfo.piece_length;
     }
+
+    state = "downloading";
   }
 
   @SuppressWarnings("unchecked")
@@ -167,7 +169,8 @@ public class Manager extends Actor {
 
     else if (memo.getType() == "done") {
       state = "done";
-      deputy.post(new Memo("done", null, this));
+      shutdown();
+      Util.shutdown();
     }
 
     return;
@@ -176,48 +179,52 @@ public class Manager extends Actor {
   protected void idle () {
     try { Thread.sleep(10); } catch (InterruptedException e) {}
 
-    state = "downloading";
-    Iterator<Broker> i = brokers.iterator();
-    Broker b;
-    while (i.hasNext()) {
-      b = i.next();
-      b.tick();
-      if (b.state() == "error") i.remove();
-      else {
-        if (b.interested() && b.numQueued() < 5 && left > 0) {
+    if (state == "downloading") {
 
-          // We are interested in the peer, we have less than 5 requests
-          // queued on the peer, and we have more shit to download.  We should
-          // queue up a request on the peer.
+      Iterator<Broker> i = brokers.iterator();
+      Broker b;
+      while (i.hasNext()) {
+        b = i.next();
+        b.tick();
+        if (b.state() == "error") i.remove();
+        else {
+          if (b.interested() && b.numQueued() < 5 && left > 0) {
 
-          //log.info("We're interested in a peer. Finding something to req");
+            // We are interested in the peer, we have less than 5 requests
+            // queued on the peer, and we have more shit to download.  We should
+            // queue up a request on the peer.
 
-          // TODO: actually check if the peer has this piece
-          Piece p = next();
+            //log.info("We're interested in a peer. Finding something to req");
 
-          if (p != null) {
-            int index = p.next();
+            // TODO: actually check if the peer has this piece
+            Piece p = next();
 
-            b.post(new Memo("request", Message.createRequest(
-              p.getNumber(), index * blockSize, p.sizeOf(index)
-            ), this));
-          } 
+            if (p != null) {
+              int index = p.next();
 
+              b.post(new Memo("request", Message.createRequest(
+                p.getNumber(), index * blockSize, p.sizeOf(index)
+              ), this));
+            } 
+
+          }
         }
       }
     }
 
-    if (left == 0) {
-      log.info("Download complete.");
-      i = brokers.iterator();
+    if (left == 0 && state != "shutdown" && state != "done") {
+      log.info("Download complete");
+      state = "shutdown";
+      Iterator<Broker> i = brokers.iterator();
+      Broker b;
       while (i.hasNext()) {
         b = i.next();
         b.close();
         i.remove();
       }
       funnel.post(new Memo("save", null, this));
-      Util.shutdown();
-      shutdown();
+      deputy.post(new Memo("done", null, this));
+      try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
     }
   }
 
@@ -310,6 +317,6 @@ public class Manager extends Actor {
     return metainfo.info_hash;
   }
 
-  public string getState () { return state; }
+  public String getState () { return state; }
 
 }

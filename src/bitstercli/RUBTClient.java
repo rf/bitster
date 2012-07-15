@@ -67,14 +67,6 @@ public class RUBTClient {
       Manager manager = new Manager(metainfo, dest);
       manager.start();
 
-      while (true) {
-        try { Thread.sleep(1000); } catch (Exception e) {}
-        if (manager.getState() == "done") break;
-      }
-
-      manager.shutdown();
-      Util.shutdown();
-
     } catch (IOException e) {
       log.log(Level.SEVERE, "Error: unable to read torrent file.");
       return;
