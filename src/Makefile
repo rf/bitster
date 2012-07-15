@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: test libbitster bitstercli
 
 TESTFILES=$(subst .java,,$(wildcard test/Test*.java))
 
@@ -18,3 +18,8 @@ run: libbitster bitstercli
 $(TESTFILES): 
 	javac $@.java
 	java -ea $@
+
+clean:
+	rm -f libbitster/*.class
+	rm -f bitstercli/*.class
+	rm -f out.jpg
