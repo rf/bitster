@@ -167,7 +167,7 @@ public class Manager extends Actor {
 
     else if (memo.getType() == "done") {
       state = "done";
-      deputy.shutdown();
+      deputy.post(new Memo("done", null, this));
     }
 
     return;
