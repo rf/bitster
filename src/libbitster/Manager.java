@@ -211,9 +211,7 @@ public class Manager extends Actor {
         i.remove();
       }
       state = "done";
-      try { funnel.saveToFile(); }
-      catch (Exception e) { e.printStackTrace(); }
-      funnel.shutdown();
+      funnel.post(new Memo("save", null, this));
       Util.shutdown();
       shutdown();
     }
