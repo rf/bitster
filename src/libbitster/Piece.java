@@ -65,7 +65,7 @@ public class Piece {
 
     //If this block was already downloaded then there is nothing to to
     if(completed.get(begin / blockSize)) {
-      log.finer("The block " + (begin / blockSize) + " was already downloaded");
+      log.info("The block " + (begin / blockSize) + " was already downloaded");
       return;
     }
 
@@ -76,14 +76,14 @@ public class Piece {
       log.finer(msg);
       throw new IllegalArgumentException(msg);
     }
-    else if(block.limit() != data.length % blockSize) { //Last block which is smaller
-      String msg = "block is not " + (data.length % blockSize) + " bytes long for final block";
+    else if ((begin > ((data.length / blockSize) - 1) * blockSize) && block.limit() != data.length % blockSize) { //Last block which is smaller
+      String msg = "block is not " + (data.length % blockSize) + " bytes long for final block. number " + number + " block " + begin;
       log.finer(msg);
       throw new IllegalArgumentException(msg);
     }
 
     //Copy block over to this piece
-    for(int i = begin, l = begin + block.limit(); i < l; ++i)
+    for(int i = begin; i < begin + block.limit(); i++)
       data[i] = block.get();
 
     completed.set(begin / blockSize);
@@ -145,7 +145,7 @@ public class Piece {
 
   // Size of one particular block
   public final int sizeOf (int index) {
-    if ((blockSize * (index + 1)) > size) return blockSize - (size % blockSize);
+    if ((blockSize * (index + 1)) > size) return (size % blockSize);
     else return blockSize;
   }
 
