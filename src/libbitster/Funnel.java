@@ -66,6 +66,7 @@ public class Funnel extends Actor {
     else if (memo.getType() == "save") {
       try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
       shutdown();
+      memo.getSender().post(new Memo("done", null, this));
     }
   }
 

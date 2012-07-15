@@ -165,6 +165,11 @@ public class Manager extends Actor {
       log.info("Got block, " + left + " left to download.");
     }
 
+    else if (memo.getType() == "done") {
+      state = "done";
+      deputy.shutdown();
+    }
+
     return;
   }
 
@@ -210,7 +215,6 @@ public class Manager extends Actor {
         b.close();
         i.remove();
       }
-      state = "done";
       funnel.post(new Memo("save", null, this));
       Util.shutdown();
       shutdown();
@@ -247,6 +251,8 @@ public class Manager extends Actor {
     return ByteBuffer.wrap(id);
   }
 
+  // ## isInteresting
+  // Returns true if the given bitset is interesting to us.  Run by Brokers.
   public boolean isInteresting (BitSet peer) {
     Iterator<Piece> i = pieces.iterator();
     Piece p;
@@ -258,6 +264,9 @@ public class Manager extends Actor {
     return false;
   }
 
+  // ## next
+  // Get the next piece we need to download.
+  // TODO: replace with a better algorithm for finding next piece.
   private Piece next () {
     Iterator<Piece> i = pieces.iterator();
     Piece p;
@@ -300,5 +309,7 @@ public class Manager extends Actor {
   public ByteBuffer getInfoHash () {
     return metainfo.info_hash;
   }
+
+  public string getState () { return state; }
 
 }
