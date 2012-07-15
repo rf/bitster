@@ -174,6 +174,11 @@ public class Manager extends Actor {
       Util.shutdown();
     }
 
+    else if (memo.getType() == "have") {
+      for (Broker b : brokers) 
+        b.post(new Memo("have", memo.getPayload(), this));
+    }
+
     return;
   }
 

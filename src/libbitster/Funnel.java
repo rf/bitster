@@ -62,6 +62,9 @@ public class Funnel extends Actor {
       if(piece.getNumber() == pieces.size() - 1 && piece.getData().length < ((size - 1) % pieceSize) + 1)
         throw new IllegalArgumentException("Piece " + piece.getNumber() + " is too small");
 
+      // Send a memo back to the Manager so it can forward it to each
+      // broker
+      memo.getSender().post(new Memo("have", memo.getPayload(), this));
       pieces.set(piece.getNumber(), piece);
 
     }
