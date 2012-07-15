@@ -38,26 +38,39 @@ public class Funnel extends Actor {
    * @see libbitster.Actor#receive(libbitster.Memo)
    */
   protected void receive (Memo memo) {
-    if(!(memo.getPayload() instanceof Piece))
-      throw new IllegalArgumentException("Funnel expects a Piece");
+    if (memo.getType() == "piece") {
 
-    Piece piece = (Piece)memo.getPayload();
-    if(!piece.isValid()) {
-      //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
-      log.severe("Piece " + piece.getNumber() + " failed hash check");
-      return;
+      if(!(memo.getPayload() instanceof Piece))
+        throw new IllegalArgumentException("Funnel expects a Piece");
+
+      Piece piece = (Piece)memo.getPayload();
+      if(!piece.isValid()) {
+        //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
+        log.severe("Piece " + piece.getNumber() + " failed hash check");
+        return;
+      }
+      if(!piece.finished())
+        throw new IllegalArgumentException("The piece being received by Funnel is not finished");
+
+      if(piece.getNumber() < pieces.size() - 1 && piece.getData().length != pieceSize)
+        throw new IllegalArgumentException("Piece " + piece.getNumber() + " is the wrong size");
+      //This is a little fancy around the part with the modulus operator
+      //Basically it just gets the minimum number of bytes that the last piece should contain
+      if(piece.getNumber() == pieces.size() - 1 && piece.getData().length < ((size - 1) % pieceSize) + 1)
+        throw new IllegalArgumentException("Piece " + piece.getNumber() + " is too small");
+
+      pieces.set(piece.getNumber(), piece);
+
     }
-    if(!piece.finished())
-      throw new IllegalArgumentException("The piece being received by Funnel is not finished");
 
-    if(piece.getNumber() < pieces.size() - 1 && piece.getData().length != pieceSize)
-      throw new IllegalArgumentException("Piece " + piece.getNumber() + " is the wrong size");
-    //This is a little fancy around the part with the modulus operator
-    //Basically it just gets the minimum number of bytes that the last piece should contain
-    if(piece.getNumber() == pieces.size() - 1 && piece.getData().length < ((size - 1) % pieceSize) + 1)
-      throw new IllegalArgumentException("Piece " + piece.getNumber() + " is too small");
+    else if (memo.getType() == "save") {
+      try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
+      shutdown();
+    }
+  }
 
-    pieces.set(piece.getNumber(), piece);
+  protected void idle () { 
+    try { Thread.sleep(100); } catch (InterruptedException e) {} 
   }
 
   /*
@@ -115,5 +128,6 @@ public class Funnel extends Actor {
     }
 
     fileOut.close();
+    log.info("Finished writing file.");
   }
 }
