@@ -56,7 +56,7 @@ public class Deputy extends Actor {
       this.state = "init";
 
       // we're done setting up variables, now connect
-      announce();
+      announce(Util.s("&event=started"));
   }
 
   /**
@@ -100,6 +100,10 @@ public class Deputy extends Actor {
     {
         announce(); // get updated peer list and send it to manager
     }
+    else if(memo.getType().equals("done"))
+    {
+      announce(Util.s("&event=completed"));
+    }
   }
 
   /**
@@ -119,8 +123,17 @@ public class Deputy extends Actor {
   /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    */
-  @SuppressWarnings("unchecked")
+  
   private void announce()
+  {
+    announce(null);
+  }
+  @SuppressWarnings("unchecked")
+  /**
+   * 
+   * @param args extra parameters for the HTTP GET request. Must start with "&".
+   */
+  private void announce(ByteBuffer args)
   {
     if(announceURL == null)
       return;
@@ -128,7 +141,7 @@ public class Deputy extends Actor {
     {
       // reset our timer
       this.lastAnnounce = Calendar.getInstance();
-      log.finer("Announcing...");
+      log.info("Announcing...");
 
       StringBuffer finalURL = new StringBuffer();
       // add announce URL
@@ -140,7 +153,7 @@ public class Deputy extends Actor {
 
       // add peer ID
       finalURL.append("&peer_id=");
-      finalURL.append(new String(manager.getPeerId().array()));
+      finalURL.append(escapeURL(Util.buff2str(manager.getPeerId())));
 
       // add port
       finalURL.append("&port=");
@@ -157,9 +170,15 @@ public class Deputy extends Actor {
       // add amount left
       finalURL.append("&left=");
       finalURL.append(manager.getLeft());
+      
+      if(args != null)
+      {
+        finalURL.append(Util.buff2str(args));
+      }
 
       try {
         // send request to tracker
+        log.finer("Announce URL = " + finalURL.toString());
         URL tracker = new URL(finalURL.toString());
         URLConnection trackerConn = tracker.openConnection();
 
