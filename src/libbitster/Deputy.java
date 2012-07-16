@@ -96,13 +96,18 @@ public class Deputy extends Actor {
   @Override
   protected void receive (Memo memo)
   {
-    if(memo.getType().equals("list"))
+    if (memo.getType().equals("list"))
     {
-        announce(); // get updated peer list and send it to manager
+      announce(); // get updated peer list and send it to manager
     }
-    else if(memo.getType().equals("done"))
+
+    else if (memo.getType().equals("done"))
     {
       announce(Util.s("&event=completed"));
+    }
+
+    else if (memo.getType() == "halt") {
+      announce(Util.s("&event=stopped"));
       shutdown();
     }
   }

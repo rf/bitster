@@ -118,7 +118,6 @@ public class Manager extends Actor {
 
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
-
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
       log.info("Received peer list");
@@ -135,7 +134,8 @@ public class Manager extends Actor {
         Map<String,Object> currPeer = peers.get(i);
         ByteBuffer prefix = Util.s("RUBT11");
         ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
-        if(Util.bufferEquals(id, prefix, 6))
+
+        if (Util.bufferEquals(id, prefix, 6))
         {
           try {
             InetAddress ip = 
@@ -178,8 +178,6 @@ public class Manager extends Actor {
       for (Broker b : brokers) 
         b.post(new Memo("have", memo.getPayload(), this));
     }
-
-    return;
   }
 
   protected void idle () {
@@ -223,11 +221,13 @@ public class Manager extends Actor {
       state = "shutdown";
       Iterator<Broker> i = brokers.iterator();
       Broker b;
+
       while (i.hasNext()) {
         b = i.next();
         b.close();
         i.remove();
       }
+
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
       try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
