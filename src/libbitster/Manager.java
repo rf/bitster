@@ -200,7 +200,11 @@ public class Manager extends Actor {
       while (i.hasNext()) {
         b = i.next();
         b.tick();
-        if (b.state() == "error") i.remove();
+        if (b.state() == "error") {
+          i.remove();
+          peersById.put(b.peerId(), null);
+        }
+
         else {
           if (b.interested() && b.numQueued() < 5 && left > 0) {
 
