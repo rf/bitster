@@ -43,6 +43,8 @@ public class Manager extends Actor {
 
   private ArrayList<Piece> pieces;
 
+  private HashMap<ByteBuffer, Broker> peersById;
+
   private final static Logger log = Logger.getLogger("Manager");
 
   // torrent info
@@ -76,6 +78,8 @@ public class Manager extends Actor {
     pieces = new ArrayList<Piece>();
     funnel = new Funnel(dest, metainfo.file_length, metainfo.piece_length);
     funnel.start();
+
+    peersById = new HashMap<ByteBuffer, Broker>();
 
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
@@ -124,29 +128,35 @@ public class Manager extends Actor {
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if(peers.isEmpty()) log.warning("Peer list empty!");
 
-      // TODO: fix this to check against connected peers so we dont have
-      // duplicates
-      if (brokers.size() > 0) return;
-
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
         ByteBuffer prefix = Util.s("RUBT11");
         ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
+        String ip = (String) currPeer.get("ip");
 
-        if (Util.bufferEquals(id, prefix, 6))
+        if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
+            && peersById.get(currPeer.get("peerId")) == null)
         {
           try {
-            InetAddress ip = 
-              InetAddress.getByName((String) currPeer.get("ip"));
+            InetAddress inetip = InetAddress.getByName(ip);
+
             // set up a broker
-            brokers.add(new Broker(
-              ip,
+            Broker b = new Broker(
+              inetip,
               (Integer) currPeer.get("port"),
               this
-            ));
-          } catch (UnknownHostException e) { /*impossible*/ }
+            );
+            brokers.add(b);
+            peersById.put((ByteBuffer) currPeer.get("peerId"), b);
+          } 
+
+          catch (UnknownHostException e) {
+            // This is thrown when the hostname cannot be resolved by getByName,
+            // but we're passing in an ip, which can't fail a host lookup. 
+            // This exception is *actually* impossible.
+          }
         }
 
       }
