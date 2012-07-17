@@ -4,6 +4,8 @@ import java.net.*;
 import java.util.*;
 import java.util.logging.*;
 
+import java.nio.*;
+
 // The `Broker` class manages a connection with a peer.  It uses the
 // `Protocol` class for the actual communication.  It accepts the following
 // memos:
@@ -183,4 +185,5 @@ public class Broker extends Actor {
   public boolean interesting () { return interesting; }
   public String state () { return state; }
   public int numQueued () { return numQueued; }
+  public ByteBuffer peerId () { return peer.getPeerId(); }
 }
