@@ -130,7 +130,9 @@ public class Deputy extends Actor {
   @Override
   public synchronized void start()
   {
-    announce(Util.s("&event=started"));
+    if(this.getState().equals("init")) {
+      announce(Util.s("&event=started"));
+    }
     if(!this.getState().equals("error"))
       super.start();
   }
