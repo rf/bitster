@@ -59,7 +59,25 @@ public class Protocol {
     this.state = "init";
     this.outbox = new LinkedList<Message>();
     this.inbox = new LinkedList<Message>();
-    try { this.selector = Selector.open(); } catch (Exception e) { error(e); }
+
+    try { 
+      selector = Selector.open(); 
+      channel = SocketChannel.open(new InetSocketAddress(host, port));
+      System.out.println("channel: " + channel);
+    } catch (Exception e) { error(e); }
+  }
+
+  public Protocol (SocketChannel sc, ByteBuffer infoHash, ByteBuffer peerId) {
+    this.ourPeerId = peerId;
+    this.infoHash = infoHash;
+    this.state = "init";
+    this.outbox = new LinkedList<Message>();
+    this.inbox = new LinkedList<Message>();
+
+    try { 
+      this.selector = Selector.open();
+      channel = sc;
+    } catch (Exception e) { error(e); }
   }
 
   // select() on sockets, call talk() or listen() to perform io if necessary
@@ -108,7 +126,6 @@ public class Protocol {
   // Establish the connection
   public void establish () {
     try {
-      channel = SocketChannel.open(new InetSocketAddress(host, port));
       channel.configureBlocking(false);
       channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
