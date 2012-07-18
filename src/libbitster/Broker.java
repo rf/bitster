@@ -18,6 +18,10 @@ import java.nio.channels.*;
 
 public class Broker extends Actor {
   private String state;
+  // * `normal`   - communicating normally
+  // * `check`    - peer needs to be checked to see if we're already connected
+  // * `error`    - error has occurred
+
   public Exception exception;
 
   private Protocol peer;
@@ -47,7 +51,7 @@ public class Broker extends Actor {
     outbox = new LinkedList<Message>();
     peer = new Protocol(sc, manager.getInfoHash(), manager.getPeerId());
     this.manager = manager;
-    state = "normal";
+    state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
   }
 
@@ -149,6 +153,14 @@ public class Broker extends Actor {
     peer.communicate(); // pump that shit
     Message m;
     while ((m = peer.receive()) != null) message(m); // grab any available msgs
+
+    if (state.equals("check") && peer.getPeerId() != null) {
+      if (!manager.addPeer(peer.getPeerId(), this)) {
+        // Peer has already been added
+        log.severe("Dropping duplicate connection to " + 
+          Util.buff2str(peer.getPeerId()));
+      }
+    }
 
     if (peer.getState() == "error") {
       if (state != "error") { // we haven't displayed the error msg yet
