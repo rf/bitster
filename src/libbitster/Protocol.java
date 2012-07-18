@@ -118,6 +118,7 @@ public class Protocol {
     try {
       selector = Selector.open();
 
+      // TODO: do a non-blocking connect
       if (channel == null) 
         channel = SocketChannel.open(new InetSocketAddress(host, port));
 
