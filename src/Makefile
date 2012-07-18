@@ -13,7 +13,7 @@ bitstercli:
 test: $(TESTFILES)
 
 run: libbitster bitstercli
-	java bitstercli/RUBTClient ../project1.torrent out.jpg
+	java bitstercli/RUBTClient ../project2.torrent out.jpg
 
 $(TESTFILES): 
 	javac $@.java
