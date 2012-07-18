@@ -226,10 +226,14 @@ public class Deputy extends Actor {
         this.exception = e;
         this.setState("error");
         log.severe("Error: malformed announce URL " + finalURL.toString());
-      } catch (Exception e) { // BencodingException, IOException
+      } catch (IOException e) {
         this.exception = e;
         this.setState("error");
-        e.printStackTrace();
+        log.severe("Error: Unable to communicate with tracker.");
+      } catch (BencodingException e) {
+        this.exception = e;
+        this.setState("error");
+        log.severe("Error: invalid tracker response.");
       }
     }
   }
