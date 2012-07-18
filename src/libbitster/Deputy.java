@@ -8,7 +8,6 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -25,7 +24,7 @@ public class Deputy extends Actor {
 
   private String state; // states:
   // 'init': just created, waiting to establish a connection
-  // 'error': error occured, exception property will be populated
+  // 'error': error occurred, exception property will be populated
   // 'normal': operating normally (may add more such states later)
 
   private String announceURL;
@@ -53,8 +52,6 @@ public class Deputy extends Actor {
 
       // encode our info hash
       infoHash = escapeURL(metainfo.info_hash);
-
-      this.setState("init");
   }
 
   /**
@@ -94,16 +91,14 @@ public class Deputy extends Actor {
   @Override
   protected void receive (Memo memo)
   {
-    if (memo.getType().equals("list"))
-    {
+    if (memo.getType().equals("list")) {
       announce(); // get updated peer list and send it to manager
     }
 
-    else if (memo.getType().equals("done"))
-    {
+    else if (memo.getType().equals("done")) {
       announce(Util.s("&event=completed"));
     }
-
+    
     else if (memo.getType() == "halt") {
       announce(Util.s("&event=stopped"));
       shutdown();
@@ -115,17 +110,10 @@ public class Deputy extends Actor {
    */
   @Override
   protected void idle () {
-    try { Thread.sleep(1000); } catch (Exception e) {}
-  }
-  
-  @Override
-  public synchronized void start()
-  {
     if(this.getState().equals("init")) {
       announce(Util.s("&event=started"));
     }
-    if(!this.getState().equals("error"))
-      super.start();
+    try { Thread.sleep(1000); } catch (Exception e) {}
   }
 
   /**
