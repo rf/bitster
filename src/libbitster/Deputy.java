@@ -1,7 +1,9 @@
 package libbitster;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
@@ -53,10 +55,7 @@ public class Deputy extends Actor {
       // encode our info hash
       infoHash = escapeURL(metainfo.info_hash);
 
-      this.state = "init";
-
-      // we're done setting up variables, now connect
-      announce(Util.s("&event=started"));
+      this.setState("init");
   }
 
   /**
@@ -118,12 +117,22 @@ public class Deputy extends Actor {
   @Override
   protected void idle () {
     try { Thread.sleep(1000); } catch (Exception e) {}
-
-    if(Calendar.getInstance().getTimeInMillis() - this.lastAnnounce.getTimeInMillis()
-        > 1000*this.announceInterval)
-    {
-      announce();
+    
+    if(!this.getState().equals("error")) {
+      if(Calendar.getInstance().getTimeInMillis() - this.lastAnnounce.getTimeInMillis()
+          > 1000*this.announceInterval)
+      {
+        announce();
+      }
     }
+  }
+  
+  @Override
+  public synchronized void start()
+  {
+    announce(Util.s("&event=started"));
+    if(!this.getState().equals("error"))
+      super.start();
   }
 
   /**
@@ -200,22 +209,24 @@ public class Deputy extends Actor {
         // get our peer list and work it into something nicer
         @SuppressWarnings("rawtypes")
         ArrayList<Map> rawPeers =
-            (ArrayList<Map>) response.get(
-                ByteBuffer.wrap(new byte[]{'p','e','e','r','s'}));
+            (ArrayList<Map>) response.get(Util.s("peers"));
         ArrayList<Map<String,Object>> peers = parsePeers(rawPeers);
 
         // send updated peer list to manager
         manager.post(new Memo("peers", peers, this));
 
         // get our announce interval
-        announceInterval = (Integer) response.get(
-            ByteBuffer.wrap(new byte[]{'i','n','t','e','r','v','a','l'}));
+        announceInterval = (Integer) response.get(Util.s("interval"));
 
-        this.state = "normal";
+        this.setState("normal");
 
-      } catch (Exception e) {
+      } catch (MalformedURLException e) {
         this.exception = e;
-        this.state = "error";
+        this.setState("error");
+        log.severe("Error: malformed announce URL " + finalURL.toString());
+      } catch (Exception e) { // BencodingException, IOException
+        this.exception = e;
+        this.setState("error");
         e.printStackTrace();
       }
     }
@@ -224,8 +235,8 @@ public class Deputy extends Actor {
   /**
    * Takes the raw peer list from the tracker response and processes it into something
    * that's nicer to work with
-   * @param rawPeerList The {@code ArrayList<{@code Map}>} of peers sent from announce()
-   * @return An ArrayList<Map<String, Object>> of peers and their information
+   * @param rawPeerList The {@code ArrayList<Map>} of peers sent from announce()
+   * @return An {@code ArrayList<Map<String, Object>>} of peers and their information
    */
   private ArrayList<Map<String, Object>> parsePeers(@SuppressWarnings("rawtypes") ArrayList<Map> rawPeerList)
   {
@@ -255,10 +266,20 @@ public class Deputy extends Actor {
   }
 
   /**
+   * Get's the deputy's current state
    * @return the state
    */
   public String getState() {
     return state;
   }
 
+  /**
+   * Validates the input, and if okay, sets the state to it
+   * @param state the state to set
+   */
+  public void setState(String state) {
+    if(state.equals("init") || state.equals("error") || state.equals("normal")) {
+      this.state = state;
+    }
+  }
 }
