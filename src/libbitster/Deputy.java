@@ -95,15 +95,20 @@ public class Deputy extends Actor {
   protected void receive (Memo memo)
   {
     // special force reannounce request from Manager.
+    // payload = null
     if (memo.getType().equals("list")) {
       announce();
     }
     
     // periodic reannounce request sent from the Timeout from itself
+    // calls announce(payload)
     else if (memo.getType().equals("announce") && memo.getSender() == this)
     {
       timeoutQueued = false;
-      announce();
+      if(memo.getPayload() instanceof ByteBuffer)
+        announce((ByteBuffer) memo.getPayload());
+      else
+        announce();
     }
 
     else if (memo.getType().equals("done")) {
@@ -221,6 +226,10 @@ public class Deputy extends Actor {
         error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
         error(e, "Error: Unable to communicate with tracker.");
+        
+        // Try again in a minute
+        Util.setTimeout(60000, new Memo("announce", args, this));
+        timeoutQueued = true;
       } catch (BencodingException e) {
         error(e, "Error: invalid tracker response.");
       }
