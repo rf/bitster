@@ -5,6 +5,7 @@ import java.util.*;
 import java.util.logging.*;
 
 import java.nio.*;
+import java.nio.channels.*;
 
 // The `Broker` class manages a connection with a peer.  It uses the
 // `Protocol` class for the actual communication.  It accepts the following
@@ -22,13 +23,13 @@ public class Broker extends Actor {
   private Protocol peer;
   private Manager manager;
 
-  // Choked and interesting refer to the local state:
-  private boolean choked;      // We are choked by the peer.
-  private boolean interesting; // We are interesting to the peer.
+  // Choked and interesting refer to the peer's opinion of ous:
+  private boolean choked = true;       // We are choked by the peer
+  private boolean interesting = false; // We are not interesting to the peer.
 
-  // Choking and interested refer to the remote state:
-  private boolean choking;     // We are choking this peer.
-  private boolean interested;  // We are interested in the peer.
+  // Choking and interested are our opinions of the peer:
+  private boolean choking = true;      // We are choking this peer
+  private boolean interested = false;  // We are not interested in the peer
 
   private BitSet pieces;
 
@@ -39,9 +40,19 @@ public class Broker extends Actor {
 
   private final static Logger log = Logger.getLogger("Broker");
 
+  public Broker (SocketChannel sc, Manager manager) {
+    super();
+    log.info("Broker: accepting");
+
+    outbox = new LinkedList<Message>();
+    peer = new Protocol(sc, manager.getInfoHash(), manager.getPeerId());
+    this.manager = manager;
+    state = "normal";
+    Util.setTimeout(120000, new Memo("keepalive", null, this));
+  }
+
   public Broker (InetAddress host, int port, Manager manager) {
     super();
-    log.setLevel(Level.FINEST);
     log.info("Broker init for host: " + host);
 
     outbox = new LinkedList<Message>();
@@ -54,16 +65,7 @@ public class Broker extends Actor {
     );
 
     this.manager = manager;
-
-    // When we start..
-    choked = true;        // We assume we are choked by the peer.
-    interesting = false;  // We assume we are not interesting to the peer.
-
-    choking = true;       // We are choking the peer.
-    interested = false;   // We are not interested in the peer.
-
     state = "normal";
-
     Util.setTimeout(120000, new Memo("keepalive", null, this));
   }
 
