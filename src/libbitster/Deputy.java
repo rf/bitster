@@ -159,7 +159,10 @@ public class Deputy extends Actor {
       return;
     else
     {
-      log.info("Contacting tracker.");
+      log.info("Contacting tracker...");
+      
+      // no longer in init state, may switch to error later
+      this.setState("normal");
 
       StringBuffer finalURL = new StringBuffer();
       // add announce URL
@@ -219,13 +222,11 @@ public class Deputy extends Actor {
         manager.post(new Memo("peers", peers, this));
 
         // get our announce interval
-        announceInterval = (Integer) response.get(Util.s("interval"));
-
-        this.setState("normal");
+        announceInterval = (Integer) response.get(Util.s("interval"));        
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
-        error(e, "Error: Unable to communicate with tracker.");
+        log.warning("Warning: Unable to communicate with tracker. Retrying in 60 seconds...");
         
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
