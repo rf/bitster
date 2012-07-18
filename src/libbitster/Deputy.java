@@ -30,8 +30,9 @@ public class Deputy extends Actor {
   private String announceURL;
   private String infoHash;
   private int listenPort;
-  private int announceInterval;
+  private int announceInterval = 180; // 3 minutes is a safe enough default
   private Manager manager;
+  boolean timeoutQueued;
 
   public Exception exception;         // set to an exception if one occurs
 
@@ -52,6 +53,8 @@ public class Deputy extends Actor {
 
       // encode our info hash
       infoHash = escapeURL(metainfo.info_hash);
+      
+      this.timeoutQueued = false;
   }
 
   /**
@@ -91,8 +94,16 @@ public class Deputy extends Actor {
   @Override
   protected void receive (Memo memo)
   {
+    // special force reannounce request from Manager.
     if (memo.getType().equals("list")) {
-      announce(); // get updated peer list and send it to manager
+      announce();
+    }
+    
+    // periodic reannounce request sent from the Timeout from itself
+    else if (memo.getType().equals("announce") && memo.getSender() == this)
+    {
+      timeoutQueued = false;
+      announce();
     }
 
     else if (memo.getType().equals("done")) {
@@ -110,9 +121,17 @@ public class Deputy extends Actor {
    */
   @Override
   protected void idle () {
+    // send started event to tracker if we're just starting up
     if(this.getState().equals("init")) {
       announce(Util.s("&event=started"));
     }
+    
+    // queue our next announce
+    if(timeoutQueued == false) {
+      Util.setTimeout(announceInterval * 1000, new Memo("announce", null, this));
+      timeoutQueued = true;
+    }
+    
     try { Thread.sleep(1000); } catch (Exception e) {}
   }
 
@@ -198,10 +217,6 @@ public class Deputy extends Actor {
         announceInterval = (Integer) response.get(Util.s("interval"));
 
         this.setState("normal");
-        
-        // queue our next announce
-        Util.setTimeout(announceInterval * 1000, new Memo("list", null, this));
-
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
