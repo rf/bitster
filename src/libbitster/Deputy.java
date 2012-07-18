@@ -223,17 +223,11 @@ public class Deputy extends Actor {
         this.setState("normal");
 
       } catch (MalformedURLException e) {
-        this.exception = e;
-        this.setState("error");
-        log.severe("Error: malformed announce URL " + finalURL.toString());
+        error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
-        this.exception = e;
-        this.setState("error");
-        log.severe("Error: Unable to communicate with tracker.");
+        error(e, "Error: Unable to communicate with tracker.");
       } catch (BencodingException e) {
-        this.exception = e;
-        this.setState("error");
-        log.severe("Error: invalid tracker response.");
+        error(e, "Error: invalid tracker response.");
       }
     }
   }
@@ -269,6 +263,17 @@ public class Deputy extends Actor {
       processedPeerList.add(peerInfo);
     }
     return processedPeerList;
+  }
+  
+  /**
+   * Processes an exception and sets the error state
+   * @param e the exception that was thrown
+   */
+  private void error(Exception e, String logMessage)
+  {
+    this.exception = e;
+    this.setState("error");
+    log.severe(logMessage);
   }
 
   /**
