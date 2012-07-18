@@ -33,7 +33,6 @@ public class Deputy extends Actor {
   private int listenPort;
   private int announceInterval;
   private Manager manager;
-  Calendar lastAnnounce;
 
   public Exception exception;         // set to an exception if one occurs
 
@@ -117,14 +116,6 @@ public class Deputy extends Actor {
   @Override
   protected void idle () {
     try { Thread.sleep(1000); } catch (Exception e) {}
-    
-    if(!this.getState().equals("error")) {
-      if(Calendar.getInstance().getTimeInMillis() - this.lastAnnounce.getTimeInMillis()
-          > 1000*this.announceInterval)
-      {
-        announce();
-      }
-    }
   }
   
   @Override
@@ -156,8 +147,6 @@ public class Deputy extends Actor {
       return;
     else
     {
-      // reset our timer
-      this.lastAnnounce = Calendar.getInstance();
       log.info("Contacting tracker.");
 
       StringBuffer finalURL = new StringBuffer();
@@ -221,6 +210,9 @@ public class Deputy extends Actor {
         announceInterval = (Integer) response.get(Util.s("interval"));
 
         this.setState("normal");
+        
+        // queue our next announce
+        Util.setTimeout(announceInterval * 1000, new Memo("list", null, this));
 
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
