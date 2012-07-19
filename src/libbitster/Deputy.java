@@ -30,7 +30,7 @@ public class Deputy extends Actor {
   private String announceURL;
   private String infoHash;
   private int listenPort;
-  private int announceInterval = 180; // 3 minutes is a safe enough default
+  private int announceInterval = -1;
   private Manager manager;
 
   public Exception exception;         // set to an exception if one occurs
