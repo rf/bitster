@@ -23,7 +23,6 @@ public class Deputy extends Actor {
   private final static Logger log = Logger.getLogger("Deputy");
 
   private String state; // states:
-  // 'init': just created, waiting to establish a connection
   // 'error': error occurred, exception property will be populated
   // 'normal': operating normally (may add more such states later)
 
@@ -281,7 +280,7 @@ public class Deputy extends Actor {
    * @param state the state to set
    */
   public void setState(String state) {
-    if(state.equals("init") || state.equals("error") || state.equals("normal")) {
+    if(state.equals("error") || state.equals("normal")) {
       this.state = state;
     }
   }
