@@ -32,7 +32,6 @@ public class Deputy extends Actor {
   private int listenPort;
   private int announceInterval = 180; // 3 minutes is a safe enough default
   private Manager manager;
-  boolean timeoutQueued;
 
   public Exception exception;         // set to an exception if one occurs
 
@@ -54,7 +53,8 @@ public class Deputy extends Actor {
       // encode our info hash
       infoHash = escapeURL(metainfo.info_hash);
       
-      this.timeoutQueued = false;
+      // posts a memo to itself to announce when thread starts
+      this.post(new Memo("announce", Util.s("&event=started"), this));
   }
 
   /**
@@ -104,11 +104,16 @@ public class Deputy extends Actor {
     // calls announce(payload)
     else if (memo.getType().equals("announce") && memo.getSender() == this)
     {
-      timeoutQueued = false;
+      boolean result = false;
       if(memo.getPayload() instanceof ByteBuffer)
-        announce((ByteBuffer) memo.getPayload());
+        result = announce((ByteBuffer) memo.getPayload());
       else
-        announce();
+        result = announce();
+      
+      if(result)
+      {
+        Util.setTimeout(announceInterval * 1000, new Memo("announce", null, this));
+      }
     }
 
     else if (memo.getType().equals("done")) {
@@ -122,45 +127,26 @@ public class Deputy extends Actor {
   }
 
   /**
-   * Announce at regular intervals
-   */
-  @Override
-  protected void idle () {
-    // send started event to tracker if we're just starting up
-    if(this.getState().equals("init")) {
-      announce(Util.s("&event=started"));
-    }
-    
-    // queue our next announce
-    if(timeoutQueued == false) {
-      Util.setTimeout(announceInterval * 1000, new Memo("announce", null, this));
-      timeoutQueued = true;
-    }
-    
-    try { Thread.sleep(1000); } catch (Exception e) {}
-  }
-
-  /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    */
   
-  private void announce()
+  private boolean announce()
   {
-    announce(null);
+    return announce(null);
   }
   @SuppressWarnings("unchecked")
   /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    * @param args extra parameters for the HTTP GET request. Must start with "&".
    */
-  private void announce(ByteBuffer args)
+  private boolean announce(ByteBuffer args)
   {
     if(announceURL == null)
-      return;
+      return false;
     else
     {
       log.info("Contacting tracker...");
-      
+
       // no longer in init state, may switch to error later
       this.setState("normal");
 
@@ -222,7 +208,8 @@ public class Deputy extends Actor {
         manager.post(new Memo("peers", peers, this));
 
         // get our announce interval
-        announceInterval = (Integer) response.get(Util.s("interval"));        
+        announceInterval = (Integer) response.get(Util.s("interval"));
+        return true;
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
@@ -230,10 +217,10 @@ public class Deputy extends Actor {
         
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
-        timeoutQueued = true;
       } catch (BencodingException e) {
         error(e, "Error: invalid tracker response.");
       }
+      return false;
     }
   }
 
