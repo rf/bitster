@@ -50,6 +50,10 @@ public class Funnel extends Actor {
       if(!piece.isValid()) {
         //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
         log.severe("Piece " + piece.getNumber() + " failed hash check");
+        
+        //Notify the sender
+        memo.getSender().post(new Memo("hash_fail", Integer.valueOf(piece.getNumber()), this));
+        
         return;
       }
       if(!piece.finished())
