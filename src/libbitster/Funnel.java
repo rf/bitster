@@ -41,7 +41,7 @@ public class Funnel extends Actor {
    * @see libbitster.Actor#receive(libbitster.Memo)
    */
   protected void receive (Memo memo) {
-    if (memo.getType() == "piece") {
+    if("piece".equals( memo.getType() )) {
 
       if(!(memo.getPayload() instanceof Piece))
         throw new IllegalArgumentException("Funnel expects a Piece");
@@ -68,12 +68,22 @@ public class Funnel extends Actor {
       pieces.set(piece.getNumber(), piece);
 
     }
-
-    else if (memo.getType() == "save") {
+    else if("save".equals( memo.getType() )) {
       try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
       log.info("Funnel shutting down");
       shutdown();
       memo.getSender().post(new Memo("done", null, this));
+    }
+    else if("request".equals( memo.getType() )) {
+      if(!(memo.getPayload() instanceof Integer)) {
+        String msg = "Integer payload expected for request message in Funnel";
+        log.finer(msg);
+        throw new IllegalArgumentException(msg);
+      }
+      
+      Integer index = (Integer) memo.getPayload();
+      
+      memo.getSender().post(new Memo("piece", getPiece(index.intValue()), this));
     }
   }
 
