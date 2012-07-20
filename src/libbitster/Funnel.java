@@ -120,6 +120,27 @@ public class Funnel extends Actor {
 
     return buff;
   }
+  
+  /**
+   * Returns the requested piece
+   * @param pieceNumber The index of the Piece to get
+   * @return A Piece
+   */
+  public Piece getPiece(int pieceNumber) {
+    if(pieceNumber < 0 || pieceNumber >= pieces.size()) {
+      String msg = "The Piece index is out of bounds";
+      log.finer(msg);
+      throw new IndexOutOfBoundsException(msg);
+    }
+    
+    if(pieces.get(pieceNumber) == null) {
+      String msg = "The request piece is not available";
+      log.finer(msg);
+      throw new IllegalArgumentException(msg);
+    }
+    
+    return pieces.get(pieceNumber);
+  }
 
   /**
    * Saves the data to a file if finished
