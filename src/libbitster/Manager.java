@@ -229,9 +229,13 @@ public class Manager extends Actor {
         }
       }
 
-      SocketChannel newConnection = listen.accept();
-      if (newConnection != null) {
-        brokers.add(new Broker(newConnection, this));
+      try {
+        SocketChannel newConnection = listen.accept();
+        if (newConnection != null) {
+          brokers.add(new Broker(newConnection, this));
+        }
+      } catch (IOException e) {
+        // connection failed, ignore
       }
     }
 
