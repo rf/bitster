@@ -93,7 +93,9 @@ public class Manager extends Actor {
         listen.socket().bind(new InetSocketAddress("0.0.0.0", i));
         listen.configureBlocking(false);
         break;
-      } catch (IOException e) {
+      } 
+
+      catch (IOException e) {
         if(i == 6890)
         {
           log.severe("could not open a socket for listening");

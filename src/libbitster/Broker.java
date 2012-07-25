@@ -97,10 +97,12 @@ public class Broker extends Actor {
     }
 
     else if (memo.getType() == "have") {
-      Piece p = (Piece) memo.getPayload();
-      peer.send(Message.createHave(p.getNumber()));
-      log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
-        " that we have piece " + p.getNumber());
+      if (peer.getState().equals("normal")) {
+        Piece p = (Piece) memo.getPayload();
+        peer.send(Message.createHave(p.getNumber()));
+        log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+          " that we have piece " + p.getNumber());
+      } else log.info("Peer not connected, not sending have.");
     }
   }
 
