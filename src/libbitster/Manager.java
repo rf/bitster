@@ -2,7 +2,8 @@ package libbitster;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.ServerSocket;
+import java.nio.*;
+import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
@@ -34,8 +35,8 @@ public class Manager extends Actor {
   // Peer ID
   private final ByteBuffer peerId;
 
-  //Listens for incoming peer connections
-  private ServerSocket listen;
+  // Listens for incoming peer connections
+  private ServerSocketChannel listen;
 
   // current list of peers
   private ArrayList<Map<String, Object>> peers;
@@ -88,18 +89,22 @@ public class Manager extends Actor {
     for(int i = 6881; i < 6890; ++i)
     {
       try {
-        this.listen = new ServerSocket(i);
+        listen = ServerSocketChannel.open();
+        listen.socket().bind(new InetSocketAddress("0.0.0.0", i));
+        listen.configureBlocking(false);
         break;
-      } catch (IOException e) {
+      } 
+
+      catch (IOException e) {
         if(i == 6890)
         {
-          System.err.println("Error establishing listening socket.");
-          System.exit(1);
+          log.severe("could not open a socket for listening");
+          shutdown();
         }
       }
     }
 
-    deputy = new Deputy(metainfo, listen.getLocalPort(), this);
+    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
 
     log.info("Our peer id: " + Util.buff2str(peerId));
@@ -126,13 +131,12 @@ public class Manager extends Actor {
     {
       log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if(peers.isEmpty()) log.warning("Peer list empty!");
+      if (peers.isEmpty()) log.warning("Peer list empty!");
 
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
-        ByteBuffer prefix = Util.s("RUBT11");
         ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
         String ip = (String) currPeer.get("ip");
 
@@ -153,9 +157,7 @@ public class Manager extends Actor {
           } 
 
           catch (UnknownHostException e) {
-            // This is thrown when the hostname cannot be resolved by getByName,
-            // but we're passing in an ip, which can't fail a host lookup. 
-            // This exception is *actually* impossible.
+            // Malformed ip, just ignore it
           }
         }
 
@@ -227,6 +229,15 @@ public class Manager extends Actor {
 
           }
         }
+      }
+
+      try {
+        SocketChannel newConnection = listen.accept();
+        if (newConnection != null) {
+          brokers.add(new Broker(newConnection, this));
+        }
+      } catch (IOException e) {
+        // connection failed, ignore
       }
     }
 
@@ -303,6 +314,16 @@ public class Manager extends Actor {
     }
 
     return null;
+  }
+
+  /**
+   * Add a peer to our internal list of peer ids
+   */
+  public boolean addPeer (ByteBuffer peerId, Broker b) {
+    if (peersById.get(peerId) != null) return false;
+
+    peersById.put(peerId, b);
+    return true;
   }
 
   public int getDownloaded() {
