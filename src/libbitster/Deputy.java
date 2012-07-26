@@ -1,12 +1,13 @@
 package libbitster;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -22,16 +23,14 @@ public class Deputy extends Actor {
   private final static Logger log = Logger.getLogger("Deputy");
 
   private String state; // states:
-  // 'init': just created, waiting to establish a connection
-  // 'error': error occured, exception property will be populated
+  // 'error': error occurred, exception property will be populated
   // 'normal': operating normally (may add more such states later)
 
   private String announceURL;
   private String infoHash;
   private int listenPort;
-  private int announceInterval;
+  private int announceInterval = -1;
   private Manager manager;
-  Calendar lastAnnounce;
 
   public Exception exception;         // set to an exception if one occurs
 
@@ -52,11 +51,9 @@ public class Deputy extends Actor {
 
       // encode our info hash
       infoHash = escapeURL(metainfo.info_hash);
-
-      this.state = "init";
-
-      // we're done setting up variables, now connect
-      announce(Util.s("&event=started"));
+      
+      // posts a memo to itself to announce when thread starts
+      this.post(new Memo("announce", Util.s("&event=started"), this));
   }
 
   /**
@@ -96,16 +93,32 @@ public class Deputy extends Actor {
   @Override
   protected void receive (Memo memo)
   {
-    if (memo.getType().equals("list"))
+    // special force reannounce request from Manager.
+    // payload = null
+    if (memo.getType().equals("list")) {
+      announce();
+    }
+    
+    // periodic reannounce request sent from the Timeout from itself
+    // calls announce(payload)
+    else if (memo.getType().equals("announce") && memo.getSender() == this)
     {
-      announce(); // get updated peer list and send it to manager
+      boolean result = false;
+      if(memo.getPayload() instanceof ByteBuffer)
+        result = announce((ByteBuffer) memo.getPayload());
+      else
+        result = announce();
+      
+      if(result)
+      {
+        Util.setTimeout(announceInterval * 1000, new Memo("announce", null, this));
+      }
     }
 
-    else if (memo.getType().equals("done"))
-    {
+    else if (memo.getType().equals("done")) {
       announce(Util.s("&event=completed"));
     }
-
+    
     else if (memo.getType() == "halt") {
       announce(Util.s("&event=stopped"));
       shutdown();
@@ -113,41 +126,28 @@ public class Deputy extends Actor {
   }
 
   /**
-   * Announce at regular intervals
-   */
-  @Override
-  protected void idle () {
-    try { Thread.sleep(1000); } catch (Exception e) {}
-
-    if(Calendar.getInstance().getTimeInMillis() - this.lastAnnounce.getTimeInMillis()
-        > 1000*this.announceInterval)
-    {
-      announce();
-    }
-  }
-
-  /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    */
   
-  private void announce()
+  private boolean announce()
   {
-    announce(null);
+    return announce(null);
   }
   @SuppressWarnings("unchecked")
   /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    * @param args extra parameters for the HTTP GET request. Must start with "&".
    */
-  private void announce(ByteBuffer args)
+  private boolean announce(ByteBuffer args)
   {
     if(announceURL == null)
-      return;
+      return false;
     else
     {
-      // reset our timer
-      this.lastAnnounce = Calendar.getInstance();
-      log.info("Contacting tracker.");
+      log.info("Contacting tracker...");
+
+      // no longer in init state, may switch to error later
+      this.setState("normal");
 
       StringBuffer finalURL = new StringBuffer();
       // add announce URL
@@ -200,32 +200,34 @@ public class Deputy extends Actor {
         // get our peer list and work it into something nicer
         @SuppressWarnings("rawtypes")
         ArrayList<Map> rawPeers =
-            (ArrayList<Map>) response.get(
-                ByteBuffer.wrap(new byte[]{'p','e','e','r','s'}));
+            (ArrayList<Map>) response.get(Util.s("peers"));
         ArrayList<Map<String,Object>> peers = parsePeers(rawPeers);
 
         // send updated peer list to manager
         manager.post(new Memo("peers", peers, this));
 
         // get our announce interval
-        announceInterval = (Integer) response.get(
-            ByteBuffer.wrap(new byte[]{'i','n','t','e','r','v','a','l'}));
-
-        this.state = "normal";
-
-      } catch (Exception e) {
-        this.exception = e;
-        this.state = "error";
-        e.printStackTrace();
+        announceInterval = (Integer) response.get(Util.s("interval"));
+        return true;
+      } catch (MalformedURLException e) {
+        error(e, "Error: malformed announce URL " + finalURL.toString());
+      } catch (IOException e) {
+        log.warning("Warning: Unable to communicate with tracker. Retrying in 60 seconds...");
+        
+        // Try again in a minute
+        Util.setTimeout(60000, new Memo("announce", args, this));
+      } catch (BencodingException e) {
+        error(e, "Error: invalid tracker response.");
       }
+      return false;
     }
   }
 
   /**
    * Takes the raw peer list from the tracker response and processes it into something
    * that's nicer to work with
-   * @param rawPeerList The {@code ArrayList<{@code Map}>} of peers sent from announce()
-   * @return An ArrayList<Map<String, Object>> of peers and their information
+   * @param rawPeerList The {@code ArrayList<Map>} of peers sent from announce()
+   * @return An {@code ArrayList<Map<String, Object>>} of peers and their information
    */
   private ArrayList<Map<String, Object>> parsePeers(@SuppressWarnings("rawtypes") ArrayList<Map> rawPeerList)
   {
@@ -253,12 +255,33 @@ public class Deputy extends Actor {
     }
     return processedPeerList;
   }
+  
+  /**
+   * Processes an exception and sets the error state
+   * @param e the exception that was thrown
+   */
+  private void error(Exception e, String logMessage)
+  {
+    this.exception = e;
+    this.setState("error");
+    log.severe(logMessage);
+  }
 
   /**
+   * Get's the deputy's current state
    * @return the state
    */
   public String getState() {
     return state;
   }
 
+  /**
+   * Validates the input, and if okay, sets the state to it
+   * @param state the state to set
+   */
+  public void setState(String state) {
+    if(state.equals("error") || state.equals("normal")) {
+      this.state = state;
+    }
+  }
 }

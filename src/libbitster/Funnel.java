@@ -41,7 +41,7 @@ public class Funnel extends Actor {
    * @see libbitster.Actor#receive(libbitster.Memo)
    */
   protected void receive (Memo memo) {
-    if (memo.getType() == "piece") {
+    if("piece".equals( memo.getType() )) {
 
       if(!(memo.getPayload() instanceof Piece))
         throw new IllegalArgumentException("Funnel expects a Piece");
@@ -50,6 +50,10 @@ public class Funnel extends Actor {
       if(!piece.isValid()) {
         //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
         log.severe("Piece " + piece.getNumber() + " failed hash check");
+        
+        //Notify the sender
+        memo.getSender().post(new Memo("hash_fail", Integer.valueOf(piece.getNumber()), this));
+        
         return;
       }
       if(!piece.finished())
@@ -68,12 +72,22 @@ public class Funnel extends Actor {
       pieces.set(piece.getNumber(), piece);
 
     }
-
-    else if (memo.getType() == "save") {
+    else if("save".equals( memo.getType() )) {
       try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
       log.info("Funnel shutting down");
       shutdown();
       memo.getSender().post(new Memo("done", null, this));
+    }
+    else if("request".equals( memo.getType() )) {
+      if(!(memo.getPayload() instanceof Integer)) {
+        String msg = "Integer payload expected for request message in Funnel";
+        log.finer(msg);
+        throw new IllegalArgumentException(msg);
+      }
+      
+      Integer index = (Integer) memo.getPayload();
+      
+      memo.getSender().post(new Memo("piece", getPiece(index.intValue()), this));
     }
   }
 
@@ -119,6 +133,27 @@ public class Funnel extends Actor {
     buff.rewind();
 
     return buff;
+  }
+  
+  /**
+   * Returns the requested piece
+   * @param pieceNumber The index of the Piece to get
+   * @return A Piece
+   */
+  public Piece getPiece(int pieceNumber) {
+    if(pieceNumber < 0 || pieceNumber >= pieces.size()) {
+      String msg = "The Piece index is out of bounds";
+      log.finer(msg);
+      throw new IndexOutOfBoundsException(msg);
+    }
+    
+    if(pieces.get(pieceNumber) == null) {
+      String msg = "The request piece is not available";
+      log.finer(msg);
+      throw new IllegalArgumentException(msg);
+    }
+    
+    return pieces.get(pieceNumber);
   }
 
   /**

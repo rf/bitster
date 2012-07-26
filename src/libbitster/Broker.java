@@ -77,7 +77,7 @@ public class Broker extends Actor {
   // Receive a memo
 
   protected void receive (Memo memo) {
-    if (memo.getType() == "request") {
+    if ("request".equals( memo.getType() )) {
       numQueued += 1;
       if (choked) {
         log.info("We're choked, queuing message");
@@ -90,13 +90,13 @@ public class Broker extends Actor {
       }
     }
 
-    else if (memo.getType() == "keepalive") {
+    else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
       log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
 
-    else if (memo.getType() == "have") {
+    else if ("have".equals(memo.getType())) {
       if (peer.getState().equals("normal")) {
         Piece p = (Piece) memo.getPayload();
         peer.send(Message.createHave(p.getNumber()));
