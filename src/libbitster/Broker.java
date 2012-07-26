@@ -49,7 +49,13 @@ public class Broker extends Actor {
     log.info("Broker: accepting");
 
     outbox = new LinkedList<Message>();
-    peer = new Protocol(sc, manager.getInfoHash(), manager.getPeerId());
+    peer = new Protocol(
+      sc, 
+      manager.getInfoHash(), 
+      manager.getPeerId(), 
+      manager.getOverlord()
+    );
+    peer.establish();
     this.manager = manager;
     state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
@@ -65,8 +71,10 @@ public class Broker extends Actor {
       host, 
       port, 
       manager.getInfoHash(),
-      manager.getPeerId()
+      manager.getPeerId(),
+      manager.getOverlord()
     );
+    peer.establish();
 
     this.manager = manager;
     state = "normal";
@@ -152,7 +160,6 @@ public class Broker extends Actor {
   }
 
   protected void idle () {
-    peer.communicate(); // pump that shit
     Message m;
     while ((m = peer.receive()) != null) message(m); // grab any available msgs
 
