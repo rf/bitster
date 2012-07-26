@@ -4,21 +4,31 @@ import java.nio.channels.Pipe.*;
 import java.io.*;
 import java.util.*; 
 import java.util.logging.*; 
+import java.util.concurrent.*;
 
 /** A reactor that selects on some stuff and then notifies some Communicators
  *  that things happened */
 
 public class Overlord {
   private Selector selector;
+  private Pipe pipe;
   private final static Logger log = Logger.getLogger("Overlord");
+  private ConcurrentLinkedQueue<Communicator> queue;
 
   // This is just used to read the one byte off of pipes informing us that
   // there is data on some queue.
-  ByteBuffer ignored = ByteBuffer.allocate(1);
+  ByteBuffer ignored = ByteBuffer.allocate(10);
 
   public Overlord () {
     try {
       selector = Selector.open();
+      queue = new ConcurrentLinkedQueue<Communicator>();
+
+      // open the pipe and register it with our selector
+      pipe = Pipe.open();
+      pipe.sink().configureBlocking(false);
+      pipe.source().configureBlocking(false);
+      pipe.source().register(selector, SelectionKey.OP_READ);
     } catch (IOException e) { throw new RuntimeException("select() failed"); }
   }
 
@@ -45,11 +55,21 @@ public class Overlord {
         if (key.channel() instanceof SourceChannel) {
           // It's a pipe, so we should read the byte off and notify the
           // Communicator that there's a memo.
-          SourceChannel pipeSource = (SourceChannel) key.channel();
-          ignored.clear();
-          try { pipeSource.read(ignored); } catch (IOException e) { /*?*/ }
 
-          communicator.onMemo();
+          SourceChannel pipeSource = (SourceChannel) key.channel();
+
+          // Read all of the bytes off
+          int read = 0;
+          do {
+            ignored.clear();
+            try { pipeSource.read(ignored); } catch (IOException e) { /*?*/ }
+          } while (read > 0);
+
+          // Go through the queue and handle each communicator
+          while (!queue.isEmpty()) {
+            Communicator c = queue.poll();
+            c.onMemo();
+          }
         }
         
         else {
@@ -61,6 +81,8 @@ public class Overlord {
       if (key.isAcceptable()) communicator.onAcceptable();
     }
   }
+  
+  public void offer (Communicator c) { queue.offer(c); }
 
   /** Registers a SelectableChannel */
   public boolean register (SelectableChannel sc, Communicator communicator) {
@@ -78,21 +100,11 @@ public class Overlord {
   /** Registers a SelectableQueue */
   public boolean register (SelectableQueue sq, Communicator communicator) {
     try {
-      // Make a new pipe and configure it for non blocking mode
-      Pipe p = Pipe.open();
-      p.sink().configureBlocking(false);
-      p.source().configureBlocking(false);
-
       // Register the new pipe with the queue. It will write a byte to this
-      // pipe when the queue is hot.
-      sq.register(p.sink());
-
-      // Register the new pipe to be selected on.
-      p.source().register(
-        selector,
-        SelectionKey.OP_READ,
-        communicator
-      );
+      // pipe when the queue is hot, and it will offer its communicator to our
+      // queue.
+      sq.register(pipe.sink(), this);
+      sq.register(communicator);
 
       return true;
     }
