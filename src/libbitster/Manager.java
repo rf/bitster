@@ -131,7 +131,7 @@ public class Manager extends Actor {
     {
       log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if(peers.isEmpty()) log.warning("Peer list empty!");
+      if (peers.isEmpty()) log.warning("Peer list empty!");
 
       for(int i = 0; i < peers.size(); i++)
       {

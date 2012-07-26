@@ -161,10 +161,13 @@ public class Broker extends Actor {
         // Peer has already been added
         log.severe("Dropping duplicate connection to " + 
           Util.buff2str(peer.getPeerId()));
+        error(new Exception("duplicate"));
+      } else {
+        state = "normal";
       }
     }
 
-    if (peer.getState() == "error") {
+    if (peer.getState().equals("error")) {
       if (state != "error") { // we haven't displayed the error msg yet
         log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
           "error: " + peer.exception);
