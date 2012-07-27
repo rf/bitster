@@ -148,6 +148,13 @@ public class Piece {
     return next;
   }
 
+  /** Unmarks a certain block as requested, called when a block can't be
+   *  requested from some peer. */
+  public void blockFail (int begin) {
+    int index = begin / blockSize;
+    requested.set(index, false);
+  }
+
   // Size of one particular block
   public final int sizeOf (int index) {
     if ((blockSize * (index + 1)) > size) return (size % blockSize);

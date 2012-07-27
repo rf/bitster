@@ -42,12 +42,16 @@ public class Broker extends Actor {
 
   private LinkedList<Message> outbox;
 
+  // Pieces we've requested from the peer. Heinous, I know, but it works.
+  private HashMap<String, Message> requests;
+
   private final static Logger log = Logger.getLogger("Broker");
 
   public Broker (SocketChannel sc, Manager manager) {
     super();
     log.info("Broker: accepting");
 
+    requests = new HashMap<String, Message>();
     outbox = new LinkedList<Message>();
     peer = new Protocol(
       sc, 
@@ -65,6 +69,7 @@ public class Broker extends Actor {
     super();
     log.info("Broker init for host: " + host);
 
+    requests = new HashMap<String, Message>();
     outbox = new LinkedList<Message>();
 
     peer = new Protocol(
@@ -87,14 +92,16 @@ public class Broker extends Actor {
   protected void receive (Memo memo) {
     if ("request".equals( memo.getType() )) {
       numQueued += 1;
+      Message m = (Message) memo.getPayload();
+      requests.put(m.getIndex() + ":" + m.getBegin(), m);
       if (choked) {
         log.info("We're choked, queuing message");
-        outbox.add((Message) memo.getPayload());
+        outbox.add(m);
       } 
       
       else {
-        log.info("Sending " + (Message) memo.getPayload());
-        peer.send((Message) memo.getPayload());
+        log.info("Sending " + m);
+        peer.send(m);
       }
     }
 
@@ -118,6 +125,12 @@ public class Broker extends Actor {
     state = "error";
     exception = e;
     peer.close();
+
+    if (requests.size() > 0) {
+      for (Message m : requests.values()) {
+        manager.post(new Memo("blockFail", m, this));
+      }
+    }
   }
 
   public void close () { peer.close(); }
@@ -152,6 +165,7 @@ public class Broker extends Actor {
       // Send pieces to our `Manager`.
       case Message.PIECE:
         numQueued -= 1;
+        requests.remove(message.getIndex() + ":" + message.getBegin());
         manager.post(new Memo("block", message, this));
       break;
 
