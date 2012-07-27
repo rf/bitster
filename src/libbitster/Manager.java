@@ -140,7 +140,6 @@ public class Manager extends Actor implements Communicator {
       {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
-        ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
         String ip = (String) currPeer.get("ip");
 
         if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
@@ -167,7 +166,7 @@ public class Manager extends Actor implements Communicator {
       }
     }
 
-    else if (memo.getType() == "block") {
+    else if (memo.getType().equals("block")) {
       Message msg = (Message) memo.getPayload();
       Piece p = pieces.get(msg.getIndex());
 
@@ -183,13 +182,19 @@ public class Manager extends Actor implements Communicator {
       Log.info("Got block, " + left + " left to download.");
     }
 
-    else if (memo.getType() == "done") {
+    else if (memo.getType().equals("done")) {
       state = "done";
+    }
+    
+    else if (memo.getType().equals("halt"))
+    {
+      state = "shutdown";
+      deputy.post(new Memo("halt", null, this));
       shutdown();
       Util.shutdown();
     }
 
-    else if (memo.getType() == "have") {
+    else if (memo.getType().equals("have")) {
       for (Broker b : brokers) 
         b.post(new Memo("have", memo.getPayload(), this));
     }
