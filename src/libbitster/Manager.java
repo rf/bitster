@@ -17,7 +17,7 @@ import java.util.logging.*;
  * @author Theodore Surgent
  */
 
-public class Manager extends Actor {
+public class Manager extends Actor implements Communicator {
 
   private final int blockSize = 16384;
   private String state;
@@ -31,6 +31,9 @@ public class Manager extends Actor {
 
   // communicates with tracker
   private Deputy deputy;
+
+  // Actually select()s on sockets
+  private Overlord overlord;
 
   // Peer ID
   private final ByteBuffer peerId;
@@ -75,6 +78,8 @@ public class Manager extends Actor {
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
 
+    overlord = new Overlord();
+
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
     funnel = new Funnel(dest, metainfo.file_length, metainfo.piece_length);
@@ -106,6 +111,8 @@ public class Manager extends Actor {
 
     deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
+
+    overlord.register(listen, this);
 
     log.info("Our peer id: " + Util.buff2str(peerId));
 
@@ -193,7 +200,8 @@ public class Manager extends Actor {
   }
 
   protected void idle () {
-    try { Thread.sleep(10); } catch (InterruptedException e) {}
+    // actually select() on sockets and do network io
+    overlord.communicate(100);
 
     if (state == "downloading") {
 
@@ -231,14 +239,6 @@ public class Manager extends Actor {
         }
       }
 
-      try {
-        SocketChannel newConnection = listen.accept();
-        if (newConnection != null) {
-          brokers.add(new Broker(newConnection, this));
-        }
-      } catch (IOException e) {
-        // connection failed, ignore
-      }
     }
 
     if (left == 0 && state != "shutdown" && state != "done") {
@@ -258,6 +258,20 @@ public class Manager extends Actor {
       try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
     }
   }
+
+  public void onAcceptable () {
+    try {
+      SocketChannel newConnection = listen.accept();
+      if (newConnection != null) {
+        brokers.add(new Broker(newConnection, this));
+      }
+    } catch (IOException e) {
+      // connection failed, ignore
+    }
+  }
+
+  public void onReadable () {}
+  public void onWritable () {}
 
   /**
    * Generates a 20 character {@code byte} array for use as a
@@ -359,5 +373,6 @@ public class Manager extends Actor {
   }
 
   public String getState () { return state; }
+  public Overlord getOverlord () { return overlord; }
 
 }
