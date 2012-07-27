@@ -67,8 +67,22 @@ public class RUBTClient {
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       final Manager manager = new Manager(metainfo, dest);
       manager.start();
+      
+      // attempt to gracefully shut down from term and interrupt signals
       Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-        public void run() { manager.post(new Memo("done", null, null)); }
+        public void run() {
+          // TODO: ensure program cleans itself up successfully as best it can
+          manager.post(new Memo("done", null, null));
+          
+          for(int i = 0; i < 3; i++) {
+            try {
+              Thread.sleep(1000);
+              System.out.println("Waiting...");
+              } catch (InterruptedException e) {
+                System.out.println("Too late! Quitting...");
+              }
+            }
+          }
       }));
 
     } catch (IOException e) {
