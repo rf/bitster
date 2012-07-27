@@ -174,9 +174,10 @@ public class Manager extends Actor implements Communicator {
       Message msg = (Message) memo.getPayload();
       Piece p = pieces.get(msg.getIndex());
 
-      p.addBlock(msg.getBegin(), msg.getBlock());
-      downloaded += msg.getBlockLength();
-      left -= msg.getBlockLength();
+      if (p.addBlock(msg.getBegin(), msg.getBlock())) {
+        downloaded += msg.getBlockLength();
+        left -= msg.getBlockLength();
+      }
 
       if (p.finished()) {
         Log.info("Posting piece " + p.getNumber() + " to funnel");
@@ -238,9 +239,8 @@ public class Manager extends Actor implements Communicator {
             // TODO: actually check if the peer has this piece
             Piece p = next();
 
-            if (!b.has(p.getNumber())) continue;
-
             if (p != null) {
+              if (!b.has(p.getNumber())) continue;
               int index = p.next();
 
               b.post(new Memo("request", Message.createRequest(

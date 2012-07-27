@@ -50,7 +50,7 @@ public class Piece {
    * @param begin The byte offset within the piece, must be aligned to a blockSize boundary
    * @param block The block of bytes to add
    */
-  public void addBlock(int begin, ByteBuffer block) {
+  public boolean addBlock(int begin, ByteBuffer block) {
     if(block == null || block.position() != 0)
       throw new IllegalArgumentException("block is either null or is not at the beginning of the buffer");
 
@@ -69,7 +69,7 @@ public class Piece {
     //If this block was already downloaded then there is nothing to to
     if(completed.get(begin / blockSize)) {
       Log.error("The block " + (begin / blockSize) + " was already downloaded");
-      return;
+      return false;
     }
 
     //Check to make sure not special case where final block would be smaller than the rest
@@ -90,6 +90,8 @@ public class Piece {
       data[i] = block.get();
 
     completed.set(begin / blockSize);
+
+    return true;
   }
 
   /**
