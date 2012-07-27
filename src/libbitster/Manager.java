@@ -7,7 +7,6 @@ import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
-import java.util.logging.*;
 
 /**
  * Coordinates actions of all the {@link Actor}s and manages
@@ -49,8 +48,6 @@ public class Manager extends Actor implements Communicator {
 
   private HashMap<ByteBuffer, Broker> peersById;
 
-  private final static Logger log = Logger.getLogger("Manager");
-
   // torrent info
   private int downloaded, uploaded, left;
 
@@ -68,9 +65,8 @@ public class Manager extends Actor implements Communicator {
     super();
 
     state = "booting";
-    log.setLevel(Level.FINEST);
 
-    log.info("Manager init");
+    Log.info("Manager init");
 
     this.metainfo = metainfo;
     this.dest = dest;
@@ -103,7 +99,7 @@ public class Manager extends Actor implements Communicator {
       catch (IOException e) {
         if(i == 6890)
         {
-          log.severe("could not open a socket for listening");
+          Log.warning("could not open a socket for listening");
           shutdown();
         }
       }
@@ -114,7 +110,7 @@ public class Manager extends Actor implements Communicator {
 
     overlord.register(listen, this);
 
-    log.info("Our peer id: " + Util.buff2str(peerId));
+    Log.info("Our peer id: " + Util.buff2str(peerId));
 
     int i, total = metainfo.file_length;
     for (i = 0; i < metainfo.piece_hashes.length; i++) {
@@ -136,9 +132,9 @@ public class Manager extends Actor implements Communicator {
   protected void receive (Memo memo) {
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
-      log.info("Received peer list");
+      Log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if (peers.isEmpty()) log.warning("Peer list empty!");
+      if (peers.isEmpty()) Log.warning("Peer list empty!");
 
       for(int i = 0; i < peers.size(); i++)
       {
@@ -180,11 +176,11 @@ public class Manager extends Actor implements Communicator {
       left -= msg.getBlockLength();
 
       if (p.finished()) {
-        log.info("Posting piece " + p.getNumber() + " to funnel");
+        Log.info("Posting piece " + p.getNumber() + " to funnel");
         funnel.post(new Memo("piece", p, this));
       }
 
-      log.info("Got block, " + left + " left to download.");
+      Log.info("Got block, " + left + " left to download.");
     }
 
     else if (memo.getType() == "done") {
@@ -243,7 +239,7 @@ public class Manager extends Actor implements Communicator {
     }
 
     if (left == 0 && state != "shutdown" && state != "done") {
-      log.info("Download complete");
+      Log.info("Download complete");
       state = "shutdown";
       Iterator<Broker> i = brokers.iterator();
       Broker b;
