@@ -78,10 +78,8 @@ public class Protocol implements Communicator {
   // handle errors
   private void error (Exception e) {
     state = "error";
-    if (!(e instanceof CancelledKeyException)) {
-      exception = e;
-      e.printStackTrace();
-    }
+    exception = e;
+    e.printStackTrace();
     close();
   }
 
@@ -113,14 +111,14 @@ public class Protocol implements Communicator {
 
   // ## talk
   // Send some data to the peer
-  public void onWritable () {
+  public boolean onWritable () {
     try {
       // If we dont have a message in the writeBuffer, populate the writeBuffer
       if (writeBuffer == null && outbox.size() > 0)
         writeBuffer = outbox.poll().serialize();
 
       // If writeBuffer is still not populated, we have nothing to say
-      if (writeBuffer == null) return;
+      if (writeBuffer == null) return true;
 
       numWritten += channel.write(writeBuffer); // try to write some bytes 
       writeBuffer.position(numWritten);         // set the buffer's new pos
@@ -130,19 +128,20 @@ public class Protocol implements Communicator {
         writeBuffer = null;
         numWritten = 0;
       }
+
+      return true;
+
     } catch (Exception e) { error(e); }
+    return false;
   }
 
   // ## listen
   // Read data from the peer
-  public void onReadable () {
+  public boolean onReadable () {
     try {
       numRead += channel.read(readBuffer); // try to read some bytes from peer
       // EOF
-      if (numRead == -1) {
-        error(new Exception("eof"));
-        return;
-      }
+      if (numRead == -1) throw new Exception("eof");
       readBuffer.position(numRead);        // advance buffer
 
       do { // Parse out messages while there are still messages to parse
@@ -156,10 +155,13 @@ public class Protocol implements Communicator {
 
       } while (numRead >= length && length != -1);
 
+      return true;
+
     } catch (Exception e) { error(e); }
+    return false;
   }
 
-  public void onAcceptable () {/*NOP*/}
+  public boolean onAcceptable () { return false; }
 
   // ## parse
   // Parse the message and reset the state of the listen logic.
