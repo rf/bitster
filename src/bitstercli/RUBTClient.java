@@ -8,6 +8,7 @@ import java.util.logging.*;
 
 import libbitster.BencodingException;
 import libbitster.Manager;
+import libbitster.Memo;
 import libbitster.TorrentInfo;
 import libbitster.Util;
 
@@ -64,8 +65,11 @@ public class RUBTClient {
       dis.readFully(torrentBytes);
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
-      Manager manager = new Manager(metainfo, dest);
+      final Manager manager = new Manager(metainfo, dest);
       manager.start();
+      Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+        public void run() { manager.post(new Memo("done", null, null)); }
+      }));
 
     } catch (IOException e) {
       log.severe("Error: unable to read torrent file.");
