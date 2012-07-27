@@ -139,7 +139,7 @@ public class Broker extends Actor {
       error(new Exception("protocol error"));
     numReceived += 1;
 
-    Log.info(message.toString());
+    //Log.info(message.toString());
 
     switch (message.getType()) {
 
@@ -221,6 +221,11 @@ public class Broker extends Actor {
       peer.send(Message.createUnchoke());
       peer.send(Message.createInterested());
     }
+  }
+
+  // Checks to see if the peer has this piece.
+  public boolean has (int number) {
+    return pieces.get(number);
   }
 
   // Accessors.

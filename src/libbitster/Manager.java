@@ -238,6 +238,8 @@ public class Manager extends Actor implements Communicator {
             // TODO: actually check if the peer has this piece
             Piece p = next();
 
+            if (!b.has(p.getNumber())) continue;
+
             if (p != null) {
               int index = p.next();
 
