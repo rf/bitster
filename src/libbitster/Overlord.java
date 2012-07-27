@@ -34,9 +34,9 @@ public class Overlord {
       keys.remove();
       if (!key.isValid()) continue;      // WHY
       Communicator communicator = (Communicator) key.attachment();
-      if (key.isReadable())   communicator.onReadable();
-      if (key.isWritable())   communicator.onWritable();
-      if (key.isAcceptable()) communicator.onAcceptable();
+      if (key.isReadable())   if (!communicator.onReadable())   continue;
+      if (key.isWritable())   if (!communicator.onWritable())   continue;
+      if (key.isAcceptable()) if (!communicator.onAcceptable()) continue;
     }
   }
 

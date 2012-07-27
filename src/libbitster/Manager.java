@@ -259,7 +259,7 @@ public class Manager extends Actor implements Communicator {
     }
   }
 
-  public void onAcceptable () {
+  public boolean onAcceptable () {
     try {
       SocketChannel newConnection = listen.accept();
       if (newConnection != null) {
@@ -268,10 +268,12 @@ public class Manager extends Actor implements Communicator {
     } catch (IOException e) {
       // connection failed, ignore
     }
+
+    return true;
   }
 
-  public void onReadable () {}
-  public void onWritable () {}
+  public boolean onReadable () { return false; }
+  public boolean onWritable () { return false; }
 
   /**
    * Generates a 20 character {@code byte} array for use as a
