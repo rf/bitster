@@ -2,7 +2,6 @@ package libbitster;
 
 import java.net.*;
 import java.util.*;
-import java.util.logging.*;
 
 import java.nio.*;
 import java.nio.channels.*;
@@ -42,11 +41,9 @@ public class Broker extends Actor {
 
   private LinkedList<Message> outbox;
 
-  private final static Logger log = Logger.getLogger("Broker");
-
   public Broker (SocketChannel sc, Manager manager) {
     super();
-    log.info("Broker: accepting");
+    Log.i("Broker: accepting");
 
     outbox = new LinkedList<Message>();
     peer = new Protocol(
@@ -63,7 +60,7 @@ public class Broker extends Actor {
 
   public Broker (InetAddress host, int port, Manager manager) {
     super();
-    log.info("Broker init for host: " + host);
+    Log.info("Broker init for host: " + host);
 
     outbox = new LinkedList<Message>();
 
@@ -88,18 +85,18 @@ public class Broker extends Actor {
     if ("request".equals( memo.getType() )) {
       numQueued += 1;
       if (choked) {
-        log.info("We're choked, queuing message");
+        Log.info("We're choked, queuing message");
         outbox.add((Message) memo.getPayload());
       } 
       
       else {
-        log.info("Sending " + (Message) memo.getPayload());
+        Log.info("Sending " + (Message) memo.getPayload());
         peer.send((Message) memo.getPayload());
       }
     }
 
     else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
-      log.info("Sending keep alive");
+      Log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
@@ -108,9 +105,9 @@ public class Broker extends Actor {
       if (peer.getState().equals("normal")) {
         Piece p = (Piece) memo.getPayload();
         peer.send(Message.createHave(p.getNumber()));
-        log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+        Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
           " that we have piece " + p.getNumber());
-      } else log.info("Peer not connected, not sending have.");
+      } else Log.info("Peer not connected, not sending have.");
     }
   }
 
@@ -129,7 +126,7 @@ public class Broker extends Actor {
       error(new Exception("protocol error"));
     numReceived += 1;
 
-    log.info(message.toString());
+    Log.info(message.toString());
 
     switch (message.getType()) {
 
@@ -166,7 +163,7 @@ public class Broker extends Actor {
     if (state.equals("check") && peer.getPeerId() != null) {
       if (!manager.addPeer(peer.getPeerId(), this)) {
         // Peer has already been added
-        log.severe("Dropping duplicate connection to " + 
+        Log.error("Dropping duplicate connection to " + 
           Util.buff2str(peer.getPeerId()));
         error(new Exception("duplicate"));
       } else {
@@ -176,18 +173,18 @@ public class Broker extends Actor {
 
     if (peer.getState().equals("error")) {
       if (state != "error") { // we haven't displayed the error msg yet
-        log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
+        Log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
           "error: " + peer.exception);
       }
       state = "error";
     }
 
     if (outbox.size() > 0 && !choked) {
-      log.info("We're unchoked and there are messages in the queue, flushing");
+      Log.info("We're unchoked and there are messages in the queue, flushing");
       Iterator<Message> i = outbox.iterator();
       while (i.hasNext()) {
         Message msg = i.next();
-        log.info("Sending " + msg);
+        Log.info("Sending " + msg);
         peer.send(msg);
         i.remove();
       }
@@ -196,7 +193,7 @@ public class Broker extends Actor {
 
   private void checkInterested () {
     if (manager.isInteresting(pieces)) {
-      log.info("We are interested in the peer");
+      Log.info("We are interested in the peer");
       interested = true;
       choking = false;
       peer.send(Message.createUnchoke());

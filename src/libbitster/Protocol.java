@@ -4,7 +4,6 @@ import java.nio.*;
 import java.net.*; 
 import java.util.*; 
 import java.nio.channels.*;
-import java.util.logging.*;
 
 // Handles communication with a peer.  Polls the socket, then writes and reads
 // if necessary.
@@ -17,8 +16,6 @@ public class Protocol implements Communicator {
   // 'error': error occured, exception property will be populated
   // 'handshake': waiting for handshake message
   // 'normal': operating normally (may add more such states later)
-
-  private final static Logger log = Logger.getLogger("Protocol");
 
   private InetAddress host;
   private int port;
@@ -79,7 +76,6 @@ public class Protocol implements Communicator {
   private void error (Exception e) {
     state = "error";
     exception = e;
-    e.printStackTrace();
     close();
   }
 
@@ -174,7 +170,7 @@ public class Protocol implements Communicator {
         readBuffer.get(bytes, 0, length);  
         ByteBuffer handshake = ByteBuffer.wrap(bytes);
         theirPeerId = Handshake.verify(infoHash, handshake);
-        log.info("Handshake successful, peer id: " + Util.buff2str(theirPeerId));
+        Log.i("Handshake successful, peer id: " + Util.buff2str(theirPeerId));
         state = "normal";
       } catch (Exception e) { error(e); }
     } else inbox.offer(new Message(readBuffer)); 
