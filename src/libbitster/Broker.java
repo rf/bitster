@@ -171,6 +171,14 @@ public class Broker extends Actor {
 
       // TODO: Handle Message.REQUEST
     }
+
+    if (choked) {
+      if (requests.size() > 0) {
+        for (Message m : requests.values()) {
+          manager.post(new Memo("blockFail", m, this));
+        }
+      }
+    }
   }
 
   protected void idle () {
