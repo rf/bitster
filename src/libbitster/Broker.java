@@ -173,18 +173,18 @@ public class Broker extends Actor {
 
     if (peer.getState().equals("error")) {
       if (state != "error") { // we haven't displayed the error msg yet
-        Log.warning("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
+        Log.error("Peer " + Util.buff2str(peer.getPeerId()) + " protocol " +
           "error: " + peer.exception);
       }
       state = "error";
     }
 
     if (outbox.size() > 0 && !choked) {
-      Log.info("We're unchoked and there are messages in the queue, flushing");
+      Log.debug("We're unchoked and there are messages in the queue, flushing");
       Iterator<Message> i = outbox.iterator();
       while (i.hasNext()) {
         Message msg = i.next();
-        Log.info("Sending " + msg);
+        Log.debug("Sending " + msg);
         peer.send(msg);
         i.remove();
       }
@@ -193,7 +193,7 @@ public class Broker extends Actor {
 
   private void checkInterested () {
     if (manager.isInteresting(pieces)) {
-      Log.info("We are interested in the peer");
+      Log.debug("We are interested in the peer");
       interested = true;
       choking = false;
       peer.send(Message.createUnchoke());

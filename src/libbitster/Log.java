@@ -9,6 +9,7 @@ public class Log {
   static final String SANE = "\u001B[0m";
   static final String BLUE = "\u001B[0;34m";
   static final String YELLOW = "\u001B[0;33m";
+  public static final String GREEN = "\u001B[0;32m";
   static final String DATE_FORMAT_NOW = "HH:mm:ss";
 
   public static String time () {
@@ -16,6 +17,12 @@ public class Log {
     SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT_NOW);
     return sdf.format(cal.getTime()) + " ";
   }
+
+  public static void d (String message) {
+    p(time() + GREEN + message + SANE);
+  }
+
+  public static void debug (String message) { d(message); }
 
   public static void i (String message) {
     p(time() + BLUE + message + SANE);
