@@ -202,6 +202,7 @@ public class Manager extends Actor implements Communicator {
   protected void idle () {
     // actually select() on sockets and do network io
     overlord.communicate(100);
+    try { Thread.sleep(50); } catch (InterruptedException e) {}
 
     if (state == "downloading") {
 
