@@ -97,7 +97,7 @@ public class Broker extends Actor {
       } 
       
       else {
-        Log.info("Sending " + m);
+        //Log.info("Sending " + m);
         peer.send(m);
       }
     }
