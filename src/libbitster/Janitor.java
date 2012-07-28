@@ -27,10 +27,6 @@ public class Janitor extends Actor {
     // Memo sent when manager is done shutting down
     if(memo.getType().equals("done")) {
       managers.remove(memo.getSender());
-      if(managers.isEmpty()) {
-        Log.info("All managers report done. Shutting down...");
-        shutdown();
-      }
     }        
   }
   
@@ -53,6 +49,11 @@ public class Janitor extends Actor {
         Log.info("Sending halt memo to manager.");
         it.next().post(new Memo("halt", null, this));
       }
+    }
+    
+    if(managers.isEmpty()) {
+      Log.info("All managers report done. Shutting down...");
+      shutdown();
     }
     try { Thread.sleep(50); } catch (InterruptedException e) { /* don't care */ }
   }
