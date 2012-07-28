@@ -53,7 +53,7 @@ public class Funnel extends Actor {
       if(p.isValid())
         donePieces.add(p);
     }
-    
+    Log.info("Funnel initialized.");
     creator.post(new Memo("pieces", donePieces, this));
   }
 
