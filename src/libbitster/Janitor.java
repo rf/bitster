@@ -43,7 +43,7 @@ public class Janitor extends Actor {
    */
   protected void idle () {
     if(state.equals("init")) {
-      state.equals("normal");
+      state = "normal";
       Iterator<Manager> it = managers.iterator();
       while(it.hasNext()) {
         Log.info("Sending halt memo to manager.");
