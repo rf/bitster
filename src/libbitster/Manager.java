@@ -2,7 +2,6 @@ package libbitster;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.*;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -126,6 +125,7 @@ public class Manager extends Actor implements Communicator {
     }
 
     state = "downloading";
+    Janitor.getInstance().register(this);
   }
 
   @SuppressWarnings("unchecked")
@@ -142,7 +142,6 @@ public class Manager extends Actor implements Communicator {
       {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
-        ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
         String ip = (String) currPeer.get("ip");
 
         if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
@@ -189,9 +188,16 @@ public class Manager extends Actor implements Communicator {
 
     // Received from Funnel when we're ready to shut down.
     else if (memo.getType().equals("done")) {
-      state = "done";
+      Janitor.getInstance().post(new Memo("done", null, this));
       shutdown();
       Util.shutdown();
+    }
+    
+    else if (memo.getType().equals("halt"))
+    {
+      state = "shutdown";
+      deputy.post(new Memo("halt", null, this));
+      funnel.post(new Memo("halt", null, this));
     }
 
     // Received from Funnel when we successfully verify and store some piece.
@@ -256,7 +262,7 @@ public class Manager extends Actor implements Communicator {
 
     if (left == 0 && state != "shutdown" && state != "done") {
       Log.info("Download complete");
-      state = "shutdown";
+      state = "done";
       Iterator<Broker> i = brokers.iterator();
       Broker b;
 
