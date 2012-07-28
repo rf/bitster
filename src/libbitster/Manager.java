@@ -76,7 +76,12 @@ public class Manager extends Actor {
 
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
-    funnel = new Funnel(dest, metainfo.file_length, metainfo.piece_length);
+    try {
+      funnel = new Funnel(metainfo, dest, this);
+    } catch (IOException e1) {
+      System.err.println("Error creating funnel");
+      System.exit(1);
+    }
     funnel.start();
 
     peersById = new HashMap<ByteBuffer, Broker>();
@@ -176,6 +181,24 @@ public class Manager extends Actor {
       }
 
       log.info("Got block, " + left + " left to download.");
+    }
+    
+    else if (memo.getType() == "pieces") {
+      ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
+      
+      for(int i = 0, l = ps.size(); i < l; ++i) {
+        Piece p = ps.get(i);
+        int length = p.getData().length;
+        downloaded += length;
+        left -= length;
+        pieces.set(p.getNumber(), p);
+        
+        //Notify brokers
+        for (Broker b : brokers) 
+          b.post(new Memo("have", p, this));
+      }
+
+      log.info("Resumming, " + left + " left to download.");
     }
 
     else if (memo.getType() == "done") {
