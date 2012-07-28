@@ -1,12 +1,11 @@
 package libbitster;
 
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import java.io.*;
 
 // Assembles pieces together into a file, actually runs the piece verification,
@@ -14,25 +13,48 @@ import java.io.*;
 // author: Theodore Surgent
 
 public class Funnel extends Actor {
+  private static final int defaultBlockSize = 16384;
   private int size;
   private int pieceSize;
-  private List<Piece> pieces;
-  private File dest;
-
+  private int pieceCount;
+  private ByteBuffer[] hashes;
+  private RandomAccessFile file;
+  private MappedByteBuffer dest;
+  
   /**
    * Creates Funnel representing a single file being downloaded
    * @param size The size of the expected file
    * @param pieceSize The size of each piece being received except possibly the last (usually 2^14 or 16KB)
+   * @throws IOException 
    */
-  public Funnel(File dest, int size, int pieceSize) {
-    if(size < 0 || pieceSize < 0 || size < pieceSize)
-      throw new IllegalArgumentException();
+  public Funnel(TorrentInfo info, File dest, Actor creator) throws IOException {
+    size = info.file_length;
+    pieceSize = info.piece_length;
+    pieceCount =  (int)Math.ceil((double)size / (double)pieceSize);
+    hashes = info.piece_hashes;
+    
+    if(size < 0 || pieceSize < 0 || size < pieceSize) {
+      String msg = "Bad size arguments in Funnel constructor";
+      Log.error(msg);
+      throw new IllegalArgumentException(msg);
+    }
+    
+    if(!dest.exists())
+        dest.createNewFile();
+    
+    this.file = new RandomAccessFile(dest, "rw");
+    this.dest = file.getChannel().map(MapMode.READ_WRITE, 0, size);
 
-    this.dest = dest;
-    this.size = size;
-    this.pieceSize = pieceSize;
-    int numPieces = (int)Math.ceil((double)size / (double)pieceSize);
-    pieces = new ArrayList<Piece>(Collections.nCopies(numPieces, (Piece)null));
+    ArrayList<Piece> donePieces = new ArrayList<Piece>();
+    
+    for(int i = 0; i < pieceCount; ++i) {
+      Piece p = getPieceNoValidate(i); //Avoid spitting hash fails to the log
+      
+      if(p.isValid())
+        donePieces.add(p);
+    }
+    
+    creator.post(new Memo("pieces", donePieces, this));
   }
 
   /**
@@ -58,25 +80,27 @@ public class Funnel extends Actor {
       if(!piece.finished())
         throw new IllegalArgumentException("The piece being received by Funnel is not finished");
 
-      if(piece.getNumber() < pieces.size() - 1 && piece.getData().length != pieceSize)
+      if(piece.getNumber() < pieceCount - 1 && piece.getData().length != pieceSize)
         throw new IllegalArgumentException("Piece " + piece.getNumber() + " is the wrong size");
+      
       //This is a little fancy around the part with the modulus operator
       //Basically it just gets the minimum number of bytes that the last piece should contain
-      if(piece.getNumber() == pieces.size() - 1 && piece.getData().length < ((size - 1) % pieceSize) + 1)
+      if(piece.getNumber() == pieceCount - 1 && piece.getData().length < ((size - 1) % pieceSize) + 1)
         throw new IllegalArgumentException("Piece " + piece.getNumber() + " is too small");
 
-      // Send a memo back to the Manager so it can forward it to each
-      // broker
+      // Send a memo back to the Manager so it can forward it to each broker
       memo.getSender().post(new Memo("have", memo.getPayload(), this));
-      pieces.set(piece.getNumber(), piece);
+      setPiece(piece);
 
     }
     else if(memo.getType().equals("save")) {
-      try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
+      dest.force();
+      Log.info("Funnel saved data");
     }
     else if(memo.getType().equals("halt")) {
       Log.info("Funnel shutting down");
-      try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
+      dest.force();
+      try { file.close(); } catch (IOException e) { e.printStackTrace(); }
       shutdown();
       memo.getSender().post(new Memo("done", null, this));
     }
@@ -97,14 +121,6 @@ public class Funnel extends Actor {
     try { Thread.sleep(100); } catch (InterruptedException e) {} 
   }
 
-  /*
-   * Returns true when all the pieces have been received
-   * @return true when finished
-   */
-  public boolean finished() {
-    return true;
-  }
-
   /**
    * Gets a part of a piece, or a block within a piece
    * @param pieceNumber The index of the desired piece
@@ -112,10 +128,10 @@ public class Funnel extends Actor {
    * @param length The number of bytes to get
    */
   public ByteBuffer get(int pieceNumber, int start, int length) {
-    if(pieceNumber < 0 || pieceNumber >= pieces.size())
+    if(pieceNumber < 0 || pieceNumber >= pieceCount)
       throw new IndexOutOfBoundsException("pieceNumber is out of bounds");
 
-    Piece piece = pieces.get(pieceNumber);
+    Piece piece = getPiece(pieceNumber);
 
     if(piece == null)
       throw new IllegalStateException("Piece " + pieceNumber + "has not been recieved yet");
@@ -143,36 +159,45 @@ public class Funnel extends Actor {
    * @return A Piece
    */
   public Piece getPiece(int pieceNumber) {
-    if(pieceNumber < 0 || pieceNumber >= pieces.size()) {
+    if(pieceNumber < 0 || pieceNumber >= pieceCount) {
       String msg = "The Piece index is out of bounds";
       Log.error(msg);
       throw new IndexOutOfBoundsException(msg);
     }
+
+  
+    Piece piece = getPieceNoValidate(pieceNumber);
     
-    if(pieces.get(pieceNumber) == null) {
+    if(!piece.isValid()) {
       String msg = "The request piece is not available";
       Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
     
-    return pieces.get(pieceNumber);
+    return piece;
   }
-
-  /**
-   * Saves the data to a file if finished
-   * @param filename The name of the file to use when saving the data
-   */
-  public void saveToFile() throws IOException {
-    if(!finished())
-      throw new IllegalStateException("File is not finished being downloaded");
-
-    FileOutputStream fileOut = new FileOutputStream(dest);
-
-    for (Piece p : pieces) {
-      if (p != null) fileOut.write(p.getData());
+  
+  //Used by getPiece and in constructor
+  private Piece getPieceNoValidate(int pieceNumber) {
+    if(pieceNumber < 0 || pieceNumber >= pieceCount) {
+      String msg = "The Piece index is out of bounds";
+      Log.error(msg);
+      throw new IndexOutOfBoundsException(msg);
     }
-
-    fileOut.close();
-    Log.info("Finished writing file.");
+    
+    int requestedPieceSize = (pieceNumber < pieceCount - 1) ? pieceSize : ((size - 1) % pieceSize) + 1;
+    
+    byte[] data = new byte[requestedPieceSize];
+    dest.position(pieceNumber*pieceSize);
+    dest.get(data, 0, data.length);
+    Piece piece = new Piece(data, hashes[pieceNumber].array(), pieceNumber, defaultBlockSize);
+    
+    return piece;
+  }
+  
+  private void setPiece(Piece p) {
+    byte[] data = p.getData();
+    dest.position(p.getNumber() * pieceSize);
+    dest.put(data, 0, data.length);
   }
 }

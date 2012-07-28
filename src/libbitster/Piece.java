@@ -21,7 +21,39 @@ public class Piece {
   private int size; // size of the whole piece
 
   /**
+   * Creates a completed piece
+   * @param data The data associated with this piece
+   * @param hash The 20-byte SHA-1 hash for this piece
+   * @param number The piece index
+   * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
+   */
+  public Piece(byte[] data, byte[] hash, int number, int blockSize) {    //Sanity checks
+    if(number < 0 || blockSize <= 0 || data.length <= 0)
+      throw new IllegalArgumentException("Arguments must be > 0 (except number which may = 0)");
+    if(blockSize > data.length)
+      throw new IllegalArgumentException("blockSize must be < size");
+
+    this.number = number;
+    this.blockSize = blockSize;
+
+    this.data = data;
+    this.size = data.length;
+    this.hash = hash;
+
+    //One bit for each block
+    int blocks = (int)Math.ceil((double)size / (double)blockSize);
+    completed = new BitSet(blocks);
+    requested = new BitSet(blocks);
+
+    for(int i = 0; i < blocks; ++i) {
+      completed.set(i);
+      requested.set(i);
+    }
+  }
+  
+  /**
    * Creates an empty piece
+   * @param hash The 20-byte SHA-1 hash for this piece
    * @param number The piece index
    * @param blockSize The number of bytes to add to the piece at a time (generally 2^14 or 16KB)
    * @param size The size of this piece, must be >= blockSize
@@ -109,10 +141,15 @@ public class Piece {
     return true;
   }
 
+
+  /**
+   * Returns true when all blocks have been requested for this piece
+   * @return true when requested, otherwise false
+   */
   public boolean requested () {
     int blocks = (int)Math.ceil((double)data.length / (double)blockSize);
 
-    //If any block is not completed than the piece is not finished
+    //If any block was not requested then the piece is not finished being requested
     for(int i=0; i<blocks; ++i)
       if(!requested.get(i))
         return false;
