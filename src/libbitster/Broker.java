@@ -41,10 +41,14 @@ public class Broker extends Actor {
 
   private LinkedList<Message> outbox;
 
+  // Pieces we've requested from the peer. Heinous, I know, but it works.
+  private HashMap<String, Message> requests;
+
   public Broker (SocketChannel sc, Manager manager) {
     super();
     Log.i("Broker: accepting");
 
+    requests = new HashMap<String, Message>();
     outbox = new LinkedList<Message>();
     peer = new Protocol(
       sc, 
@@ -62,6 +66,7 @@ public class Broker extends Actor {
     super();
     Log.info("Broker init for host: " + host);
 
+    requests = new HashMap<String, Message>();
     outbox = new LinkedList<Message>();
 
     peer = new Protocol(
@@ -84,14 +89,16 @@ public class Broker extends Actor {
   protected void receive (Memo memo) {
     if ("request".equals( memo.getType() )) {
       numQueued += 1;
+      Message m = (Message) memo.getPayload();
+      requests.put(m.getIndex() + ":" + m.getBegin(), m);
       if (choked) {
         Log.info("We're choked, queuing message");
-        outbox.add((Message) memo.getPayload());
+        outbox.add(m);
       } 
       
       else {
-        Log.info("Sending " + (Message) memo.getPayload());
-        peer.send((Message) memo.getPayload());
+        //Log.info("Sending " + m);
+        peer.send(m);
       }
     }
 
@@ -115,6 +122,12 @@ public class Broker extends Actor {
     state = "error";
     exception = e;
     peer.close();
+
+    if (requests.size() > 0) {
+      for (Message m : requests.values()) {
+        manager.post(new Memo("blockFail", m, this));
+      }
+    }
   }
 
   public void close () { peer.close(); }
@@ -126,7 +139,7 @@ public class Broker extends Actor {
       error(new Exception("protocol error"));
     numReceived += 1;
 
-    Log.info(message.toString());
+    //Log.info(message.toString());
 
     switch (message.getType()) {
 
@@ -149,10 +162,19 @@ public class Broker extends Actor {
       // Send pieces to our `Manager`.
       case Message.PIECE:
         numQueued -= 1;
+        requests.remove(message.getIndex() + ":" + message.getBegin());
         manager.post(new Memo("block", message, this));
       break;
 
       // TODO: Handle Message.REQUEST
+    }
+
+    if (choked) {
+      if (requests.size() > 0) {
+        for (Message m : requests.values()) {
+          manager.post(new Memo("blockFail", m, this));
+        }
+      }
     }
   }
 
@@ -199,6 +221,11 @@ public class Broker extends Actor {
       peer.send(Message.createUnchoke());
       peer.send(Message.createInterested());
     }
+  }
+
+  // Checks to see if the peer has this piece.
+  public boolean has (int number) {
+    return pieces.get(number);
   }
 
   // Accessors.

@@ -130,6 +130,8 @@ public class Manager extends Actor implements Communicator {
 
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
+
+    // Peer list received from Deputy.
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
       Log.info("Received peer list");
@@ -167,13 +169,15 @@ public class Manager extends Actor implements Communicator {
       }
     }
 
-    else if (memo.getType() == "block") {
+    // Received from Brokers when they get a block.
+    else if (memo.getType().equals("block")) {
       Message msg = (Message) memo.getPayload();
       Piece p = pieces.get(msg.getIndex());
 
-      p.addBlock(msg.getBegin(), msg.getBlock());
-      downloaded += msg.getBlockLength();
-      left -= msg.getBlockLength();
+      if (p.addBlock(msg.getBegin(), msg.getBlock())) {
+        downloaded += msg.getBlockLength();
+        left -= msg.getBlockLength();
+      }
 
       if (p.finished()) {
         Log.info("Posting piece " + p.getNumber() + " to funnel");
@@ -183,15 +187,26 @@ public class Manager extends Actor implements Communicator {
       Log.info("Got block, " + left + " left to download.");
     }
 
-    else if (memo.getType() == "done") {
+    // Received from Funnel when we're ready to shut down.
+    else if (memo.getType().equals("done")) {
       state = "done";
       shutdown();
       Util.shutdown();
     }
 
-    else if (memo.getType() == "have") {
+    // Received from Funnel when we successfully verify and store some piece.
+    // We forward the message off to each Broker so they can inform peers.
+    else if (memo.getType().equals("have")) {
       for (Broker b : brokers) 
         b.post(new Memo("have", memo.getPayload(), this));
+    }
+
+    // Received from Brokers when they can't requested a block from a peer
+    // anymore, ie when choked or when the connection is dropped.
+    else if (memo.getType().equals("blockFail")) {
+      Message m = (Message) memo.getPayload();
+      Piece p = pieces.get(m.getIndex());
+      p.blockFail(m.getBegin());
     }
   }
 
@@ -225,6 +240,7 @@ public class Manager extends Actor implements Communicator {
             Piece p = next();
 
             if (p != null) {
+              if (!b.has(p.getNumber())) continue;
               int index = p.next();
 
               b.post(new Memo("request", Message.createRequest(
