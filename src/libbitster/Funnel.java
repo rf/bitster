@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.List;
 
 import java.io.*;
-import java.util.logging.Logger;
 
 // Assembles pieces together into a file, actually runs the piece verification,
 // and can write the completed data to a file.
@@ -19,7 +18,7 @@ public class Funnel extends Actor {
   private int pieceSize;
   private List<Piece> pieces;
   private File dest;
-  private final static Logger log = Logger.getLogger("Funnel");
+
   /**
    * Creates Funnel representing a single file being downloaded
    * @param size The size of the expected file
@@ -49,7 +48,7 @@ public class Funnel extends Actor {
       Piece piece = (Piece)memo.getPayload();
       if(!piece.isValid()) {
         //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
-        log.severe("Piece " + piece.getNumber() + " failed hash check");
+        Log.error("Piece " + piece.getNumber() + " failed hash check");
         
         //Notify the sender
         memo.getSender().post(new Memo("hash_fail", Integer.valueOf(piece.getNumber()), this));
@@ -74,14 +73,14 @@ public class Funnel extends Actor {
     }
     else if("save".equals( memo.getType() )) {
       try { saveToFile(); } catch (IOException e) { e.printStackTrace(); }
-      log.info("Funnel shutting down");
+      Log.info("Funnel shutting down");
       shutdown();
       memo.getSender().post(new Memo("done", null, this));
     }
     else if("request".equals( memo.getType() )) {
       if(!(memo.getPayload() instanceof Integer)) {
         String msg = "Integer payload expected for request message in Funnel";
-        log.finer(msg);
+        Log.error(msg);
         throw new IllegalArgumentException(msg);
       }
       
@@ -143,13 +142,13 @@ public class Funnel extends Actor {
   public Piece getPiece(int pieceNumber) {
     if(pieceNumber < 0 || pieceNumber >= pieces.size()) {
       String msg = "The Piece index is out of bounds";
-      log.finer(msg);
+      Log.error(msg);
       throw new IndexOutOfBoundsException(msg);
     }
     
     if(pieces.get(pieceNumber) == null) {
       String msg = "The request piece is not available";
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
     
@@ -171,6 +170,6 @@ public class Funnel extends Actor {
     }
 
     fileOut.close();
-    log.info("Finished writing file.");
+    Log.info("Finished writing file.");
   }
 }
