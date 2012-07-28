@@ -181,7 +181,7 @@ public class Protocol implements Communicator {
     // Copy the bits at the end of the message we just parsed to the beginning
     // of the read buffer.
 
-    // A possible optimizaion here would be to use a ring buffer.
+    // A possible optimization here would be to use a ring buffer.
 
     byte[] nextMsgPart = new byte[nextMsgRead];
     readBuffer.position(length);
