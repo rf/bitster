@@ -5,7 +5,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.logging.Logger;
 
 // Tracks the state of a piece, assembles it together and verifies it against
 // a given hash.
@@ -18,7 +17,6 @@ public class Piece {
   private byte[] hash;
   private BitSet completed;
   private BitSet requested;
-  private final static Logger log = Logger.getLogger("Piece");
 
   private int size; // size of the whole piece
 
@@ -84,38 +82,38 @@ public class Piece {
    * @param begin The byte offset within the piece, must be aligned to a blockSize boundary
    * @param block The block of bytes to add
    */
-  public void addBlock(int begin, ByteBuffer block) {
+  public boolean addBlock(int begin, ByteBuffer block) {
     if(block == null || block.position() != 0)
       throw new IllegalArgumentException("block is either null or is not at the beginning of the buffer");
 
     //Make sure we are on correct boundaries
     if(begin % blockSize != 0) {
       String msg = "begin must be aligned on a " + blockSize + " byte boundry";
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
     if(begin + block.limit() > data.length || begin < 0) {
       String msg = "block under/overflows the buffer for this piece";
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
 
     //If this block was already downloaded then there is nothing to to
     if(completed.get(begin / blockSize)) {
-      log.info("The block " + (begin / blockSize) + " was already downloaded");
-      return;
+      Log.error("The block " + (begin / blockSize) + " was already downloaded");
+      return false;
     }
 
     //Check to make sure not special case where final block would be smaller than the rest
     //Also check to make sure 'block' is of length 'blockSize'
     if( (begin < (data.length / blockSize) * blockSize) && (block.limit() != blockSize) ) {
       String msg = "block is of not " + blockSize + " bytes long";
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
     else if ((begin > ((data.length / blockSize) - 1) * blockSize) && block.limit() != data.length % blockSize) { //Last block which is smaller
       String msg = "block is not " + (data.length % blockSize) + " bytes long for final block. number " + number + " block " + begin;
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
 
@@ -124,6 +122,8 @@ public class Piece {
       data[i] = block.get();
 
     completed.set(begin / blockSize);
+
+    return true;
   }
 
   /**
@@ -183,6 +183,13 @@ public class Piece {
     if (next > size / blockSize) return -1;
     requested.set(next);
     return next;
+  }
+
+  /** Unmarks a certain block as requested, called when a block can't be
+   *  requested from some peer. */
+  public void blockFail (int begin) {
+    int index = begin / blockSize;
+    requested.set(index, false);
   }
 
   // Size of one particular block

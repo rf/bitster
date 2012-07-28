@@ -10,7 +10,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * Deputy is the {@link Actor} that communicates with the Tracker.
@@ -19,8 +18,6 @@ import java.util.logging.Logger;
  *
  */
 public class Deputy extends Actor {
-
-  private final static Logger log = Logger.getLogger("Deputy");
 
   private String state; // states:
   // 'error': error occurred, exception property will be populated
@@ -144,7 +141,7 @@ public class Deputy extends Actor {
       return false;
     else
     {
-      log.info("Contacting tracker...");
+      Log.info("Contacting tracker...");
 
       // no longer in init state, may switch to error later
       this.setState("normal");
@@ -184,7 +181,7 @@ public class Deputy extends Actor {
 
       try {
         // send request to tracker
-        log.finer("Announce URL = " + finalURL.toString());
+        Log.info("Announce URL = " + finalURL.toString());
         URL tracker = new URL(finalURL.toString());
         URLConnection trackerConn = tracker.openConnection();
 
@@ -212,7 +209,7 @@ public class Deputy extends Actor {
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
-        log.warning("Warning: Unable to communicate with tracker. Retrying in 60 seconds...");
+        Log.error("Warning: Unable to communicate with tracker. Retrying in 60 seconds...");
         
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
@@ -264,7 +261,7 @@ public class Deputy extends Actor {
   {
     this.exception = e;
     this.setState("error");
-    log.severe(logMessage);
+    Log.error(logMessage);
   }
 
   /**

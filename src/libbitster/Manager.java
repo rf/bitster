@@ -2,11 +2,10 @@ package libbitster;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.ServerSocket;
+import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
-import java.util.logging.*;
 
 /**
  * Coordinates actions of all the {@link Actor}s and manages
@@ -16,7 +15,7 @@ import java.util.logging.*;
  * @author Theodore Surgent
  */
 
-public class Manager extends Actor {
+public class Manager extends Actor implements Communicator {
 
   private final int blockSize = 16384;
   private String state;
@@ -31,11 +30,14 @@ public class Manager extends Actor {
   // communicates with tracker
   private Deputy deputy;
 
+  // Actually select()s on sockets
+  private Overlord overlord;
+
   // Peer ID
   private final ByteBuffer peerId;
 
-  //Listens for incoming peer connections
-  private ServerSocket listen;
+  // Listens for incoming peer connections
+  private ServerSocketChannel listen;
 
   // current list of peers
   private ArrayList<Map<String, Object>> peers;
@@ -44,8 +46,6 @@ public class Manager extends Actor {
   private ArrayList<Piece> pieces;
 
   private HashMap<ByteBuffer, Broker> peersById;
-
-  private final static Logger log = Logger.getLogger("Manager");
 
   // torrent info
   private int downloaded, uploaded, left;
@@ -64,15 +64,16 @@ public class Manager extends Actor {
     super();
 
     state = "booting";
-    log.setLevel(Level.FINEST);
 
-    log.info("Manager init");
+    Log.info("Manager init");
 
     this.metainfo = metainfo;
     this.dest = dest;
     this.setDownloaded(0);
     this.setUploaded(0);
     this.setLeft(metainfo.file_length);
+
+    overlord = new Overlord();
 
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
@@ -93,21 +94,27 @@ public class Manager extends Actor {
     for(int i = 6881; i < 6890; ++i)
     {
       try {
-        this.listen = new ServerSocket(i);
+        listen = ServerSocketChannel.open();
+        listen.socket().bind(new InetSocketAddress("0.0.0.0", i));
+        listen.configureBlocking(false);
         break;
-      } catch (IOException e) {
+      } 
+
+      catch (IOException e) {
         if(i == 6890)
         {
-          System.err.println("Error establishing listening socket.");
-          System.exit(1);
+          Log.warning("could not open a socket for listening");
+          shutdown();
         }
       }
     }
 
-    deputy = new Deputy(metainfo, listen.getLocalPort(), this);
+    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
 
-    log.info("Our peer id: " + Util.buff2str(peerId));
+    overlord.register(listen, this);
+
+    Log.info("Our peer id: " + Util.buff2str(peerId));
 
     int i, total = metainfo.file_length;
     for (i = 0; i < metainfo.piece_hashes.length; i++) {
@@ -123,22 +130,23 @@ public class Manager extends Actor {
     }
 
     state = "downloading";
+    Janitor.getInstance().register(this);
   }
 
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
+
+    // Peer list received from Deputy.
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
     {
-      log.info("Received peer list");
+      Log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if(peers.isEmpty()) log.warning("Peer list empty!");
+      if (peers.isEmpty()) Log.warning("Peer list empty!");
 
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
-        ByteBuffer prefix = Util.s("RUBT11");
-        ByteBuffer id = (ByteBuffer) currPeer.get("peerId");
         String ip = (String) currPeer.get("ip");
 
         if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
@@ -158,29 +166,29 @@ public class Manager extends Actor {
           } 
 
           catch (UnknownHostException e) {
-            // This is thrown when the hostname cannot be resolved by getByName,
-            // but we're passing in an ip, which can't fail a host lookup. 
-            // This exception is *actually* impossible.
+            // Malformed ip, just ignore it
           }
         }
 
       }
     }
 
-    else if (memo.getType() == "block") {
+    // Received from Brokers when they get a block.
+    else if (memo.getType().equals("block")) {
       Message msg = (Message) memo.getPayload();
       Piece p = pieces.get(msg.getIndex());
 
-      p.addBlock(msg.getBegin(), msg.getBlock());
-      downloaded += msg.getBlockLength();
-      left -= msg.getBlockLength();
+      if (p.addBlock(msg.getBegin(), msg.getBlock())) {
+        downloaded += msg.getBlockLength();
+        left -= msg.getBlockLength();
+      }
 
       if (p.finished()) {
-        log.info("Posting piece " + p.getNumber() + " to funnel");
+        Log.info("Posting piece " + p.getNumber() + " to funnel");
         funnel.post(new Memo("piece", p, this));
       }
 
-      log.info("Got block, " + left + " left to download.");
+      Log.info("Got block, " + left + " left to download.");
     }
     
     else if (memo.getType() == "pieces") {
@@ -198,23 +206,43 @@ public class Manager extends Actor {
           b.post(new Memo("have", p, this));
       }
 
-      log.info("Resumming, " + left + " left to download.");
+      Log.info("Resumming, " + left + " left to download.");
     }
 
-    else if (memo.getType() == "done") {
-      state = "done";
+    // Received from Funnel when we're ready to shut down.
+    else if (memo.getType().equals("done")) {
+      Janitor.getInstance().post(new Memo("done", null, this));
       shutdown();
       Util.shutdown();
     }
+    
+    else if (memo.getType().equals("halt"))
+    {
+      state = "shutdown";
+      deputy.post(new Memo("halt", null, this));
+      funnel.post(new Memo("halt", null, this));
+    }
 
-    else if (memo.getType() == "have") {
+    // Received from Funnel when we successfully verify and store some piece.
+    // We forward the message off to each Broker so they can inform peers.
+    else if (memo.getType().equals("have")) {
       for (Broker b : brokers) 
         b.post(new Memo("have", memo.getPayload(), this));
+    }
+
+    // Received from Brokers when they can't requested a block from a peer
+    // anymore, ie when choked or when the connection is dropped.
+    else if (memo.getType().equals("blockFail")) {
+      Message m = (Message) memo.getPayload();
+      Piece p = pieces.get(m.getIndex());
+      p.blockFail(m.getBegin());
     }
   }
 
   protected void idle () {
-    try { Thread.sleep(10); } catch (InterruptedException e) {}
+    // actually select() on sockets and do network io
+    overlord.communicate(100);
+    try { Thread.sleep(50); } catch (InterruptedException e) {}
 
     if (state == "downloading") {
 
@@ -241,6 +269,7 @@ public class Manager extends Actor {
             Piece p = next();
 
             if (p != null) {
+              if (!b.has(p.getNumber())) continue;
               int index = p.next();
 
               b.post(new Memo("request", Message.createRequest(
@@ -251,11 +280,12 @@ public class Manager extends Actor {
           }
         }
       }
+
     }
 
     if (left == 0 && state != "shutdown" && state != "done") {
-      log.info("Download complete");
-      state = "shutdown";
+      Log.info("Download complete");
+      state = "done";
       Iterator<Broker> i = brokers.iterator();
       Broker b;
 
@@ -270,6 +300,22 @@ public class Manager extends Actor {
       try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
     }
   }
+
+  public boolean onAcceptable () {
+    try {
+      SocketChannel newConnection = listen.accept();
+      if (newConnection != null) {
+        brokers.add(new Broker(newConnection, this));
+      }
+    } catch (IOException e) {
+      // connection failed, ignore
+    }
+
+    return true;
+  }
+
+  public boolean onReadable () { return false; }
+  public boolean onWritable () { return false; }
 
   /**
    * Generates a 20 character {@code byte} array for use as a
@@ -328,6 +374,16 @@ public class Manager extends Actor {
     return null;
   }
 
+  /**
+   * Add a peer to our internal list of peer ids
+   */
+  public boolean addPeer (ByteBuffer peerId, Broker b) {
+    if (peersById.get(peerId) != null) return false;
+
+    peersById.put(peerId, b);
+    return true;
+  }
+
   public int getDownloaded() {
     return downloaded;
   }
@@ -361,5 +417,6 @@ public class Manager extends Actor {
   }
 
   public String getState () { return state; }
+  public Overlord getOverlord () { return overlord; }
 
 }

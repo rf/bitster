@@ -7,7 +7,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.io.*;
-import java.util.logging.Logger;
 
 // Assembles pieces together into a file, actually runs the piece verification,
 // and can write the completed data to a file.
@@ -21,7 +20,6 @@ public class Funnel extends Actor {
   private ByteBuffer[] hashes;
   private RandomAccessFile file;
   private MappedByteBuffer dest;
-  private final static Logger log = Logger.getLogger("Funnel");
   
   /**
    * Creates Funnel representing a single file being downloaded
@@ -37,7 +35,7 @@ public class Funnel extends Actor {
     
     if(size < 0 || pieceSize < 0 || size < pieceSize) {
       String msg = "Bad size arguments in Funnel constructor";
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
     
@@ -64,7 +62,7 @@ public class Funnel extends Actor {
    * @see libbitster.Actor#receive(libbitster.Memo)
    */
   protected void receive (Memo memo) {
-    if("piece".equals( memo.getType() )) {
+    if(memo.getType().equals("piece")) {
 
       if(!(memo.getPayload() instanceof Piece))
         throw new IllegalArgumentException("Funnel expects a Piece");
@@ -72,7 +70,7 @@ public class Funnel extends Actor {
       Piece piece = (Piece)memo.getPayload();
       if(!piece.isValid()) {
         //throw new IllegalArgumentException("The piece being recieved by Funnel is not valid");
-        log.severe("Piece " + piece.getNumber() + " failed hash check");
+        Log.error("Piece " + piece.getNumber() + " failed hash check");
         
         //Notify the sender
         memo.getSender().post(new Memo("hash_fail", Integer.valueOf(piece.getNumber()), this));
@@ -95,21 +93,21 @@ public class Funnel extends Actor {
       setPiece(piece);
 
     }
-    else if("save".equals( memo.getType() )) {
+    else if(memo.getType().equals("save")) {
       dest.force();
-      try { file.close(); } catch (IOException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
-      
-      log.info("Funnel shutting down");
+      Log.info("Funnel saved data");
+    }
+    else if(memo.getType().equals("halt")) {
+      Log.info("Funnel shutting down");
+      dest.force();
+      try { file.close(); } catch (IOException e) { e.printStackTrace(); }
       shutdown();
       memo.getSender().post(new Memo("done", null, this));
     }
-    else if("request".equals( memo.getType() )) {
+    else if(memo.getType().equals("request")) {
       if(!(memo.getPayload() instanceof Integer)) {
         String msg = "Integer payload expected for request message in Funnel";
-        log.finer(msg);
+        Log.error(msg);
         throw new IllegalArgumentException(msg);
       }
       
@@ -161,11 +159,18 @@ public class Funnel extends Actor {
    * @return A Piece
    */
   public Piece getPiece(int pieceNumber) {
+    if(pieceNumber < 0 || pieceNumber >= pieceCount) {
+      String msg = "The Piece index is out of bounds";
+      Log.error(msg);
+      throw new IndexOutOfBoundsException(msg);
+    }
+
+  
     Piece piece = getPieceNoValidate(pieceNumber);
     
     if(!piece.isValid()) {
       String msg = "The request piece is not available";
-      log.finer(msg);
+      Log.error(msg);
       throw new IllegalArgumentException(msg);
     }
     
@@ -176,7 +181,7 @@ public class Funnel extends Actor {
   private Piece getPieceNoValidate(int pieceNumber) {
     if(pieceNumber < 0 || pieceNumber >= pieceCount) {
       String msg = "The Piece index is out of bounds";
-      log.finer(msg);
+      Log.error(msg);
       throw new IndexOutOfBoundsException(msg);
     }
     

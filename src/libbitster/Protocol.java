@@ -4,21 +4,18 @@ import java.nio.*;
 import java.net.*; 
 import java.util.*; 
 import java.nio.channels.*;
-import java.util.logging.*;
 
 // Handles communication with a peer.  Polls the socket, then writes and reads
 // if necessary.
 //
 // author: Russ Frank
 
-public class Protocol {
+public class Protocol implements Communicator {
   private String state; // states:
   // 'init': just created, waiting to establish a connection
   // 'error': error occured, exception property will be populated
   // 'handshake': waiting for handshake message
   // 'normal': operating normally (may add more such states later)
-
-  private final static Logger log = Logger.getLogger("Protocol");
 
   private InetAddress host;
   private int port;
@@ -27,7 +24,7 @@ public class Protocol {
   private LinkedList<Message> outbox; // messages being sent to the client
 
   private SocketChannel channel;      // select() abstraction garbage
-  private Selector selector;
+  private Overlord overlord;
 
   public Exception exception;         // set to an exception if one occurs
 
@@ -39,9 +36,6 @@ public class Protocol {
   ByteBuffer writeBuffer = null;
   private int numWritten = 0;
 
-  private boolean handshakeSent = false;
-  private boolean handshakeReceived = false;
-
   private ByteBuffer infoHash;
   private ByteBuffer theirPeerId;
   private ByteBuffer ourPeerId;
@@ -50,8 +44,10 @@ public class Protocol {
     InetAddress host, 
     int port, 
     ByteBuffer infoHash, 
-    ByteBuffer peerId       // our peer id
+    ByteBuffer peerId,   // our peer id
+    Overlord overlord
   ) {
+    this.overlord = overlord;
     this.host = host;
     this.port = port;
     this.ourPeerId = peerId;
@@ -59,45 +55,27 @@ public class Protocol {
     this.state = "init";
     this.outbox = new LinkedList<Message>();
     this.inbox = new LinkedList<Message>();
-    try { this.selector = Selector.open(); } catch (Exception e) { error(e); }
   }
 
-  // select() on sockets, call talk() or listen() to perform io if necessary
-  public void communicate () {
-    if (state != "error") {
-      try {
-        if (state == "init") establish();
-
-        // Select on the socket. "Is there stuff to do?"
-        if (selector.select(0) == 0) return; // nothing to do
-        Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
-
-        while (keys.hasNext()) {
-          SelectionKey key = keys.next();
-          keys.remove();
-          if (!key.isValid())   continue;      // WHY
-          if (key.isReadable()) listen();      // call listen if we can listen
-          if (key.isWritable()) talk();        // call talk if we can talk
-        }
-
-        // If we have more data than the length of the message we're expecting,
-        // parse messages out of the readBuffer.
-        if (numRead >= length && length != -1) parse();
-
-        // Try to find the length of the message in the read buffer
-        findLength();
-
-      } catch (Exception e) { error(e); }
-    }
+  public Protocol (
+    SocketChannel sc, 
+    ByteBuffer infoHash, 
+    ByteBuffer peerId,
+    Overlord overlord
+  ) {
+    this.overlord = overlord;
+    this.ourPeerId = peerId;
+    this.infoHash = infoHash;
+    this.state = "init";
+    this.outbox = new LinkedList<Message>();
+    this.inbox = new LinkedList<Message>();
+    this.channel = sc;
   }
 
   // handle errors
   private void error (Exception e) {
     state = "error";
-    if (!(e instanceof CancelledKeyException)) {
-      exception = e;
-      e.printStackTrace();
-    }
+    exception = e;
     close();
   }
 
@@ -108,9 +86,17 @@ public class Protocol {
   // Establish the connection
   public void establish () {
     try {
-      channel = SocketChannel.open(new InetSocketAddress(host, port));
+      // TODO: do a non-blocking connect
+      if (channel == null) 
+        channel = SocketChannel.open(new InetSocketAddress(host, port));
+
       channel.configureBlocking(false);
-      channel.register(selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+
+      if (overlord.register(channel, this) == false) {
+        this.state = "error";
+        this.exception = new Exception("selector registration failed");
+        return;
+      }
 
       ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
       writeBuffer = handshake;
@@ -121,14 +107,14 @@ public class Protocol {
 
   // ## talk
   // Send some data to the peer
-  private void talk () {
+  public boolean onWritable () {
     try {
       // If we dont have a message in the writeBuffer, populate the writeBuffer
       if (writeBuffer == null && outbox.size() > 0)
         writeBuffer = outbox.poll().serialize();
 
       // If writeBuffer is still not populated, we have nothing to say
-      if (writeBuffer == null) return;
+      if (writeBuffer == null) return true;
 
       numWritten += channel.write(writeBuffer); // try to write some bytes 
       writeBuffer.position(numWritten);         // set the buffer's new pos
@@ -138,26 +124,40 @@ public class Protocol {
         writeBuffer = null;
         numWritten = 0;
       }
+
+      return true;
+
     } catch (Exception e) { error(e); }
+    return false;
   }
 
   // ## listen
   // Read data from the peer
-  private void listen () {
+  public boolean onReadable () {
     try {
       numRead += channel.read(readBuffer); // try to read some bytes from peer
       // EOF
-      if (numRead == -1) {
-        error(new Exception("eof"));
-        return;
-      }
+      if (numRead == -1) throw new Exception("eof");
       readBuffer.position(numRead);        // advance buffer
 
-      // Messages parsing is actually in the communicate loop.  We call `parse`
-      // if we've read 'enough' data to have a whole message.
+      do { // Parse out messages while there are still messages to parse
+
+        // If we have more data than the length of the message we're expecting,
+        // parse messages out of the readBuffer.
+        if (numRead >= length && length != -1) parse();
+
+        // Try to find the length of the message in the read buffer
+        findLength();
+
+      } while (numRead >= length && length != -1);
+
+      return true;
 
     } catch (Exception e) { error(e); }
+    return false;
   }
+
+  public boolean onAcceptable () { return false; }
 
   // ## parse
   // Parse the message and reset the state of the listen logic.
@@ -170,7 +170,7 @@ public class Protocol {
         readBuffer.get(bytes, 0, length);  
         ByteBuffer handshake = ByteBuffer.wrap(bytes);
         theirPeerId = Handshake.verify(infoHash, handshake);
-        log.info("Handshake successful, peer id: " + Util.buff2str(theirPeerId));
+        Log.i("Handshake successful, peer id: " + Util.buff2str(theirPeerId));
         state = "normal";
       } catch (Exception e) { error(e); }
     } else inbox.offer(new Message(readBuffer)); 
