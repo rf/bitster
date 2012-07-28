@@ -196,6 +196,7 @@ public class Manager extends Actor implements Communicator {
     {
       state = "shutdown";
       deputy.post(new Memo("halt", null, this));
+      funnel.post(new Memo("halt", null, this));
       shutdown();
       Util.shutdown();
     }
