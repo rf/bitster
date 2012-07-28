@@ -183,9 +183,6 @@ public class Protocol implements Communicator {
 
     // A possible optimizaion here would be to use a ring buffer.
 
-    Log.w("numRead = " + numRead);
-    Log.w("length = " + length);
-    Log.w("nextMsgRead = " + nextMsgRead);
     byte[] nextMsgPart = new byte[nextMsgRead];
     readBuffer.position(length);
     readBuffer.get(nextMsgPart, 0, nextMsgRead);
