@@ -1,19 +1,12 @@
 package libbitster;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import java.io.*;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 
 // Assembles pieces together into a file, actually runs the piece verification,
