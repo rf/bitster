@@ -144,12 +144,12 @@ public class Protocol implements Communicator {
 
         // If we have more data than the length of the message we're expecting,
         // parse messages out of the readBuffer.
-        if (numRead >= length && length != -1) parse();
+        if (numRead >= length && length >= 0) parse();
 
         // Try to find the length of the message in the read buffer
         findLength();
 
-      } while (numRead >= length && length != -1);
+      } while (numRead >= length && length >= 0);
 
       return true;
 
@@ -183,6 +183,9 @@ public class Protocol implements Communicator {
 
     // A possible optimizaion here would be to use a ring buffer.
 
+    Log.w("numRead = " + numRead);
+    Log.w("length = " + length);
+    Log.w("nextMsgRead = " + nextMsgRead);
     byte[] nextMsgPart = new byte[nextMsgRead];
     readBuffer.position(length);
     readBuffer.get(nextMsgPart, 0, nextMsgRead);

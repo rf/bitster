@@ -30,6 +30,7 @@ public class Overlord {
     Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
     while (keys.hasNext()) {
+      try {
       SelectionKey key = keys.next();
       keys.remove();
       if (!key.isValid()) continue;      // WHY
@@ -37,6 +38,10 @@ public class Overlord {
       if (key.isReadable())   if (!communicator.onReadable())   continue;
       if (key.isWritable())   if (!communicator.onWritable())   continue;
       if (key.isAcceptable()) if (!communicator.onAcceptable()) continue;
+      } catch (CancelledKeyException e) {
+        Log.error("Overlord select() error: " + e);
+        // just move on
+      }
     }
   }
 
