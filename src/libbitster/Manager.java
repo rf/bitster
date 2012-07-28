@@ -2,7 +2,6 @@ package libbitster;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.*;
 import java.nio.channels.*;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -189,6 +188,7 @@ public class Manager extends Actor implements Communicator {
     // Received from Funnel when we're ready to shut down.
     else if (memo.getType().equals("done")) {
       state = "done";
+      Janitor.getInstance().post(new Memo("done", null, this));
     }
     
     else if (memo.getType().equals("halt"))

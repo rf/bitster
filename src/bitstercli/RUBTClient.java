@@ -7,10 +7,9 @@ import java.io.IOException;
 import java.util.logging.*;
 
 import libbitster.BencodingException;
+import libbitster.Janitor;
 import libbitster.Manager;
-import libbitster.Memo;
 import libbitster.TorrentInfo;
-import libbitster.Util;
 
 /**
  * Driver class for Bitster
@@ -69,21 +68,7 @@ public class RUBTClient {
       manager.start();
       
       // attempt to gracefully shut down from term and interrupt signals
-      Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-        public void run() {
-          // TODO: ensure program cleans itself up successfully as best it can
-          manager.post(new Memo("done", null, null));
-          
-          for(int i = 0; i < 3; i++) {
-            try {
-              Thread.sleep(1000);
-              System.out.println("Waiting...");
-              } catch (InterruptedException e) {
-                System.out.println("Too late! Quitting...");
-              }
-            }
-          }
-      }));
+      Runtime.getRuntime().addShutdownHook(new Thread(Janitor.getInstance()));
 
     } catch (IOException e) {
       log.severe("Error: unable to read torrent file.");
