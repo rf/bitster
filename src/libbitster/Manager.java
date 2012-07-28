@@ -206,7 +206,7 @@ public class Manager extends Actor implements Communicator {
           b.post(new Memo("have", p, this));
       }
 
-      Log.info("Resumming, " + left + " left to download.");
+      Log.info("Resuming, " + left + " left to download.");
     }
 
     // Received from Funnel when we're ready to shut down.
