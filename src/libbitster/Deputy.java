@@ -195,10 +195,15 @@ public class Deputy extends Actor {
         Map response = (Map) Bencoder2.decode(bytes);
 
         // get our peer list and work it into something nicer
-        @SuppressWarnings("rawtypes")
-        ArrayList<Map> rawPeers =
-            (ArrayList<Map>) response.get(Util.s("peers"));
-        ArrayList<Map<String,Object>> peers = parsePeers(rawPeers);
+        Object rawPeers = response.get(Util.s("peers"));
+        ArrayList<Map<String,Object>> peers = null;
+        if(rawPeers instanceof ArrayList<?>)
+          peers = parsePeers((ArrayList<Map>) rawPeers);
+        else if(rawPeers instanceof ByteBuffer)
+        {
+          Log.e("Error: binary peer response unsupported.");
+          System.exit(1);
+        }
 
         // send updated peer list to manager
         manager.post(new Memo("peers", peers, this));
