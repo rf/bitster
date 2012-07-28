@@ -26,6 +26,7 @@ public class Janitor extends Actor {
     
     // Memo sent when manager is done shutting down
     if(memo.getType().equals("done")) {
+      Log.info("Manager shut down.");
       managers.remove(memo.getSender());
     }        
   }

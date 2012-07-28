@@ -188,8 +188,9 @@ public class Manager extends Actor implements Communicator {
 
     // Received from Funnel when we're ready to shut down.
     else if (memo.getType().equals("done")) {
-      state = "done";
       Janitor.getInstance().post(new Memo("done", null, this));
+      shutdown();
+      Util.shutdown();
     }
     
     else if (memo.getType().equals("halt"))
@@ -197,8 +198,6 @@ public class Manager extends Actor implements Communicator {
       state = "shutdown";
       deputy.post(new Memo("halt", null, this));
       funnel.post(new Memo("halt", null, this));
-      shutdown();
-      Util.shutdown();
     }
 
     // Received from Funnel when we successfully verify and store some piece.
@@ -263,7 +262,7 @@ public class Manager extends Actor implements Communicator {
 
     if (left == 0 && state != "shutdown" && state != "done") {
       Log.info("Download complete");
-      state = "shutdown";
+      state = "done";
       Iterator<Broker> i = brokers.iterator();
       Broker b;
 
