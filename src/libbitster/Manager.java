@@ -213,7 +213,6 @@ public class Manager extends Actor implements Communicator {
     else if (memo.getType().equals("done")) {
       Janitor.getInstance().post(new Memo("done", null, this));
       shutdown();
-      Util.shutdown();
     }
     
     else if (memo.getType().equals("halt"))

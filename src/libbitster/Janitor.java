@@ -28,7 +28,11 @@ public class Janitor extends Actor {
     if(memo.getType().equals("done")) {
       Log.info("Manager shut down.");
       managers.remove(memo.getSender());
-    }        
+    }
+    else if(memo.getType().equals("kill")) {
+      managers.clear();
+      Log.error("Timeout reached. Force quitting...");
+    }
   }
   
   /**
@@ -50,10 +54,12 @@ public class Janitor extends Actor {
         Log.info("Sending halt memo to manager.");
         it.next().post(new Memo("halt", null, this));
       }
+      Util.setTimeout(10000, new Memo("kill", null, this));
     }
     
     if(managers.isEmpty()) {
       Log.info("All managers report done. Shutting down...");
+      Util.shutdown();
       shutdown();
     }
     try { Thread.sleep(50); } catch (InterruptedException e) { /* don't care */ }
