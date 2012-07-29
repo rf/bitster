@@ -104,6 +104,7 @@ public class Broker extends Actor {
     
     else if (memo.getType().equals("block")) {
       Message m = (Message) memo.getPayload();
+      Log.i("Sending: " + m);
       peer.send(m);
     }
 
