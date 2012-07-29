@@ -31,7 +31,7 @@ public class Broker extends Actor {
   private boolean interesting = false; // We are not interesting to the peer.
 
   // Choking and interested are our opinions of the peer:
-  private boolean choking = false;      // We are choking this peer
+  private boolean choking = true;      // We are choking this peer
   private boolean interested = false;  // We are not interested in the peer
 
   private BitSet pieces;
