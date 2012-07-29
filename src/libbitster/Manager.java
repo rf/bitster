@@ -200,7 +200,7 @@ public class Manager extends Actor implements Communicator {
         Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
         memo.getSender().post(new Memo("block", response, this));
       } catch(IllegalArgumentException e) {
-        Log.e("Invalid block request.");
+        Log.e("Invalid block request: " + e.getMessage());
       }
     }
     

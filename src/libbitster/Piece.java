@@ -146,6 +146,8 @@ public class Piece {
     else if (length <= 0 || (begin + length) > getData().length) {
       throw new IllegalArgumentException("Invalid length");
     }
+    else if (length > (128*1024))
+      throw new IllegalArgumentException("Length > 128KB");
     else {
       block = new byte[length];
       for(int i = 0; i < block.length; i++) {
