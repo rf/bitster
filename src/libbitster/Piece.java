@@ -127,6 +127,34 @@ public class Piece {
 
     return true;
   }
+  
+  /**
+   * Gets a block from the piece
+   * @param begin The offset of the block
+   * @param length the block length
+   * @return The piece
+   * @throws IllegalArgumentException
+   */
+  public byte[] getBlock(int begin, int length) throws IllegalArgumentException {
+    byte[] block;
+    
+    // check if our offset is inside the data set
+    if(begin < 0 || begin >= getData().length) {
+      throw new IllegalArgumentException("Invalid offset");
+    }
+    // check if the length is within the bounds of the data set
+    else if (length < 0 || (begin + length - 1) >= getData().length) {
+      throw new IllegalArgumentException("Invalid length");
+    }
+    else {
+      block = new byte[length];
+      for(int i = 0; i < block.length; i++) {
+        block[i] = data[begin + i];
+      }
+    }
+    
+    return block;
+  }
 
   /**
    * Returns true when all blocks have been added to this piece

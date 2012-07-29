@@ -194,7 +194,14 @@ public class Manager extends Actor implements Communicator {
     // Received from Brokers when a block has been requested
     else if (memo.getType().equals("request")) {
       Message msg = (Message) memo.getPayload();
-      Piece p = funnel.getPiece(msg.getIndex());     
+      Piece p = funnel.getPiece(msg.getIndex());
+      try {
+        ByteBuffer stoof = ByteBuffer.wrap(p.getBlock(msg.getBegin(), msg.getBlockLength()));
+        Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
+        memo.getSender().post(new Memo("block", response, this));
+      } catch(IllegalArgumentException e) {
+        Log.e("Invalid block request.");
+      }
     }
     
     else if (memo.getType() == "pieces") {

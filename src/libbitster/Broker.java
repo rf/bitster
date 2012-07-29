@@ -103,7 +103,8 @@ public class Broker extends Actor {
     }
     
     else if (memo.getType().equals("block")) {
-      
+      Message m = (Message) memo.getPayload();
+      peer.send(m);
     }
 
     else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
