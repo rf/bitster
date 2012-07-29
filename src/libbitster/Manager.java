@@ -321,6 +321,7 @@ public class Manager extends Actor implements Communicator {
 
   public boolean onReadable () { return false; }
   public boolean onWritable () { return false; }
+  public boolean onConnectable () { return false; }
 
   /**
    * Generates a 20 character {@code byte} array for use as a

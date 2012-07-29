@@ -31,13 +31,14 @@ public class Overlord {
 
     while (keys.hasNext()) {
       try {
-      SelectionKey key = keys.next();
-      keys.remove();
-      if (!key.isValid()) continue;      // WHY
-      Communicator communicator = (Communicator) key.attachment();
-      if (key.isReadable())   if (!communicator.onReadable())   continue;
-      if (key.isWritable())   if (!communicator.onWritable())   continue;
-      if (key.isAcceptable()) if (!communicator.onAcceptable()) continue;
+        SelectionKey key = keys.next();
+        keys.remove();
+        if (!key.isValid()) continue;      // WHY
+        Communicator communicator = (Communicator) key.attachment();
+        if (key.isConnectable()) if (!communicator.onConnectable()) continue;
+        if (key.isReadable())    if (!communicator.onReadable())    continue;
+        if (key.isWritable())    if (!communicator.onWritable())    continue;
+        if (key.isAcceptable())  if (!communicator.onAcceptable())  continue;
       } catch (CancelledKeyException e) {
         Log.error("Overlord select() error: " + e);
         // just move on
