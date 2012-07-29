@@ -85,24 +85,38 @@ public class Protocol implements Communicator {
 
   // Establish the connection
   public void establish () {
+    // Setup handshake
+    ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
+    writeBuffer = handshake;
+
     try {
-      // TODO: do a non-blocking connect
-      if (channel == null) 
-        channel = SocketChannel.open(new InetSocketAddress(host, port));
+      state = "handshake";
 
-      channel.configureBlocking(false);
-
-      if (overlord.register(channel, this) == false) {
-        this.state = "error";
-        this.exception = new Exception("selector registration failed");
-        return;
+      // If there is no connection already (ie, we're making an outgoing
+      // connection), we need to start a connection.
+      if (channel == null) {
+        channel = SocketChannel.open();
+        channel.configureBlocking(false);
+        channel.connect(new InetSocketAddress(host, port));
+        state = "connect";
       }
 
-      ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
-      writeBuffer = handshake;
+      // Register this object for events on the channel with the overlord.
+      if (overlord.register(channel, this) == false)
+        throw new Exception("selector registration failed");
 
-      state = "handshake";
     } catch (Exception e) { error(e); }
+  }
+
+  public boolean onConnectable () {
+    Log.debug("protocol onConnectable");
+    try {
+      if (!channel.finishConnect()) {
+        throw new Exception("connect failed");
+      }
+      state = "handshake";
+      return true;
+    } catch (Exception e) { error(e); return false; }
   }
 
   // ## talk
