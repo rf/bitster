@@ -204,7 +204,7 @@ public class Manager extends Actor implements Communicator {
       }
     }
     
-    else if (memo.getType() == "pieces") {
+    else if (memo.getType().equals("pieces")) {
       ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
       
       for(int i = 0, l = ps.size(); i < l; ++i) {
