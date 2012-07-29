@@ -222,24 +222,6 @@ public class Manager extends Actor implements Communicator {
       Log.info("Resuming, " + left + " left to download.");
     }
     
-    
-    // These three memos should be received in a chain
-    else if (memo.getType().equals("halt"))
-    {
-      state = "shutdown";
-      deputy.post(new Memo("halt", null, this));
-    }
-    
-    else if (memo.getType().equals("done") && memo.getSender().equals(deputy)) {
-      funnel.post(new Memo("halt", null, this));
-    }
-
-    // Received from Funnel when we're ready to shut down.
-    else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
-      shutdown();
-      Janitor.getInstance().post(new Memo("done", null, this));
-    }
-
     // Received from Funnel when we successfully verify and store some piece.
     // We forward the message off to each Broker so they can inform peers.
     else if (memo.getType().equals("have")) {
@@ -253,6 +235,27 @@ public class Manager extends Actor implements Communicator {
       Message m = (Message) memo.getPayload();
       Piece p = pieces.get(m.getIndex());
       p.blockFail(m.getBegin());
+    }
+    
+    /* These three memos should be received in a chain, and are part of the
+     * shutdown sequence. */
+    
+    // Part 1: halt message from Janitor
+    else if (memo.getType().equals("halt"))
+    {
+      state = "shutdown";
+      deputy.post(new Memo("halt", null, this));
+    }
+    
+    // Part 2: Deputy is done telling the tracker we're shutting down
+    else if (memo.getType().equals("done") && memo.getSender().equals(deputy)) {
+      funnel.post(new Memo("halt", null, this));
+    }
+
+    // Part 3: Received from Funnel when we're ready to shut down.
+    else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
+      shutdown();
+      Janitor.getInstance().post(new Memo("done", null, this));
     }
   }
 
