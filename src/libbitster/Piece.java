@@ -6,10 +6,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.BitSet;
 
-// Tracks the state of a piece, assembles it together and verifies it against
-// a given hash.
-// author: Theodore Surgent
-
+/** 
+ * Tracks the state of a piece, assembles it together and verifies it against
+ * a given hash.
+ * @author: Theodore Surgent
+ */
 public class Piece {
   private int number;
   private int blockSize;
@@ -18,7 +19,8 @@ public class Piece {
   private BitSet completed;
   private BitSet requested;
 
-  private int size; // size of the whole piece
+  /** size of the whole piece */
+  private int size;
 
   /**
    * Creates a completed piece
@@ -177,7 +179,7 @@ public class Piece {
     return data;
   }
 
-  // Get the next block we need to retrieve
+  /** Get the next block we need to retrieve */
   public final int next () {
     int next = requested.nextClearBit(0);
     if (next > size / blockSize) return -1;
@@ -192,7 +194,7 @@ public class Piece {
     requested.set(index, false);
   }
 
-  // Size of one particular block
+  /** Size of one particular block */
   public final int sizeOf (int index) {
     if ((blockSize * (index + 1)) > size) return (size % blockSize);
     else return blockSize;

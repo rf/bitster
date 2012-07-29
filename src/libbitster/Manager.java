@@ -191,6 +191,12 @@ public class Manager extends Actor implements Communicator {
       Log.info("Got block, " + left + " left to download.");
     }
     
+    // Received from Brokers when a block has been requested
+    else if (memo.getType().equals("request")) {
+      Message msg = (Message) memo.getPayload();
+      Piece p = funnel.getPiece(msg.getIndex());     
+    }
+    
     else if (memo.getType() == "pieces") {
       ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
       

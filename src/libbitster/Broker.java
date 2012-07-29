@@ -101,6 +101,10 @@ public class Broker extends Actor {
         peer.send(m);
       }
     }
+    
+    else if (memo.getType().equals("block")) {
+      
+    }
 
     else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
       Log.info("Sending keep alive");
@@ -166,7 +170,9 @@ public class Broker extends Actor {
         manager.post(new Memo("block", message, this));
       break;
 
-      // TODO: Handle Message.REQUEST
+      case Message.REQUEST:
+        manager.post(new Memo("request", message, this));
+      break;
     }
 
     if (choked) {

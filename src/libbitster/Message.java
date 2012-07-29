@@ -39,7 +39,7 @@ public class Message {
                                           "REQUEST", 
                                           "PIECE" };
 
-  /*
+  /**
    * Creates a message from a ByteBuffer filled with serialized message data
    * @param from The ByteBuffer containing the message data
    */
@@ -106,7 +106,7 @@ public class Message {
     this.type = type;
   }
 
-  /*
+  /**
    * Serializes this message into a binary format described by
    * http://wiki.theory.org/BitTorrentSpecification#Messages
    * @return A ByteBuffer containing the serialized form of this message
@@ -181,7 +181,7 @@ public class Message {
     return buff;
   }
 
-  /*
+  /**
    * Returns a string describing this message
    * @return a string describing this message
    */
@@ -213,42 +213,42 @@ public class Message {
     return str;
   }
 
-  /*
+  /**
    * Creates a KEEP_ALIVE message
    */
   public static Message createKeepAlive() {
     return new Message(KEEP_ALIVE);
   }
   
-  /*
+  /**
    * Creates a CHOKE message
    */
   public static Message createChoke() {
     return new Message(CHOKE);
   }
 
-  /*
+  /**
    * Creates a UNCHOKE message
    */
   public static Message createUnchoke() {
     return new Message(UNCHOKE);
   }
 
-  /*
+  /**
    * Creates an INTERESTED message
    */
   public static Message createInterested() {
     return new Message(INTERESTED);
   }
 
-  /*
+  /**
    * Creates a NOT_INTERESTED message
    */
   public static Message createNotInterested() {
     return new Message(NOT_INTERESTED);
   }
   
-  /*
+  /**
    * Creates a HAVE message
    * @param index The piece index
    */
@@ -259,7 +259,7 @@ public class Message {
     return msg;
   }
   
-  /*
+  /**
    * Creates a BITFIELD message
    * Size is needed because Java appears to allocate memory for a BitSet in powers of 2 (which makes sense BTW)
    * @param bitfield A BitSet where each bit represents whether the corresponding piece is available
@@ -272,7 +272,7 @@ public class Message {
     return msg;
   }
   
-  /*
+  /**
    * Creates a REQUEST message
    * @param index The piece index
    * @param begin The byte offset within the piece
@@ -287,7 +287,7 @@ public class Message {
     return msg;
   }
 
-  /*
+  /**
    * Creates a PIECE message
    * @param index The piece index
    * @param begin The byte offset within the piece
@@ -304,7 +304,7 @@ public class Message {
 
   //TODO: more create*(), testing
   
-  /*
+  /**
    * Gets the type of this message
    * @return The message type
    */
@@ -312,7 +312,7 @@ public class Message {
     return type;
   }
   
-  /*
+  /**
    * Gets the length of this entire message (when serialized) in bytes
    * WARNING - This is only valid when a message has been constructed from a ByteBuffer
    * @return The message length
@@ -321,7 +321,7 @@ public class Message {
     return length;
   }
   
-  /*
+  /**
    * Returns the length of a block in bytes for a part of piece for REQUEST messages, otherwise -1
    * Note that this method will return -1 for PIECE messages
    * @return The block length within a piece
@@ -331,7 +331,7 @@ public class Message {
     return blockLength;
   }
   
-  /*
+  /**
    * Returns the piece number if this message is of type HAVE, REQUEST, or PIECE, otherwise -1
    * @return The piece index
    */
@@ -339,7 +339,7 @@ public class Message {
     return index;
   }
   
-  /*
+  /**
    * Returns The offset in bytes to the beginning of a block within a piece for REQUEST and PIECE messages, otherwise -1
    * @return The offset to the beginning of a block within a piece
    * @see getBlockLength()
@@ -348,7 +348,7 @@ public class Message {
     return begin;
   }
   
-  /*
+  /**
    * Returns a block of data which can be thought of as a piece of a piece for PIECE messages
    * @return A block of data
    */
@@ -356,7 +356,7 @@ public class Message {
     return block;
   }
   
-  /*
+  /**
    * Returns the bitfield for BITFIELD messages, otherwise null
    * @return The bitfield
    * @see getBitfieldLength()
@@ -365,7 +365,7 @@ public class Message {
     return bitfield;
   }
   
-  /*
+  /**
    * Returns the length of a bitfield for BITFIELD messages in bytes, NOT in bits
    * Unfortunately, a message itself does not know the number of bits
    * This number is equivalent to the following formula: ceiling(bitfieldLengthInBits / 8.0)

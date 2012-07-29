@@ -8,10 +8,10 @@ import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.io.*;
 
-// Assembles pieces together into a file, actually runs the piece verification,
-// and can write the completed data to a file.
-// author: Theodore Surgent
-
+/** Assembles pieces together into a file, actually runs the piece verification,
+ *  and can write the completed data to a file.
+ *  author: Theodore Surgent
+ */
 public class Funnel extends Actor {
   private static final int defaultBlockSize = 16384;
   private int size;
