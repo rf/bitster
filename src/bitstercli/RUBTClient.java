@@ -59,12 +59,12 @@ public class RUBTClient {
       dis.readFully(torrentBytes);
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
-      final Manager manager = new Manager(metainfo, dest);
-      manager.start();
       
       // attempt to gracefully shut down from term and interrupt signals
       Runtime.getRuntime().addShutdownHook(new Thread(Janitor.getInstance()));
-
+      
+      final Manager manager = new Manager(metainfo, dest);
+      manager.start();
     } catch (IOException e) {
       log.severe("Error: unable to read torrent file.");
       return;

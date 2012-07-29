@@ -144,12 +144,12 @@ public class Protocol implements Communicator {
 
         // If we have more data than the length of the message we're expecting,
         // parse messages out of the readBuffer.
-        if (numRead >= length && length != -1) parse();
+        if (numRead >= length && length >= 0) parse();
 
         // Try to find the length of the message in the read buffer
         findLength();
 
-      } while (numRead >= length && length != -1);
+      } while (numRead >= length && length >= 0);
 
       return true;
 
@@ -181,7 +181,7 @@ public class Protocol implements Communicator {
     // Copy the bits at the end of the message we just parsed to the beginning
     // of the read buffer.
 
-    // A possible optimizaion here would be to use a ring buffer.
+    // A possible optimization here would be to use a ring buffer.
 
     byte[] nextMsgPart = new byte[nextMsgRead];
     readBuffer.position(length);
@@ -209,6 +209,12 @@ public class Protocol implements Communicator {
       // `length` here is actually just the length of the protocol identifier
       // string.  We need to add 49 to account for the rest of the message.
       length = ((int) readBuffer.get(0)) + 49;
+
+    // 32000 is arbitrary max message size
+    if ((length < 0 || length > 32000) && length != -1) {  
+      Log.error("Got invalid message length from peer: " + length);
+      error(new Exception("invalid message length"));
+    }
   }
 
   // called by the Broker to send messages
