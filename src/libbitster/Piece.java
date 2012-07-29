@@ -143,7 +143,7 @@ public class Piece {
       throw new IllegalArgumentException("Invalid offset");
     }
     // check if the length is within the bounds of the data set
-    else if (length < 0 || (begin + length - 1) >= getData().length) {
+    else if (length <= 0 || (begin + length) > getData().length) {
       throw new IllegalArgumentException("Invalid length");
     }
     else {
