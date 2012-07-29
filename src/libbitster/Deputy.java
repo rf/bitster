@@ -116,8 +116,9 @@ public class Deputy extends Actor {
       announce(Util.s("&event=completed"));
     }
     
-    else if (memo.getType() == "halt") {
+    else if (memo.getType().equals("halt")) {
       announce(Util.s("&event=stopped"));
+      manager.post(new Memo("done", null, this));
       shutdown();
     }
   }

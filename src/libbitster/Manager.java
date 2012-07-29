@@ -221,18 +221,23 @@ public class Manager extends Actor implements Communicator {
 
       Log.info("Resuming, " + left + " left to download.");
     }
-
-    // Received from Funnel when we're ready to shut down.
-    else if (memo.getType().equals("done")) {
-      Janitor.getInstance().post(new Memo("done", null, this));
-      shutdown();
-    }
     
+    
+    // These three memos should be received in a chain
     else if (memo.getType().equals("halt"))
     {
       state = "shutdown";
       deputy.post(new Memo("halt", null, this));
+    }
+    
+    else if (memo.getType().equals("done") && memo.getSender().equals(deputy)) {
       funnel.post(new Memo("halt", null, this));
+    }
+
+    // Received from Funnel when we're ready to shut down.
+    else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
+      shutdown();
+      Janitor.getInstance().post(new Memo("done", null, this));
     }
 
     // Received from Funnel when we successfully verify and store some piece.
