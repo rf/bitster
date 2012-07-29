@@ -85,24 +85,38 @@ public class Protocol implements Communicator {
 
   // Establish the connection
   public void establish () {
+    // Setup handshake
+    ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
+    writeBuffer = handshake;
+
     try {
-      // TODO: do a non-blocking connect
-      if (channel == null) 
-        channel = SocketChannel.open(new InetSocketAddress(host, port));
+      state = "handshake";
 
-      channel.configureBlocking(false);
-
-      if (overlord.register(channel, this) == false) {
-        this.state = "error";
-        this.exception = new Exception("selector registration failed");
-        return;
+      // If there is no connection already (ie, we're making an outgoing
+      // connection), we need to start a connection.
+      if (channel == null) {
+        channel = SocketChannel.open();
+        channel.configureBlocking(false);
+        channel.connect(new InetSocketAddress(host, port));
+        state = "connect";
       }
 
-      ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
-      writeBuffer = handshake;
+      // Register this object for events on the channel with the overlord.
+      if (overlord.register(channel, this) == false)
+        throw new Exception("selector registration failed");
 
-      state = "handshake";
     } catch (Exception e) { error(e); }
+  }
+
+  public boolean onConnectable () {
+    Log.debug("protocol onConnectable");
+    try {
+      if (!channel.finishConnect()) {
+        throw new Exception("connect failed");
+      }
+      state = "handshake";
+      return true;
+    } catch (Exception e) { error(e); return false; }
   }
 
   // ## talk
@@ -196,16 +210,16 @@ public class Protocol implements Communicator {
 
   // ## findLength
   // Grab the length of the next message out of the read buffer if possible
-  public void findLength () {
+  public void findLength () throws Exception {
     // If we've read at least four bytes, we haven't gotten a length yet,
     // and we're not reading a handshake message, then grab the length out of
     // the readBuffer.
-    if (length == -1 && numRead >= 4 && state != "handshake") 
+    if (length == -1 && numRead >= 4 && !state.equals("handshake"))
       // add 4 to account for the length of the integer specifying the length
       length = readBuffer.getInt(0) + 4;
 
     // If we expect a handshake and we don't have a length yet,
-    else if (length == -1 && numRead >= 1 && state == "handshake") 
+    else if (length == -1 && numRead >= 1 && state.equals("handshake")) 
       // `length` here is actually just the length of the protocol identifier
       // string.  We need to add 49 to account for the rest of the message.
       length = ((int) readBuffer.get(0)) + 49;
@@ -213,7 +227,7 @@ public class Protocol implements Communicator {
     // 32000 is arbitrary max message size
     if ((length < 0 || length > 32000) && length != -1) {  
       Log.error("Got invalid message length from peer: " + length);
-      error(new Exception("invalid message length"));
+      throw new Exception("invalid message length");
     }
   }
 
