@@ -209,6 +209,12 @@ public class Protocol implements Communicator {
       // `length` here is actually just the length of the protocol identifier
       // string.  We need to add 49 to account for the rest of the message.
       length = ((int) readBuffer.get(0)) + 49;
+
+    // 32000 is arbitrary max message size
+    if ((length < 0 || length > 32000) && length != -1) {  
+      Log.error("Got invalid message length from peer: " + length);
+      error(new Exception("invalid message length"));
+    }
   }
 
   // called by the Broker to send messages
