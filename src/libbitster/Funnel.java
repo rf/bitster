@@ -121,7 +121,7 @@ public class Funnel extends Actor {
       try {
         Piece p = getPiece(msg.getIndex());
         ByteBuffer stoof = ByteBuffer.wrap(p.getBlock(msg.getBegin(), msg.getBlockLength()));
-        Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
+        Object[] response = { msg, stoof };
         memo.getSender().post(new Memo("block", response, this));
       } catch(IllegalArgumentException e) {
         Log.e("Invalid block request: " + e.getMessage());
