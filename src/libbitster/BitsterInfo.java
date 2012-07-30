@@ -13,7 +13,7 @@ public final class BitsterInfo {
   
   private static BitsterInfo instance = null;
   private File info;
-  private HashMap<ByteBuffer, Integer> uploadStats;
+  private HashMap<String, Integer> uploadStats;
   
   @SuppressWarnings("unchecked")
   private BitsterInfo() {
@@ -24,7 +24,7 @@ public final class BitsterInfo {
         ois = new ObjectInputStream(new FileInputStream(info));
         Object readIn = ois.readObject();
         if(readIn instanceof HashMap<?,?>) {
-          uploadStats = (HashMap<ByteBuffer, Integer>) readIn;
+          uploadStats = (HashMap<String, Integer>) readIn;
         }
         else {
           Log.e("Invalid metadata.bitster.dat");
@@ -33,7 +33,7 @@ public final class BitsterInfo {
         }
         ois.close();
       } catch (Exception e) {
-        uploadStats = new HashMap<ByteBuffer, Integer>();
+        uploadStats = new HashMap<String, Integer>();
         info.delete();
       }
     }
@@ -42,21 +42,20 @@ public final class BitsterInfo {
     }
     else {
       Log.w("No metadata.bitster.dat found.");
-      uploadStats = new HashMap<ByteBuffer, Integer>();
+      uploadStats = new HashMap<String, Integer>();
     }
   }
   
   public Integer getUploadData(ByteBuffer infoHash) {
-    if(!uploadStats.containsKey(infoHash)) {
-      uploadStats.put(infoHash, 0);
+    if(!uploadStats.containsKey(Util.buff2str(infoHash))) {
+      uploadStats.put(Util.buff2str(infoHash), 0);
     }
-    return uploadStats.get(infoHash);
+    return uploadStats.get(Util.buff2str(infoHash));
   }
   
   public void setUploadData(ByteBuffer infoHash, Integer upload) {
-    uploadStats.put(infoHash, upload);
+    uploadStats.put(Util.buff2str(infoHash), upload);
     Log.i("Updated upload info for info hash " + Util.buff2str(infoHash));
-    write();
   }
   
   public static BitsterInfo getInstance() {
@@ -66,15 +65,14 @@ public final class BitsterInfo {
     return instance;
   }
   
-  public void write() {
+  public void shutdown() {
     try {
-      if(!info.exists())
-        info.createNewFile();
       ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(info));
       oos.writeObject(uploadStats);
       oos.close();
     } catch (IOException e) {
       Log.e("Couldn't save upload data.");
+      e.printStackTrace();
     }
   }
 }

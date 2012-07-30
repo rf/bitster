@@ -110,9 +110,6 @@ public class Manager extends Actor implements Communicator {
       }
     }
 
-    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
-    deputy.start();
-
     overlord.register(listen, this);
 
     Log.info("Our peer id: " + Util.buff2str(peerId));
@@ -132,6 +129,9 @@ public class Manager extends Actor implements Communicator {
 
     state = "downloading";
     Janitor.getInstance().register(this);
+    
+    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
+    deputy.start();
   }
 
   @SuppressWarnings("unchecked")
