@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
 
+
 /**
  * Coordinates actions of all the {@link Actor}s and manages
  * the application's operation. 
@@ -69,8 +70,8 @@ public class Manager extends Actor implements Communicator {
 
     this.metainfo = metainfo;
     this.dest = dest;
-    this.setDownloaded(0);
-    this.setUploaded(0);
+    this.downloaded = 0;
+    this.uploaded = 0;
     this.setLeft(metainfo.file_length);
 
     overlord = new Overlord();
@@ -199,6 +200,7 @@ public class Manager extends Actor implements Communicator {
         ByteBuffer stoof = ByteBuffer.wrap(p.getBlock(msg.getBegin(), msg.getBlockLength()));
         Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
         memo.getSender().post(new Memo("block", response, this));
+        this.addUploaded(msg.getBlockLength());
       } catch(IllegalArgumentException e) {
         Log.e("Invalid block request: " + e.getMessage());
       }
@@ -244,6 +246,7 @@ public class Manager extends Actor implements Communicator {
     else if (memo.getType().equals("halt"))
     {
       state = "shutdown";
+      try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
       deputy.post(new Memo("halt", null, this));
     }
     
@@ -317,7 +320,6 @@ public class Manager extends Actor implements Communicator {
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
-      try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
     }
   }
 
@@ -409,16 +411,12 @@ public class Manager extends Actor implements Communicator {
     return downloaded;
   }
 
-  private void setDownloaded(int downloaded) {
-    this.downloaded = downloaded;
-  }
-
   public int getUploaded() {
     return uploaded;
   }
 
-  private void setUploaded(int uploaded) {
-    this.uploaded = uploaded;
+  public void addUploaded(int uploaded) {
+    this.uploaded += uploaded;
   }
 
   public int getLeft() {

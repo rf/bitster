@@ -5,6 +5,8 @@ import java.net.*;
 import java.util.*; 
 import java.nio.channels.*;
 
+
+
 /** Handles communication with a peer.  Polls the socket, then writes and reads
  * if necessary.
  * @author: Russ Frank
@@ -121,7 +123,7 @@ public class Protocol implements Communicator {
   /** Send some data to the peer */
   public boolean onWritable () {
     try {
-      // If we dont have a message in the writeBuffer, populate the writeBuffer
+      // If we don't have a message in the writeBuffer, populate the writeBuffer
       if (writeBuffer == null && outbox.size() > 0)
         writeBuffer = outbox.poll().serialize();
 
