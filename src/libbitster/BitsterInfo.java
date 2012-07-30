@@ -56,7 +56,6 @@ public final class BitsterInfo {
   
   public void setUploadData(ByteBuffer infoHash, Integer upload) {
     uploadStats.put(Util.buff2str(infoHash), upload);
-    Log.i("Updated upload info for info hash " + Util.buff2str(infoHash));
   }
   
   public static BitsterInfo getInstance() {
