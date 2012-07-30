@@ -10,7 +10,7 @@ import java.io.*;
 
 /** Assembles pieces together into a file, actually runs the piece verification,
  *  and can write the completed data to a file.
- *  author: Theodore Surgent
+ *  @author Theodore Surgent
  */
 public class Funnel extends Actor {
   private static final int defaultBlockSize = 16384;
@@ -189,7 +189,7 @@ public class Funnel extends Actor {
     return piece;
   }
   
-  //Used by getPiece and in constructor
+  /** Used by getPiece and in constructor */
   private Piece getPieceNoValidate(int pieceNumber) {
     if(pieceNumber < 0 || pieceNumber >= pieceCount) {
       String msg = "The Piece index is out of bounds";
