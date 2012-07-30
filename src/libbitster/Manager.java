@@ -267,14 +267,14 @@ public class Manager extends Actor implements Communicator {
     overlord.communicate(100);
     try { Thread.sleep(50); } catch (InterruptedException e) {}
 
-    if (state == "downloading") {
+    if (state.equals("downloading") || state.equals("seeding")) {
 
       Iterator<Broker> i = brokers.iterator();
       Broker b;
       while (i.hasNext()) {
         b = i.next();
         b.tick();
-        if (b.state() == "error") {
+        if (b.state().equals("error")) {
           i.remove();
           peersById.put(b.peerId(), null);
         }
@@ -306,17 +306,9 @@ public class Manager extends Actor implements Communicator {
 
     }
 
-    if (left == 0 && state != "shutdown" && state != "done") {
+    if (left == 0 && !state.equals("shutdown") && !state.equals("seeding")) {
       Log.info("Download complete");
-      state = "done";
-      Iterator<Broker> i = brokers.iterator();
-      Broker b;
-
-      while (i.hasNext()) {
-        b = i.next();
-        b.close();
-        i.remove();
-      }
+      state = "seeding";
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
