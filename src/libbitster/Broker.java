@@ -105,6 +105,7 @@ public class Broker extends Actor {
       }
     }
     
+    // Get block back from funnel
     else if (memo.getType().equals("block")) {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
       ByteBuffer stoof = (ByteBuffer) ((Object[])memo.getPayload())[1];
@@ -177,6 +178,9 @@ public class Broker extends Actor {
       break;
 
       case Message.REQUEST:
+        // Post a "request" memo to Manager, which passes it on as
+        // a "block" memo to Funnel, who grabs the block and forwards
+        // it to the requesting Broker
         manager.post(new Memo("request", message, this));
       break;
     }
