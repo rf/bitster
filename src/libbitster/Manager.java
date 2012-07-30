@@ -49,7 +49,7 @@ public class Manager extends Actor implements Communicator {
   private HashMap<ByteBuffer, Broker> peersById;
 
   // torrent info
-  private int downloaded, uploaded, left;
+  private int downloaded, left;
 
   private Funnel funnel;
 
@@ -71,7 +71,7 @@ public class Manager extends Actor implements Communicator {
     this.metainfo = metainfo;
     this.dest = dest;
     this.downloaded = 0;
-    this.uploaded = 0;
+    
     this.setLeft(metainfo.file_length);
 
     overlord = new Overlord();
@@ -412,11 +412,11 @@ public class Manager extends Actor implements Communicator {
   }
 
   public int getUploaded() {
-    return uploaded;
+    return BitsterInfo.getInstance().getUploadData(getInfoHash());
   }
 
   public void addUploaded(int uploaded) {
-    this.uploaded += uploaded;
+    BitsterInfo.getInstance().setUploadData(getInfoHash(), getUploaded() + uploaded);    
   }
 
   public int getLeft() {
