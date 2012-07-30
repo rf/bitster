@@ -26,19 +26,23 @@ public final class BitsterInfo {
         if(readIn instanceof HashMap<?,?>) {
           uploadStats = (HashMap<ByteBuffer, Integer>) readIn;
         }
+        else {
+          Log.e("Invalid metadata.bitster.dat");
+          ois.close();
+          throw new Exception();
+        }
         ois.close();
       } catch (Exception e) {
-        
+        uploadStats = new HashMap<ByteBuffer, Integer>();
+        info.delete();
       }
     }
+    else if(info.isDirectory()) {
+      Log.e("Error: metadata.bitster.dat is a directory.");
+    }
     else {
-      try {
-        info.createNewFile();
-        uploadStats = new HashMap<ByteBuffer, Integer>();
-      } catch (IOException e) {
-        Log.e("Unable to create metadata file.");
-        System.exit(1);
-      }
+      Log.w("No metadata.bitster.dat found.");
+      uploadStats = new HashMap<ByteBuffer, Integer>();
     }
   }
   
@@ -51,6 +55,8 @@ public final class BitsterInfo {
   
   public void setUploadData(ByteBuffer infoHash, Integer upload) {
     uploadStats.put(infoHash, upload);
+    Log.i("Updated upload info for info hash " + Util.buff2str(infoHash));
+    write();
   }
   
   public static BitsterInfo getInstance() {
@@ -60,8 +66,10 @@ public final class BitsterInfo {
     return instance;
   }
   
-  public void shutdown() {
+  public void write() {
     try {
+      if(!info.exists())
+        info.createNewFile();
       ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(info));
       oos.writeObject(uploadStats);
       oos.close();
