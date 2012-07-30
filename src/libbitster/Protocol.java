@@ -110,7 +110,6 @@ public class Protocol implements Communicator {
   }
 
   public boolean onConnectable () {
-    Log.debug("protocol onConnectable");
     try {
       if (!channel.finishConnect()) {
         throw new Exception("connect failed");
