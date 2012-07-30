@@ -6,16 +6,11 @@ import java.util.*;
 import java.nio.*;
 import java.nio.channels.*;
 
-
-
 /**
  * The `Broker` class manages a connection with a peer.  It uses the
- * `Protocol` class for the actual communication.  It accepts the following
- * memos:
- * * `message`: payload is a message to be delivered to the peer
- * * `kepalive`: send a keepalive to the peer. This is scheduled with Timeout.
+ * `Protocol` class for the actual communication.
  * @author Russ Frank
- * @author Miralles-Cordal
+ * @author Martin Miralles-Cordal
  *
  */
 
