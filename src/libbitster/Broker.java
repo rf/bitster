@@ -8,14 +8,16 @@ import java.nio.channels.*;
 
 
 
-// The `Broker` class manages a connection with a peer.  It uses the
-// `Protocol` class for the actual communication.  It accepts the following
-// memos:
-//
-//  * `message`: payload is a message to be delivered to the peer
-//  * `kepalive`: send a keepalive to the peer. This is scheduled with Timeout.
-//
-// author: Russ Frank
+/**
+ * The `Broker` class manages a connection with a peer.  It uses the
+ * `Protocol` class for the actual communication.  It accepts the following
+ * memos:
+ * * `message`: payload is a message to be delivered to the peer
+ * * `kepalive`: send a keepalive to the peer. This is scheduled with Timeout.
+ * @author Russ Frank
+ * @author Miralles-Cordal
+ *
+ */
 
 public class Broker extends Actor {
   private String state;
@@ -85,9 +87,8 @@ public class Broker extends Actor {
     Util.setTimeout(120000, new Memo("keepalive", null, this));
   }
 
-  // ## receive
-  // Receive a memo
-
+  
+  /** Receive a memo */
   protected void receive (Memo memo) {
     if ("request".equals( memo.getType() )) {
       numQueued += 1;
@@ -140,8 +141,7 @@ public class Broker extends Actor {
 
   public void close () { peer.close(); }
 
-  // ## listen
-  // Receive a message via tcp
+  /** Receive a message via tcp */
   private void message (Message message) {
     if (numReceived > 0 && message.getType() == Message.BITFIELD) 
       error(new Exception("protocol error"));
@@ -233,7 +233,7 @@ public class Broker extends Actor {
     }
   }
 
-  // Checks to see if the peer has this piece.
+  /** Checks to see if the peer has this piece. */
   public boolean has (int number) {
     return pieces.get(number);
   }
