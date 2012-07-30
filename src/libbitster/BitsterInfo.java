@@ -48,6 +48,7 @@ public final class BitsterInfo {
   
   public Integer getUploadData(ByteBuffer infoHash) {
     if(!uploadStats.containsKey(Util.buff2str(infoHash))) {
+      Log.d("New infohash. Inserting...");
       uploadStats.put(Util.buff2str(infoHash), 0);
     }
     return uploadStats.get(Util.buff2str(infoHash));
