@@ -309,14 +309,6 @@ public class Manager extends Actor implements Communicator {
     if (left == 0 && state != "shutdown" && state != "done") {
       Log.info("Download complete");
       state = "done";
-      Iterator<Broker> i = brokers.iterator();
-      Broker b;
-
-      while (i.hasNext()) {
-        b = i.next();
-        b.close();
-        i.remove();
-      }
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
