@@ -4,10 +4,10 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.logging.*;
 
 import libbitster.BencodingException;
 import libbitster.Janitor;
+import libbitster.Log;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
 
@@ -20,13 +20,11 @@ public class RUBTClient {
   /**
    * @param args Takes in a torrent file and a destination file name as arguments 
    */
-  public static void main(String[] args) {
-    Logger log = Logger.getLogger("bitster");
-    
+  public static void main(String[] args) {    
     // check if we have a valid number of arguments
     if(args.length != 2)
     {
-      log.severe("Error: Invalid number of arguments.");
+      Log.e("Error: Invalid number of arguments.");
       return;
     }
     
@@ -34,7 +32,7 @@ public class RUBTClient {
     File torrentFile = new File(args[0]);
     if(!torrentFile.exists() || torrentFile.isDirectory())
     {
-      log.severe("Error: " + args[0] + " is not a file.");
+      Log.e("Error: " + args[0] + " is not a file.");
       return;
     }
     
@@ -47,7 +45,7 @@ public class RUBTClient {
           dest.createNewFile();
           dest.delete();
       } catch (IOException e) {
-        log.severe("Error: invalid destination file.");
+        Log.e("Error: invalid destination file.");
         return;
       }
     }
@@ -66,10 +64,10 @@ public class RUBTClient {
       final Manager manager = new Manager(metainfo, dest);
       manager.start();
     } catch (IOException e) {
-      log.severe("Error: unable to read torrent file.");
+      Log.e("Error: unable to read torrent file.");
       return;
     } catch (BencodingException e) {
-      log.severe("Error: invalid or corrupt torrent file.");
+      Log.e("Error: invalid or corrupt torrent file.");
       return;
     }
   }
