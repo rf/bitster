@@ -376,9 +376,10 @@ public class Manager extends Actor implements Communicator {
     return false;
   }
 
-  // ## next
-  // Get the next piece we need to download.
-  // TODO: replace with a better algorithm for finding next piece.
+  /**
+   * Get the next piece we need to download.
+   * TODO: replace with a better algorithm for finding next piece. 
+   */
   private Piece next () {
     Iterator<Piece> i = pieces.iterator();
     Piece p;
@@ -390,9 +391,7 @@ public class Manager extends Actor implements Communicator {
     return null;
   }
 
-  /**
-   * Add a peer to our internal list of peer ids
-   */
+  /** Add a peer to our internal list of peer ids */
   public boolean addPeer (ByteBuffer peerId, Broker b) {
     if (peersById.get(peerId) != null) return false;
 
