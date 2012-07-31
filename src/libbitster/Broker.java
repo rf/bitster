@@ -227,8 +227,8 @@ public class Broker extends Actor {
   }
 
   private void checkInterested () {
-    if (manager.isInteresting(pieces)) {
-      Log.debug("We are interested in the peer");
+    if (manager.isInteresting(pieces) && !interested) {
+      Log.debug("We are interested in " + Util.buff2str(peer.getPeerId()));
       interested = true;
       choking = false;
       peer.send(Message.createUnchoke());
