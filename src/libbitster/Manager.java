@@ -318,6 +318,7 @@ public class Manager extends Actor implements Communicator {
       Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
       
       SocketChannel newConnection = listen.accept();
+      newConnection.configureBlocking(false);
       if (newConnection != null) {
         brokers.add(new Broker(newConnection, this, bitfield));
       }
