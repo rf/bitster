@@ -43,7 +43,7 @@ public class Broker extends Actor {
   // Pieces we've requested from the peer. Heinous, I know, but it works.
   private HashMap<String, Message> requests;
 
-  public Broker (SocketChannel sc, Manager manager) {
+  public Broker (SocketChannel sc, Manager manager, Message bitfield) {
     super();
     Log.i("Broker: accepting");
 
@@ -56,12 +56,13 @@ public class Broker extends Actor {
       manager.getOverlord()
     );
     peer.establish();
+    peer.send(bitfield);
     this.manager = manager;
     state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
   }
 
-  public Broker (InetAddress host, int port, Manager manager) {
+  public Broker (InetAddress host, int port, Manager manager, Message bitfield) {
     super();
     Log.info("Broker init for host: " + host);
 
@@ -76,7 +77,8 @@ public class Broker extends Actor {
       manager.getOverlord()
     );
     peer.establish();
-
+    peer.send(bitfield);
+    
     this.manager = manager;
     state = "normal";
     Util.setTimeout(120000, new Memo("keepalive", null, this));

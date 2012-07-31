@@ -263,12 +263,12 @@ public class Message {
    * Creates a BITFIELD message
    * Size is needed because Java appears to allocate memory for a BitSet in powers of 2 (which makes sense BTW)
    * @param bitfield A BitSet where each bit represents whether the corresponding piece is available
-   * @param size The size of the bitfield in bytes, NOT in bits (note that all unused bits should not be set)
+   * @param size The size of the bitfield in bits
    */
   public static Message createBitfield(final BitSet bitfield, int size) {
     Message msg = new Message(BITFIELD);
     msg.bitfield = bitfield;
-    msg.bitfieldByteLength = size;
+    msg.bitfieldByteLength = (int)Math.ceil(size/8.0);
     return msg;
   }
   

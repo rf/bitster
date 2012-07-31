@@ -45,6 +45,7 @@ public class Manager extends Actor implements Communicator {
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
   private ArrayList<Piece> pieces;
+  private BitSet           received;
 
   private HashMap<ByteBuffer, Broker> peersById;
 
@@ -78,6 +79,7 @@ public class Manager extends Actor implements Communicator {
 
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
+    received = new BitSet(metainfo.piece_hashes.length);
     try {
       funnel = new Funnel(metainfo, dest, this);
     } catch (IOException e1) {
@@ -85,12 +87,28 @@ public class Manager extends Actor implements Communicator {
       System.exit(1);
     }
     funnel.start();
-
-    peersById = new HashMap<ByteBuffer, Broker>();
-
+    
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
+    peersById = new HashMap<ByteBuffer, Broker>();
+    
+    Log.info("Our peer id: " + Util.buff2str(peerId));
 
+    int i, total = metainfo.file_length;
+    for (i = 0; i < metainfo.piece_hashes.length; i++) {
+      pieces.add(new Piece(
+        metainfo.piece_hashes[i].array(), 
+        i, 
+        blockSize, 
+        // If the last piece is truncated (which it probably is) total will
+        // be less than piece_length and will be the last piece's length.
+        Math.min(metainfo.piece_length, total)
+      ));
+      total -= metainfo.piece_length;
+    }
+  }
+
+  private void initalize() {
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -112,38 +130,25 @@ public class Manager extends Actor implements Communicator {
 
     overlord.register(listen, this);
 
-    Log.info("Our peer id: " + Util.buff2str(peerId));
-
-    int i, total = metainfo.file_length;
-    for (i = 0; i < metainfo.piece_hashes.length; i++) {
-      pieces.add(new Piece(
-        metainfo.piece_hashes[i].array(), 
-        i, 
-        blockSize, 
-        // If the last piece is truncated (which it probably is) total will
-        // be less than piece_length and will be the last piece's length.
-        Math.min(metainfo.piece_length, total)
-      ));
-      total -= metainfo.piece_length;
-    }
-
     state = "downloading";
     Janitor.getInstance().register(this);
     
     deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
   }
-
+  
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
 
     // Peer list received from Deputy.
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
-    {
+    { 
       Log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if (peers.isEmpty()) Log.warning("Peer list empty!");
-
+      
+      Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+      
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
@@ -160,7 +165,8 @@ public class Manager extends Actor implements Communicator {
             Broker b = new Broker(
               inetip,
               (Integer) currPeer.get("port"),
-              this
+              this,
+              bitfield
             );
             brokers.add(b);
             peersById.put((ByteBuffer) currPeer.get("peerId"), b);
@@ -187,6 +193,7 @@ public class Manager extends Actor implements Communicator {
       if (p.finished()) {
         Log.info("Posting piece " + p.getNumber() + " to funnel");
         funnel.post(new Memo("piece", p, this));
+        received.set(p.getNumber());
       }
 
       Log.info("Got block, " + left + " left to download.");
@@ -208,13 +215,11 @@ public class Manager extends Actor implements Communicator {
         downloaded += length;
         left -= length;
         pieces.set(p.getNumber(), p);
-        
-        //Notify brokers
-        for (Broker b : brokers) 
-          b.post(new Memo("have", p, this));
+        received.set(p.getNumber());
       }
 
       Log.info("Resuming, " + left + " left to download.");
+      initalize();
     }
     
     // Received from Funnel when we successfully verify and store some piece.
@@ -310,9 +315,11 @@ public class Manager extends Actor implements Communicator {
 
   public boolean onAcceptable () {
     try {
+      Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+      
       SocketChannel newConnection = listen.accept();
       if (newConnection != null) {
-        brokers.add(new Broker(newConnection, this));
+        brokers.add(new Broker(newConnection, this, bitfield));
       }
     } catch (IOException e) {
       // connection failed, ignore
