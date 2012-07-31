@@ -60,6 +60,7 @@ public class Janitor extends Actor {
     if(managers.isEmpty()) {
       Log.info("All managers report done. Shutting down...");
       Util.shutdown();
+      BitsterInfo.getInstance().shutdown();
       shutdown();
     }
     try { Thread.sleep(50); } catch (InterruptedException e) { /* don't care */ }

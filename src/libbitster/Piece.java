@@ -6,10 +6,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.BitSet;
 
-// Tracks the state of a piece, assembles it together and verifies it against
-// a given hash.
-// author: Theodore Surgent
-
+/** 
+ * Tracks the state of a piece, assembles it together and verifies it against
+ * a given hash.
+ * @author: Theodore Surgent
+ */
 public class Piece {
   private int number;
   private int blockSize;
@@ -18,7 +19,8 @@ public class Piece {
   private BitSet completed;
   private BitSet requested;
 
-  private int size; // size of the whole piece
+  /** size of the whole piece */
+  private int size;
 
   /**
    * Creates a completed piece
@@ -125,6 +127,36 @@ public class Piece {
 
     return true;
   }
+  
+  /**
+   * Gets a block from the piece
+   * @param begin The offset of the block
+   * @param length the block length
+   * @return The piece
+   * @throws IllegalArgumentException
+   */
+  public byte[] getBlock(int begin, int length) throws IllegalArgumentException {
+    byte[] block;
+    
+    // check if our offset is inside the data set
+    if(begin < 0 || begin >= getData().length) {
+      throw new IllegalArgumentException("Invalid offset");
+    }
+    // check if the length is within the bounds of the data set
+    else if (length <= 0 || (begin + length) > getData().length) {
+      throw new IllegalArgumentException("Invalid length");
+    }
+    else if (length > (128*1024))
+      throw new IllegalArgumentException("Length > 128KB");
+    else {
+      block = new byte[length];
+      for(int i = 0; i < block.length; i++) {
+        block[i] = data[begin + i];
+      }
+    }
+    
+    return block;
+  }
 
   /**
    * Returns true when all blocks have been added to this piece
@@ -177,7 +209,7 @@ public class Piece {
     return data;
   }
 
-  // Get the next block we need to retrieve
+  /** Get the next block we need to retrieve */
   public final int next () {
     int next = requested.nextClearBit(0);
     if (next > size / blockSize) return -1;
@@ -192,7 +224,7 @@ public class Piece {
     requested.set(index, false);
   }
 
-  // Size of one particular block
+  /** Size of one particular block */
   public final int sizeOf (int index) {
     if ((blockSize * (index + 1)) > size) return (size % blockSize);
     else return blockSize;

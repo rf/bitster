@@ -8,10 +8,10 @@ import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.io.*;
 
-// Assembles pieces together into a file, actually runs the piece verification,
-// and can write the completed data to a file.
-// author: Theodore Surgent
-
+/** Assembles pieces together into a file, actually runs the piece verification,
+ *  and can write the completed data to a file.
+ *  @author Theodore Surgent
+ */
 public class Funnel extends Actor {
   private static final int defaultBlockSize = 16384;
   private int size;
@@ -115,6 +115,18 @@ public class Funnel extends Actor {
       
       memo.getSender().post(new Memo("piece", getPiece(index.intValue()), this));
     }
+    
+    else if(memo.getType().equals("block")) {
+      Message msg = (Message) memo.getPayload();
+      try {
+        Piece p = getPiece(msg.getIndex());
+        ByteBuffer stoof = ByteBuffer.wrap(p.getBlock(msg.getBegin(), msg.getBlockLength()));
+        Object[] response = { msg, stoof };
+        memo.getSender().post(new Memo("block", response, this));
+      } catch(IllegalArgumentException e) {
+        Log.e("Invalid block request: " + e.getMessage());
+      }
+    }
   }
 
   protected void idle () { 
@@ -177,7 +189,7 @@ public class Funnel extends Actor {
     return piece;
   }
   
-  //Used by getPiece and in constructor
+  /** Used by getPiece and in constructor */
   private Piece getPieceNoValidate(int pieceNumber) {
     if(pieceNumber < 0 || pieceNumber >= pieceCount) {
       String msg = "The Piece index is out of bounds";

@@ -5,11 +5,12 @@ import java.net.*;
 import java.util.*; 
 import java.nio.channels.*;
 
-// Handles communication with a peer.  Polls the socket, then writes and reads
-// if necessary.
-//
-// author: Russ Frank
 
+
+/** Handles communication with a peer.  Polls the socket, then writes and reads
+ * if necessary.
+ * @author: Russ Frank
+ */
 public class Protocol implements Communicator {
   private String state; // states:
   // 'init': just created, waiting to establish a connection
@@ -72,7 +73,7 @@ public class Protocol implements Communicator {
     this.channel = sc;
   }
 
-  // handle errors
+  /** handle errors */
   private void error (Exception e) {
     state = "error";
     exception = e;
@@ -83,7 +84,7 @@ public class Protocol implements Communicator {
     try { channel.close(); } catch (Exception e2) {} // close socket
   }
 
-  // Establish the connection
+  /** Establish the connection */
   public void establish () {
     // Setup handshake
     ByteBuffer handshake = Handshake.create(infoHash, ourPeerId);
@@ -109,7 +110,6 @@ public class Protocol implements Communicator {
   }
 
   public boolean onConnectable () {
-    Log.debug("protocol onConnectable");
     try {
       if (!channel.finishConnect()) {
         throw new Exception("connect failed");
@@ -119,11 +119,10 @@ public class Protocol implements Communicator {
     } catch (Exception e) { error(e); return false; }
   }
 
-  // ## talk
-  // Send some data to the peer
+  /** Send some data to the peer */
   public boolean onWritable () {
     try {
-      // If we dont have a message in the writeBuffer, populate the writeBuffer
+      // If we don't have a message in the writeBuffer, populate the writeBuffer
       if (writeBuffer == null && outbox.size() > 0)
         writeBuffer = outbox.poll().serialize();
 

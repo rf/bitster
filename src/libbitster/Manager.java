@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
 
+
 /**
  * Coordinates actions of all the {@link Actor}s and manages
  * the application's operation. 
@@ -44,11 +45,12 @@ public class Manager extends Actor implements Communicator {
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
   private ArrayList<Piece> pieces;
+  private BitSet           received;
 
   private HashMap<ByteBuffer, Broker> peersById;
 
   // torrent info
-  private int downloaded, uploaded, left;
+  private int downloaded, left;
 
   private Funnel funnel;
 
@@ -69,14 +71,15 @@ public class Manager extends Actor implements Communicator {
 
     this.metainfo = metainfo;
     this.dest = dest;
-    this.setDownloaded(0);
-    this.setUploaded(0);
+    this.downloaded = 0;
+    
     this.setLeft(metainfo.file_length);
 
     overlord = new Overlord();
 
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
+    received = new BitSet(metainfo.piece_hashes.length);
     try {
       funnel = new Funnel(metainfo, dest, this);
     } catch (IOException e1) {
@@ -84,12 +87,28 @@ public class Manager extends Actor implements Communicator {
       System.exit(1);
     }
     funnel.start();
-
-    peersById = new HashMap<ByteBuffer, Broker>();
-
+    
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
+    peersById = new HashMap<ByteBuffer, Broker>();
+    
+    Log.info("Our peer id: " + Util.buff2str(peerId));
 
+    int i, total = metainfo.file_length;
+    for (i = 0; i < metainfo.piece_hashes.length; i++) {
+      pieces.add(new Piece(
+        metainfo.piece_hashes[i].array(), 
+        i, 
+        blockSize, 
+        // If the last piece is truncated (which it probably is) total will
+        // be less than piece_length and will be the last piece's length.
+        Math.min(metainfo.piece_length, total)
+      ));
+      total -= metainfo.piece_length;
+    }
+  }
+
+  private void initalize() {
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -109,40 +128,27 @@ public class Manager extends Actor implements Communicator {
       }
     }
 
-    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
-    deputy.start();
-
     overlord.register(listen, this);
-
-    Log.info("Our peer id: " + Util.buff2str(peerId));
-
-    int i, total = metainfo.file_length;
-    for (i = 0; i < metainfo.piece_hashes.length; i++) {
-      pieces.add(new Piece(
-        metainfo.piece_hashes[i].array(), 
-        i, 
-        blockSize, 
-        // If the last piece is truncated (which it probably is) total will
-        // be less than piece_length and will be the last piece's length.
-        Math.min(metainfo.piece_length, total)
-      ));
-      total -= metainfo.piece_length;
-    }
 
     state = "downloading";
     Janitor.getInstance().register(this);
+    
+    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
+    deputy.start();
   }
-
+  
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
 
     // Peer list received from Deputy.
     if(memo.getType().equals("peers") && memo.getSender() == deputy)
-    {
+    { 
       Log.info("Received peer list");
       peers = (ArrayList<Map<String, Object>>) memo.getPayload();
       if (peers.isEmpty()) Log.warning("Peer list empty!");
-
+      
+      Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+      
       for(int i = 0; i < peers.size(); i++)
       {
         // find the right peer for part one
@@ -159,7 +165,8 @@ public class Manager extends Actor implements Communicator {
             Broker b = new Broker(
               inetip,
               (Integer) currPeer.get("port"),
-              this
+              this,
+              bitfield
             );
             brokers.add(b);
             peersById.put((ByteBuffer) currPeer.get("peerId"), b);
@@ -186,12 +193,20 @@ public class Manager extends Actor implements Communicator {
       if (p.finished()) {
         Log.info("Posting piece " + p.getNumber() + " to funnel");
         funnel.post(new Memo("piece", p, this));
+        received.set(p.getNumber());
       }
 
       Log.info("Got block, " + left + " left to download.");
     }
     
-    else if (memo.getType() == "pieces") {
+    // Received from Brokers when a block has been requested
+    else if (memo.getType().equals("request")) {
+      Message msg = (Message) memo.getPayload();
+      funnel.post(new Memo("block", memo.getPayload(), memo.getSender()));
+      this.addUploaded(msg.getBlockLength());
+    }
+    
+    else if (memo.getType().equals("pieces")) {
       ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
       
       for(int i = 0, l = ps.size(); i < l; ++i) {
@@ -200,28 +215,13 @@ public class Manager extends Actor implements Communicator {
         downloaded += length;
         left -= length;
         pieces.set(p.getNumber(), p);
-        
-        //Notify brokers
-        for (Broker b : brokers) 
-          b.post(new Memo("have", p, this));
+        received.set(p.getNumber());
       }
 
       Log.info("Resuming, " + left + " left to download.");
-    }
-
-    // Received from Funnel when we're ready to shut down.
-    else if (memo.getType().equals("done")) {
-      Janitor.getInstance().post(new Memo("done", null, this));
-      shutdown();
+      initalize();
     }
     
-    else if (memo.getType().equals("halt"))
-    {
-      state = "shutdown";
-      deputy.post(new Memo("halt", null, this));
-      funnel.post(new Memo("halt", null, this));
-    }
-
     // Received from Funnel when we successfully verify and store some piece.
     // We forward the message off to each Broker so they can inform peers.
     else if (memo.getType().equals("have")) {
@@ -236,6 +236,28 @@ public class Manager extends Actor implements Communicator {
       Piece p = pieces.get(m.getIndex());
       p.blockFail(m.getBegin());
     }
+    
+    /* These three memos should be received in a chain, and are part of the
+     * shutdown sequence. */
+    
+    // Part 1: halt message from Janitor
+    else if (memo.getType().equals("halt"))
+    {
+      state = "shutdown";
+      try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
+      deputy.post(new Memo("halt", null, this));
+    }
+    
+    // Part 2: Deputy is done telling the tracker we're shutting down
+    else if (memo.getType().equals("done") && memo.getSender().equals(deputy)) {
+      funnel.post(new Memo("halt", null, this));
+    }
+
+    // Part 3: Received from Funnel when we're ready to shut down.
+    else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
+      shutdown();
+      Janitor.getInstance().post(new Memo("done", null, this));
+    }
   }
 
   protected void idle () {
@@ -243,14 +265,14 @@ public class Manager extends Actor implements Communicator {
     overlord.communicate(100);
     try { Thread.sleep(50); } catch (InterruptedException e) {}
 
-    if (state == "downloading") {
+    if (state.equals("downloading") || state.equals("seeding")) {
 
       Iterator<Broker> i = brokers.iterator();
       Broker b;
       while (i.hasNext()) {
         b = i.next();
         b.tick();
-        if (b.state() == "error") {
+        if (b.state().equals("error")) {
           i.remove();
           peersById.put(b.peerId(), null);
         }
@@ -282,29 +304,22 @@ public class Manager extends Actor implements Communicator {
 
     }
 
-    if (left == 0 && state != "shutdown" && state != "done") {
+    if (left == 0 && !state.equals("shutdown") && !state.equals("seeding")) {
       Log.info("Download complete");
-      state = "done";
-      Iterator<Broker> i = brokers.iterator();
-      Broker b;
-
-      while (i.hasNext()) {
-        b = i.next();
-        b.close();
-        i.remove();
-      }
+      state = "seeding";
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
-      try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
     }
   }
 
   public boolean onAcceptable () {
     try {
+      Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+      
       SocketChannel newConnection = listen.accept();
       if (newConnection != null) {
-        brokers.add(new Broker(newConnection, this));
+        brokers.add(new Broker(newConnection, this, bitfield));
       }
     } catch (IOException e) {
       // connection failed, ignore
@@ -388,16 +403,12 @@ public class Manager extends Actor implements Communicator {
     return downloaded;
   }
 
-  private void setDownloaded(int downloaded) {
-    this.downloaded = downloaded;
-  }
-
   public int getUploaded() {
-    return uploaded;
+    return BitsterInfo.getInstance().getUploadData(getInfoHash());
   }
 
-  private void setUploaded(int uploaded) {
-    this.uploaded = uploaded;
+  public void addUploaded(int uploaded) {
+    BitsterInfo.getInstance().setUploadData(getInfoHash(), getUploaded() + uploaded);    
   }
 
   public int getLeft() {

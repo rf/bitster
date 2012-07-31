@@ -6,14 +6,13 @@ import java.util.*;
 import java.nio.*;
 import java.nio.channels.*;
 
-// The `Broker` class manages a connection with a peer.  It uses the
-// `Protocol` class for the actual communication.  It accepts the following
-// memos:
-//
-//  * `message`: payload is a message to be delivered to the peer
-//  * `kepalive`: send a keepalive to the peer. This is scheduled with Timeout.
-//
-// author: Russ Frank
+/**
+ * The `Broker` class manages a connection with a peer.  It uses the
+ * `Protocol` class for the actual communication.
+ * @author Russ Frank
+ * @author Martin Miralles-Cordal
+ *
+ */
 
 public class Broker extends Actor {
   private String state;
@@ -44,7 +43,7 @@ public class Broker extends Actor {
   // Pieces we've requested from the peer. Heinous, I know, but it works.
   private HashMap<String, Message> requests;
 
-  public Broker (SocketChannel sc, Manager manager) {
+  public Broker (SocketChannel sc, Manager manager, Message bitfield) {
     super();
     Log.i("Broker: accepting");
 
@@ -57,12 +56,13 @@ public class Broker extends Actor {
       manager.getOverlord()
     );
     peer.establish();
+    peer.send(bitfield);
     this.manager = manager;
     state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
   }
 
-  public Broker (InetAddress host, int port, Manager manager) {
+  public Broker (InetAddress host, int port, Manager manager, Message bitfield) {
     super();
     Log.info("Broker init for host: " + host);
 
@@ -77,15 +77,15 @@ public class Broker extends Actor {
       manager.getOverlord()
     );
     peer.establish();
-
+    peer.send(bitfield);
+    
     this.manager = manager;
     state = "normal";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
   }
 
-  // ## receive
-  // Receive a memo
-
+  
+  /** Receive a memo */
   protected void receive (Memo memo) {
     if ("request".equals( memo.getType() )) {
       numQueued += 1;
@@ -100,6 +100,15 @@ public class Broker extends Actor {
         //Log.info("Sending " + m);
         peer.send(m);
       }
+    }
+    
+    // Get block back from funnel
+    else if (memo.getType().equals("block")) {
+      Message msg = (Message) ((Object[])memo.getPayload())[0];
+      ByteBuffer stoof = (ByteBuffer) ((Object[])memo.getPayload())[1];
+      Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
+      Log.i("Sending to " + new String(this.peerId().array()) + ": " + response);
+      peer.send(response);
     }
 
     else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
@@ -132,8 +141,7 @@ public class Broker extends Actor {
 
   public void close () { peer.close(); }
 
-  // ## listen
-  // Receive a message via tcp
+  /** Receive a message via tcp */
   private void message (Message message) {
     if (numReceived > 0 && message.getType() == Message.BITFIELD) 
       error(new Exception("protocol error"));
@@ -166,7 +174,12 @@ public class Broker extends Actor {
         manager.post(new Memo("block", message, this));
       break;
 
-      // TODO: Handle Message.REQUEST
+      case Message.REQUEST:
+        // Post a "request" memo to Manager, which passes it on as
+        // a "block" memo to Funnel, who grabs the block and forwards
+        // it to the requesting Broker
+        manager.post(new Memo("request", message, this));
+      break;
     }
 
     if (choked) {
@@ -223,7 +236,7 @@ public class Broker extends Actor {
     }
   }
 
-  // Checks to see if the peer has this piece.
+  /** Checks to see if the peer has this piece. */
   public boolean has (int number) {
     return pieces.get(number);
   }

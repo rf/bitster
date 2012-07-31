@@ -116,8 +116,9 @@ public class Deputy extends Actor {
       announce(Util.s("&event=completed"));
     }
     
-    else if (memo.getType() == "halt") {
+    else if (memo.getType().equals("halt")) {
       announce(Util.s("&event=stopped"));
+      manager.post(new Memo("done", null, this));
       shutdown();
     }
   }
@@ -203,8 +204,10 @@ public class Deputy extends Actor {
           Log.e("Error: binary peer response unsupported.");
           System.exit(1);
         }
+        
         // send updated peer list to manager
-        manager.post(new Memo("peers", peers, this));
+        if(!Util.buff2str(args).equals("&event=stopped"))
+          manager.post(new Memo("peers", peers, this));
 
         // get our announce interval
         announceInterval = (Integer) response.get(Util.s("interval"));

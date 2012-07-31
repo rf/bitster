@@ -17,7 +17,7 @@ class Foo extends Actor {
     peerid = ByteBuffer.wrap("BIT-1234asdf1234asdf".getBytes());
 
     peer = new Protocol(
-      InetAddress.getByName("localhost"), 4000, infohash, peerid
+      InetAddress.getByName("localhost"), 4000, infohash, peerid, null
     );
 
     start();
@@ -25,7 +25,7 @@ class Foo extends Actor {
 
   protected void idle () {
     try { Thread.sleep(10); } catch (Exception e) {}
-    peer.communicate();
+    //peer.communicate();
     peerState = peer.getState();
     Message m = peer.receive();
     if (m != null) {
