@@ -37,8 +37,8 @@ public class ToolKit
      * @param o the Object to print.&nbsp; It must be one of the following
      * types: @
      */
-    @SuppressWarnings("unchecked")
-	public static void print(Object o)
+    @SuppressWarnings("rawtypes")
+    public static void print(Object o)
     {
         if (o instanceof ByteBuffer)
             printString((ByteBuffer) o, true, 0);
@@ -60,8 +60,8 @@ public class ToolKit
      * @param o the object to print
      * @param depth the depth of the object within another data type.
      */
-    @SuppressWarnings("unchecked")
-	public static void print(Object o, int depth)
+	@SuppressWarnings("rawtypes")
+  public static void print(Object o, int depth)
     {
         if (o instanceof ByteBuffer)
             printString((ByteBuffer) o, true, depth + 1);
@@ -136,7 +136,7 @@ public class ToolKit
      * @param list the list to print.
      * @param depth the depth of the object within other objects, used for indenting.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
 	public static void printList(AbstractList list, int depth)
     {
         final Iterator i = list.iterator();
@@ -158,7 +158,7 @@ public class ToolKit
      * @param map the dictionary/map to print.
      * @param depth the depth of the object within other objects, used for indenting.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
 	public static void printMap(Map map, int depth)
     {
         final Iterator i = map.keySet().iterator();

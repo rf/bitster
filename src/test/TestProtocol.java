@@ -36,6 +36,7 @@ class Foo extends Actor {
 }
 
 public class TestProtocol {
+  @SuppressWarnings("resource")
   public static void main (String[] args) {
     try {
       ServerSocket server = new ServerSocket(4000);

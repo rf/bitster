@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.logging.*;
 
 import libbitster.BencodingException;
-import libbitster.BitsterInfo;
 import libbitster.Janitor;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
