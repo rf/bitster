@@ -16,6 +16,7 @@ public class Protocol implements Communicator {
   // 'init': just created, waiting to establish a connection
   // 'error': error occured, exception property will be populated
   // 'handshake': waiting for handshake message
+  // 'connect': waiting for connect
   // 'normal': operating normally (may add more such states later)
 
   private InetAddress host;
@@ -98,8 +99,13 @@ public class Protocol implements Communicator {
       if (channel == null) {
         channel = SocketChannel.open();
         channel.configureBlocking(false);
-        channel.connect(new InetSocketAddress(host, port));
-        state = "connect";
+
+        // If the connection is established immediately, we go into the
+        // handshake state
+        if (channel.connect(new InetSocketAddress(host, port)))
+          state = "handshake";
+        else // Otherwise, we wait for the connection to happen
+          state = "connect";
       }
 
       // Register this object for events on the channel with the overlord.
@@ -149,6 +155,7 @@ public class Protocol implements Communicator {
   public boolean onReadable () {
     try {
       numRead += channel.read(readBuffer); // try to read some bytes from peer
+
       // EOF
       if (numRead == -1) throw new Exception("eof");
       readBuffer.position(numRead);        // advance buffer
