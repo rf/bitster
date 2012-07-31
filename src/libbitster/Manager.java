@@ -108,7 +108,7 @@ public class Manager extends Actor implements Communicator {
     }
   }
 
-  private void initalize() {
+  private void initialize() {
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -219,7 +219,7 @@ public class Manager extends Actor implements Communicator {
       }
 
       Log.info("Resuming, " + left + " left to download.");
-      initalize();
+      initialize();
     }
     
     // Received from Funnel when we successfully verify and store some piece.
