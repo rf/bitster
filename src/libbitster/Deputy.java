@@ -245,9 +245,7 @@ public class Deputy extends Actor {
       int port = 0xFFFF & rawPeers.getShort();
       peerInfo.put("port", port);
       
-      Log.d(ip + ":" + port);
-
-      :// add it to our peer list
+      // add it to our peer list
       processedPeerList.add(peerInfo);
     }
     return processedPeerList;
