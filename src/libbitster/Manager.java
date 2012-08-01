@@ -108,7 +108,7 @@ public class Manager extends Actor implements Communicator {
     }
   }
 
-  private void initalize() {
+  private void initialize() {
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -219,7 +219,7 @@ public class Manager extends Actor implements Communicator {
       }
 
       Log.info("Resuming, " + left + " left to download.");
-      initalize();
+      initialize();
     }
     
     // Received from Funnel when we successfully verify and store some piece.
@@ -318,6 +318,7 @@ public class Manager extends Actor implements Communicator {
       Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
       
       SocketChannel newConnection = listen.accept();
+      newConnection.configureBlocking(false);
       if (newConnection != null) {
         brokers.add(new Broker(newConnection, this, bitfield));
       }
@@ -375,9 +376,10 @@ public class Manager extends Actor implements Communicator {
     return false;
   }
 
-  // ## next
-  // Get the next piece we need to download.
-  // TODO: replace with a better algorithm for finding next piece.
+  /**
+   * Get the next piece we need to download.
+   * TODO: replace with a better algorithm for finding next piece. 
+   */
   private Piece next () {
     Iterator<Piece> i = pieces.iterator();
     Piece p;
@@ -389,9 +391,7 @@ public class Manager extends Actor implements Communicator {
     return null;
   }
 
-  /**
-   * Add a peer to our internal list of peer ids
-   */
+  /** Add a peer to our internal list of peer ids */
   public boolean addPeer (ByteBuffer peerId, Broker b) {
     if (peersById.get(peerId) != null) return false;
 

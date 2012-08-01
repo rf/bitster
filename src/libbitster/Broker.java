@@ -154,7 +154,12 @@ public class Broker extends Actor {
       // Handle basic messages
       case Message.CHOKE:          choked = true;                       break;
       case Message.UNCHOKE:        choked = false;                      break;
-      case Message.INTERESTED:     interesting = true;                  break;
+      case Message.INTERESTED:
+        interesting = true;
+        peer.send(Message.createUnchoke());
+        choking = false;
+      break;
+      
       case Message.NOT_INTERESTED: interesting = false;                 break;
       case Message.BITFIELD:       
         pieces = message.getBitfield();   

@@ -1,14 +1,11 @@
 package libbitster;
 
-import java.nio.*;
 import java.nio.channels.*;
 import java.io.*;
 import java.util.*; 
-import java.util.logging.*; 
 
 public class Overlord {
   private Selector selector;
-  private final static Logger log = Logger.getLogger("Overlord");
 
   public Overlord () {
     try {
