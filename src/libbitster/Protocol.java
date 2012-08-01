@@ -76,7 +76,7 @@ public class Protocol implements Communicator {
     try {
       this.port = ((InetSocketAddress) sc.getRemoteAddress()).getPort();
       this.host = ((InetSocketAddress) sc.getRemoteAddress()).getAddress();
-    } catch (IOException e) {
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }
