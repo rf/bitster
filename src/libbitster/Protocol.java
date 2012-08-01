@@ -1,5 +1,6 @@
 package libbitster;
 
+import java.io.IOException;
 import java.nio.*; 
 import java.net.*; 
 import java.util.*; 
@@ -72,6 +73,12 @@ public class Protocol implements Communicator {
     this.outbox = new LinkedList<Message>();
     this.inbox = new LinkedList<Message>();
     this.channel = sc;
+    try {
+      this.port = ((InetSocketAddress) sc.getRemoteAddress()).getPort();
+      this.host = ((InetSocketAddress) sc.getRemoteAddress()).getAddress();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   /** handle errors */
@@ -107,7 +114,7 @@ public class Protocol implements Communicator {
         else // Otherwise, we wait for the connection to happen
           state = "connect";
       }
-
+      
       // Register this object for events on the channel with the overlord.
       if (overlord.register(channel, this) == false)
         throw new Exception("selector registration failed");
@@ -250,6 +257,7 @@ public class Protocol implements Communicator {
 
   public String getState () { return state; }
   public ByteBuffer getPeerId () { return theirPeerId; }
+  public String getAddress() { return host.getHostAddress() + ":" + port; }
 
   public String toString () {
     return "Protocol, state: " + state + " curr recv msg len: " + length + 
