@@ -200,11 +200,7 @@ public class Deputy extends Actor {
         if(rawPeers instanceof ArrayList<?>)
           peers = parsePeers((ArrayList<Map>) rawPeers);
         else if(rawPeers instanceof ByteBuffer)
-        {
-          Log.e("Error: binary peer response unsupported.");
           peers = parsePeers((ByteBuffer) rawPeers);
-          System.exit(1);
-        }
         
         // send updated peer list to manager
         if(!Util.buff2str(args).equals("&event=stopped"))
@@ -228,8 +224,32 @@ public class Deputy extends Actor {
   }
 
   private ArrayList<Map<String, Object>> parsePeers(ByteBuffer rawPeers) {
-    // TODO Auto-generated method stub
-    return null;
+    if(rawPeers.remaining() % 6 != 0) {
+      throw new IllegalArgumentException("Invalid binary peer list");
+    }
+    ArrayList<Map<String, Object>> processedPeerList = new ArrayList<Map<String, Object>>();
+    while(rawPeers.hasRemaining()) {
+      HashMap<String,Object> peerInfo = new HashMap<String,Object>();
+      // get this peer's ip
+      StringBuilder sb = new StringBuilder();
+      for(int i = 0; i < 4; i++) {
+        sb.append(0xFF & rawPeers.get());
+        if(i != 3) sb.append(".");
+      }
+      String ip = sb.toString();
+      peerInfo.put("ip", ip);
+      
+
+      // get this peer's port
+      int port = 0xFFFF & rawPeers.getShort();
+      peerInfo.put("port", port);
+      
+      Log.d(ip + ":" + port);
+
+      // add it to our peer list
+      processedPeerList.add(peerInfo);
+    }
+    return processedPeerList;
   }
 
   /**
@@ -247,16 +267,16 @@ public class Deputy extends Actor {
 
       // get this peer's peer ID
       ByteBuffer peer_id_bytes =
-          (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','e','e','r',' ','i','d'}));
+          (ByteBuffer) rawPeerList.get(i).get(Util.s("peer id"));
       peerInfo.put("peerId", peer_id_bytes);
 
       // get this peer's ip
-      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'i','p'}));
+      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(Util.s("ip"));
       String ip = new String(ip_bytes.array());
       peerInfo.put("ip", ip);
 
       // get this peer's port
-      Integer port = (Integer) rawPeerList.get(i).get(ByteBuffer.wrap(new byte[]{'p','o','r','t'}));
+      Integer port = (Integer) rawPeerList.get(i).get(Util.s("port"));
       peerInfo.put("port", port);
 
       // add it to our peer list
