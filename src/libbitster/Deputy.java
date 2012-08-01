@@ -197,11 +197,12 @@ public class Deputy extends Actor {
         // get our peer list and work it into something nicer
         Object rawPeers = response.get(Util.s("peers"));
         ArrayList<Map<String,Object>> peers = null;
-                if(rawPeers instanceof ArrayList<?>)
+        if(rawPeers instanceof ArrayList<?>)
           peers = parsePeers((ArrayList<Map>) rawPeers);
         else if(rawPeers instanceof ByteBuffer)
         {
           Log.e("Error: binary peer response unsupported.");
+          peers = parsePeers((ByteBuffer) rawPeers);
           System.exit(1);
         }
         
@@ -224,6 +225,11 @@ public class Deputy extends Actor {
       }
       return false;
     }
+  }
+
+  private ArrayList<Map<String, Object>> parsePeers(ByteBuffer rawPeers) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   /**

@@ -1,12 +1,9 @@
 package libbitster;
 
-import java.io.IOException;
 import java.nio.*; 
 import java.net.*; 
 import java.util.*; 
 import java.nio.channels.*;
-
-
 
 /** Handles communication with a peer.  Polls the socket, then writes and reads
  * if necessary.
