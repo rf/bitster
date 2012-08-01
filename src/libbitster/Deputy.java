@@ -126,11 +126,11 @@ public class Deputy extends Actor {
   /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    */
-  
   private boolean announce()
   {
     return announce(null);
   }
+
   @SuppressWarnings({ "unchecked", "rawtypes" })
   /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
@@ -230,6 +230,7 @@ public class Deputy extends Actor {
     ArrayList<Map<String, Object>> processedPeerList = new ArrayList<Map<String, Object>>();
     while(rawPeers.hasRemaining()) {
       HashMap<String,Object> peerInfo = new HashMap<String,Object>();
+      
       // get this peer's ip
       StringBuilder sb = new StringBuilder();
       for(int i = 0; i < 4; i++) {
@@ -246,7 +247,7 @@ public class Deputy extends Actor {
       
       Log.d(ip + ":" + port);
 
-      // add it to our peer list
+      :// add it to our peer list
       processedPeerList.add(peerInfo);
     }
     return processedPeerList;
