@@ -15,14 +15,15 @@ public class Cli extends Thread {
     System.out.println("Welcome to Bitster! Press Ctrl+C to quit.");
     System.out.println("-----------------------------------------");
     while(running) {
-      int numDots = (int)(50*((1.0*manager.getDownloaded())/(manager.getDownloaded() + manager.getLeft())));
+      int percentDone = (int)(100*((1.0*manager.getDownloaded())/(manager.getDownloaded() + manager.getLeft())));
+      int numDots = percentDone/2;
       int i;
       System.out.print(manager.getFileName() + ": |");
       System.out.print(Log.GREEN);
       for(i = 0; i < numDots; i++) System.out.print("=");
       System.out.print(Log.RED);
       for( ; i < 50; i++) System.out.print("-");
-      System.out.print(Log.SANE + "|" + numDots*2 + "%\r");
+      System.out.print(Log.SANE + "|" + percentDone + "%\r");
       try { Thread.sleep(100); } catch (InterruptedException e) {}
     }
     System.out.println();
