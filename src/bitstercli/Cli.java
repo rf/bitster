@@ -23,8 +23,8 @@ public class Cli extends Thread {
     }
   
   public void run() {
-    System.out.println("Welcome to Bitster! Press Ctrl+C to quit.");
-    System.out.println("-----------------------------------------");
+    System.out.println("Welcome to Bitster! Type \"quit\" to quit.");
+    System.out.println("------------------------------------------");
     Scanner s = new Scanner(System.in);
     while(running) {
       System.out.print("bitster]> ");
