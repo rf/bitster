@@ -34,8 +34,8 @@ public class RUBTClient {
     // get any switches and parse them
     if(args.length > 2) {
       List<String> switches = Arrays.asList(args);
-      if(switches.contains("-gui")) {
-        // initialize GUI
+      if(switches.contains("-color")) {
+        Log.setColor(true);
       }
     }
     

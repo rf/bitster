@@ -25,11 +25,11 @@ public class Cli extends Thread {
       int i;
       
       System.out.print(manager.getFileName() + ": [");
-      System.out.print(Log.GREEN);
+      System.out.print(Log.green());
       for(i = 0; i < numDots; i++) System.out.print("=");
-      System.out.print(Log.RED);
+      System.out.print(Log.red());
       for( ; i < 50; i++) System.out.print("-");
-      System.out.print(Log.SANE + "]" + percentDone + "%" + " [R: " + ratio + "]\r");
+      System.out.print(Log.sane() + "]" + percentDone + "%" + " [R: " + ratio + "]\r");
       
       try { Thread.sleep(100); } catch (InterruptedException e) {}
     }
