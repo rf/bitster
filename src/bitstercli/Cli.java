@@ -30,7 +30,7 @@ public class Cli extends Actor {
   protected void receive (Memo memo) {
     if(memo.getType().equals("done") && memo.getSender() instanceof Manager) {
       Manager m = (Manager) memo.getSender();
-      System.out.println(m.getFileName() + " complete!");
+      System.out.println("\n" + m.getFileName() + " complete!");
       System.out.print(prompt);
     }
   }
