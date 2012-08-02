@@ -39,6 +39,7 @@ public class Cli extends Actor {
     if(state.equals("init")) {
       System.out.println("Welcome to Bitster! Type \"quit\" to quit.");
       System.out.println("------------------------------------------");
+      System.out.print(prompt);
       state = "running";
     }
     String in = s.next();
