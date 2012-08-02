@@ -37,7 +37,7 @@ public class Overlord {
   public void communicate (int timeout) {
 
     try {
-      if (selector.select(timeout) == 0) return; // nothing to do
+      selector.select(timeout);
     } catch (IOException e) {
       // Not really sure why/when this happens yet
       return;
@@ -50,35 +50,16 @@ public class Overlord {
       keys.remove();
       if (!key.isValid()) continue;      // WHY
       Communicator communicator = (Communicator) key.attachment();
-      if (key.isReadable()) {
 
-        if (key.channel() instanceof SourceChannel) {
-          // It's a pipe, so we should read the byte off and notify the
-          // Communicator that there's a memo.
-
-          SourceChannel pipeSource = (SourceChannel) key.channel();
-
-          // Read all of the bytes off
-          int read = 0;
-          do {
-            ignored.clear();
-            try { pipeSource.read(ignored); } catch (IOException e) { /*?*/ }
-          } while (read > 0);
-
-          // Go through the queue and handle each communicator
-          while (!queue.isEmpty()) {
-            Communicator c = queue.poll();
-            c.onMemo();
-          }
-        }
-        
-        else {
-          communicator.onReadable();
-        }
-      }
-
+      if (key.isReadable())   communicator.onReadable();
       if (key.isWritable())   communicator.onWritable();
       if (key.isAcceptable()) communicator.onAcceptable();
+    }
+
+    // Go through the queue and handle each communicator
+    while (!queue.isEmpty()) {
+      Communicator c = queue.poll();
+      c.onMemo();
     }
   }
   
@@ -97,14 +78,16 @@ public class Overlord {
     } catch (Exception e) { return false; }
   }
 
+  /** If the selector is waiting, wake it up */
+  public void interrupt () { selector.wakeup(); }
+
   /** Registers a SelectableQueue */
   public boolean register (SelectableQueue sq, Communicator communicator) {
     try {
       // Register the new pipe with the queue. It will write a byte to this
       // pipe when the queue is hot, and it will offer its communicator to our
       // queue.
-      sq.register(pipe.sink(), this);
-      sq.register(communicator);
+      sq.register(this, communicator);
 
       return true;
     }
