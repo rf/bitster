@@ -46,6 +46,7 @@ public class Cli extends Actor {
     if(in != null) {
       if(in.equals("quit")) {
         Janitor.getInstance().start();
+        s.close();
         shutdown();
       }
       else if(in.equals("status")) {
