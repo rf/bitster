@@ -41,7 +41,6 @@ public class Cli extends Actor {
       System.out.println("------------------------------------------");
       state = "running";
     }
-    System.out.print(prompt);
     String in = s.next();
     if(in != null) {
       if(in.equals("quit")) {
@@ -56,6 +55,7 @@ public class Cli extends Actor {
         System.out.println("status - shows download status");
         System.out.println("quit - quits bitster");
       }
+      System.out.print(prompt);
     }
     try { Thread.sleep(100); } catch (InterruptedException e) {}
   }
