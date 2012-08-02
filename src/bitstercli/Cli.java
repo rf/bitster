@@ -12,6 +12,8 @@ public class Cli extends Thread {
   private Cli() { running = true; }
   
   public void run() {
+    System.out.println("Welcome to Bitster! Press Ctrl+C to quit.");
+    System.out.println("-----------------------------------------");
     while(running) {
       int numDots = (int)(50*((1.0*manager.getDownloaded())/(manager.getDownloaded() + manager.getLeft())));
       int i;
