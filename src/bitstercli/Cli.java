@@ -46,8 +46,7 @@ public class Cli extends Actor {
     if(in != null) {
       if(in.equals("quit")) {
         Janitor.getInstance().start();
-        s.close();
-        shutdown();
+        return;
       }
       else if(in.equals("status")) {
         printProgress();
@@ -87,4 +86,9 @@ public class Cli extends Actor {
   }
   
   public void addManager(Manager manager) { this.managers.add(manager); }
+  
+  public void shutdown() {
+    super.shutdown();
+    s.close();
+  }
 }

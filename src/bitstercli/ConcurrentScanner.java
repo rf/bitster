@@ -26,6 +26,7 @@ public class ConcurrentScanner implements Runnable {
   public void run() {
     while(running) {
       input.offer(s.next());
+      try { Thread.sleep(2000); } catch (InterruptedException e) { /* Who gives a shit */ }
     }
   }
   
