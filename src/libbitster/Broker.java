@@ -201,7 +201,7 @@ public class Broker extends Actor {
     while ((m = peer.receive()) != null) message(m); // grab any available msgs
 
     if (state.equals("check") && peer.getPeerId() != null) {
-      if (!manager.addPeer(peer.getPeerId(), this)) {
+      if (!manager.addPeer(peer.getAddress(), this)) {
         // Peer has already been added
         Log.error("Dropping duplicate connection to " + 
           Util.buff2str(peer.getPeerId()));
@@ -254,4 +254,5 @@ public class Broker extends Actor {
   public String state () { return state; }
   public int numQueued () { return numQueued; }
   public ByteBuffer peerId () { return peer.getPeerId(); }
+  public String address() { return peer.getAddress(); }
 }

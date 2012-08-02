@@ -3,11 +3,11 @@ package libbitster;
 import java.nio.*;
 import java.util.BitSet;
 
-// `Message` handles serialization and deserialization of BT peer protocol
-// messages.
-//
-// authors: Russ Frank, Theodore Surgent
-
+/** `Message` handles serialization and deserialization of BT peer protocol
+ *  messages.
+ *  @author Russ Frank
+ *  @author Theodore Surgent
+ */
 public class Message {
   private int length = -1;
   private int blockLength = -1;
@@ -101,7 +101,7 @@ public class Message {
     }
   }
 
-  //Use create*() factory methods instead
+  /** Use create*() factory methods instead */
   private Message (int type) {
     this.type = type;
   }
