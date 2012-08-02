@@ -1,6 +1,8 @@
 .PHONY: test libbitster bitstercli
 
 TESTFILES=$(subst .java,,$(wildcard test/Test*.java))
+TORRENT="../project2.torrent"
+OUT="out.mp3"
 
 all: run
 
@@ -13,7 +15,7 @@ bitstercli:
 test: $(TESTFILES)
 
 run: libbitster bitstercli
-	java bitstercli/RUBTClient ../project2.torrent out.jpg
+	java -Xmx1024m bitstercli/RUBTClient $(TORRENT) $(OUT)
 
 $(TESTFILES): 
 	javac $@.java
