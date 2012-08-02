@@ -3,6 +3,10 @@ package bitstercli;
 import libbitster.Log;
 import libbitster.Manager;
 
+/**
+ * Singleton. Command line interface class.
+ * @author Martin Miralles-Cordal
+ */
 public class Cli extends Thread {
   
   private boolean running;
