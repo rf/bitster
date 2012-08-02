@@ -25,7 +25,6 @@ public class Manager extends Actor implements Communicator {
   private TorrentInfo metainfo;
   
   // destination file
-  @SuppressWarnings("unused")
   private File dest;
 
   // communicates with tracker
