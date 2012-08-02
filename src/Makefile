@@ -26,3 +26,4 @@ clean:
 	rm -f bitstercli/*.class
 	rm -f $(OUT)
 	rm -f metadata.bitster.dat
+	rm -f bitster.log
