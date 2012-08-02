@@ -7,27 +7,21 @@ import java.io.*;
 
 public class SelectableQueue<E> extends ConcurrentLinkedQueue<E> {
   private static final long serialVersionUID = -4032523498234928L; // totes
-  private SinkChannel pipe;
   private Communicator handler;
   private Overlord overlord;
 
-  public void register (SinkChannel pipe, Overlord o) {
-    this.pipe = pipe;
+  public void register (Overlord o, Communicator handler) {
     this.overlord = o;
+    this.handler = handler;
   }
-
-  public void register (Communicator handler) { this.handler = handler; }
 
   @Override
   public boolean offer (E e) {
-    try { 
-      // Write a single byte to the pipe to inform it that the queue is 'hot'.
-      if (pipe != null) {
-        pipe.write(ByteBuffer.wrap(new byte[] {0}));
-        overlord.offer(handler);
-      }
-    } catch (IOException exception) {
-      // not really sure what to do with this 
+    // Interrupt the overlord's selection and give it our handler as he needs
+    // to be notified
+    if (overlord != null) {
+      overlord.interrupt();
+      overlord.offer(handler);
     }
 
     return super.offer(e);
