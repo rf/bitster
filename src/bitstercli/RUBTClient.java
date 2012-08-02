@@ -20,7 +20,9 @@ import libbitster.TorrentInfo;
  * @author Martin Miralles-Cordal
  */
 public class RUBTClient {
-
+  
+  private static boolean cli = true;
+  private static boolean gui = false;
   /**
    * @param args Takes in a torrent file and a destination file name as arguments 
    */
@@ -36,6 +38,13 @@ public class RUBTClient {
       List<String> switches = Arrays.asList(args);
       if(switches.contains("-color")) {
         Log.setColor(true);
+      }
+      if(switches.contains("-gui")) {
+        gui = true;
+        cli = false;
+      }
+      if(switches.contains("-no-cli")) {
+        cli = false;
       }
     }
     
@@ -71,15 +80,23 @@ public class RUBTClient {
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       
-      Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
+      if(cli) {
+        Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
+      }
             
       // attempt to gracefully shut down from term and interrupt signals
       Runtime.getRuntime().addShutdownHook(new Thread(Janitor.getInstance()));
       
       final Manager manager = new Manager(metainfo, dest);
-      Cli.getInstance().setManager(manager);
       manager.start();
-      Cli.getInstance().start();
+      
+      if(cli) {
+        Cli.getInstance().setManager(manager);
+        Cli.getInstance().start();
+      }
+      else if(gui) {
+        // do gui
+      }
     } catch (IOException e) {
       Log.e("Error: unable to read torrent file.");
       return;
