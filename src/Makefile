@@ -24,4 +24,5 @@ $(TESTFILES):
 clean:
 	rm -f libbitster/*.class
 	rm -f bitstercli/*.class
-	rm -f out.jpg
+	rm -f $(OUT)
+	rm -f metadata.bitster.dat
