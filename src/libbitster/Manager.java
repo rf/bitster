@@ -429,5 +429,7 @@ public class Manager extends Actor implements Communicator {
 
   public String getState () { return state; }
   public Overlord getOverlord () { return overlord; }
+  
+  public String getFileName() { return dest.getName(); }
 
 }

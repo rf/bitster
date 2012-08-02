@@ -3,7 +3,11 @@ package bitstercli;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.util.Arrays;
+import java.util.List;
 
 import libbitster.BencodingException;
 import libbitster.Janitor;
@@ -22,24 +26,33 @@ public class RUBTClient {
    */
   public static void main(String[] args) {    
     // check if we have a valid number of arguments
-    if(args.length != 2)
-    {
+    if(args.length < 2) {
       Log.e("Error: Invalid number of arguments.");
       return;
     }
     
+    // get any switches and parse them
+    if(args.length > 2) {
+      List<String> switches = Arrays.asList(args);
+      if(switches.contains("-gui")) {
+        // initialize GUI
+      }
+    }
+    
+    // get the torrent file and destination file
+    final String argTorrent = args[args.length-2];
+    final String argDest = args[args.length-1];
+    
     // validate argument 1
-    File torrentFile = new File(args[0]);
-    if(!torrentFile.exists() || torrentFile.isDirectory())
-    {
-      Log.e("Error: " + args[0] + " is not a file.");
+    File torrentFile = new File(argTorrent);
+    if(!torrentFile.exists() || torrentFile.isDirectory()) {
+      Log.e("Error: " + argTorrent + " is not a file.");
       return;
     }
     
     // validate argument 2
-    File dest = new File(args[1]);
-    if(!dest.exists())
-    {
+    File dest = new File(argDest);
+    if(!dest.exists()) {
       try {
           // try to create file to validate target name
           dest.createNewFile();
@@ -58,11 +71,15 @@ public class RUBTClient {
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       
+      Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
+            
       // attempt to gracefully shut down from term and interrupt signals
       Runtime.getRuntime().addShutdownHook(new Thread(Janitor.getInstance()));
       
       final Manager manager = new Manager(metainfo, dest);
+      Cli.getInstance().setManager(manager);
       manager.start();
+      Cli.getInstance().start();
     } catch (IOException e) {
       Log.e("Error: unable to read torrent file.");
       return;

@@ -6,10 +6,10 @@ import java.text.SimpleDateFormat;
 
 public class Log {
   
-  static final String RED = "\u001B[0;31m";
-  static final String SANE = "\u001B[0m";
-  static final String BLUE = "\u001B[0;34m";
-  static final String YELLOW = "\u001B[0;33m";
+  public static final String RED = "\u001B[0;31m";
+  public static final String SANE = "\u001B[0m";
+  public static final String BLUE = "\u001B[0;34m";
+  public static final String YELLOW = "\u001B[0;33m";
   public static final String GREEN = "\u001B[0;32m";
   static final String DATE_FORMAT_NOW = "HH:mm:ss";
   static PrintStream output = System.out;
