@@ -91,7 +91,7 @@ public class RUBTClient {
       manager.start();
       
       if(cli) {
-        Cli.getInstance().setManager(manager);
+        Cli.getInstance().addManager(manager);
         Cli.getInstance().start();
       }
       else if(gui) {

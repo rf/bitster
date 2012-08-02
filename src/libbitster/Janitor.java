@@ -49,6 +49,12 @@ public class Janitor extends Actor {
    * When thread starts, send halt message to Managers
    */
   protected void idle () {
+    // if we've already shut down
+    if(state.equals("done")) {
+      shutdown();
+      return;
+    }
+    
     if(state.equals("init")) {
       state = "normal";
       Cli.getInstance().shutdown();
@@ -62,6 +68,7 @@ public class Janitor extends Actor {
     
     if(managers.isEmpty()) {
       Log.info("All managers report done. Shutting down...");
+      this.state = "done";
       Util.shutdown();
       BitsterInfo.getInstance().shutdown();
       shutdown();
