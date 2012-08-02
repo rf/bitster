@@ -1,34 +1,49 @@
 package bitstercli;
 
 import java.util.ArrayList;
-import java.util.Scanner;
 
+import libbitster.Actor;
 import libbitster.Janitor;
 import libbitster.Log;
 import libbitster.Manager;
+import libbitster.Memo;
 
 /**
  * Singleton. Command line interface class.
  * @author Martin Miralles-Cordal
  */
-public class Cli extends Thread {
+public class Cli extends Actor {
   
-  private boolean running;
   private static Cli instance = null;
   private ArrayList<Manager> managers;
+  private String prompt = "bitster]> ";
+  private String state;
+  private ConcurrentScanner s;
   
   private Cli() {
-    running = true;
+    super();
+    state = "init";
     managers = new ArrayList<Manager>();
-    }
+    s = new ConcurrentScanner(System.in);
+  }
   
-  public void run() {
-    System.out.println("Welcome to Bitster! Type \"quit\" to quit.");
-    System.out.println("------------------------------------------");
-    Scanner s = new Scanner(System.in);
-    while(running) {
-      System.out.print("bitster]> ");
-      String in = s.next();
+  protected void receive (Memo memo) {
+    if(memo.getType().equals("done") && memo.getSender() instanceof Manager) {
+      Manager m = (Manager) memo.getSender();
+      System.out.println(m.getFileName() + " complete!");
+      System.out.print(prompt);
+    }
+  }
+  
+  public void idle() {
+    if(state.equals("init")) {
+      System.out.println("Welcome to Bitster! Type \"quit\" to quit.");
+      System.out.println("------------------------------------------");
+      state = "running";
+    }
+    System.out.print(prompt);
+    String in = s.next();
+    if(in != null) {
       if(in.equals("quit")) {
         Janitor.getInstance().start();
         shutdown();
@@ -41,9 +56,8 @@ public class Cli extends Thread {
         System.out.println("status - shows download status");
         System.out.println("quit - quits bitster");
       }
-      try { Thread.sleep(100); } catch (InterruptedException e) {}
     }
-    s.close();
+    try { Thread.sleep(100); } catch (InterruptedException e) {}
   }
   
   public static Cli getInstance() {
@@ -71,6 +85,4 @@ public class Cli extends Thread {
   }
   
   public void addManager(Manager manager) { this.managers.add(manager); }
-  
-  public void shutdown() { this.running = false; }
 }

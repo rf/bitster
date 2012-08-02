@@ -7,6 +7,8 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
 
+import bitstercli.Cli;
+
 
 /**
  * Coordinates actions of all the {@link Actor}s and manages
@@ -310,6 +312,7 @@ public class Manager extends Actor implements Communicator {
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
+      Cli.getInstance().post(new Memo("done", null, this));
     }
   }
 
