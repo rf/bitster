@@ -7,7 +7,7 @@ import java.nio.channels.*;
 
 /** Handles communication with a peer.  Polls the socket, then writes and reads
  * if necessary.
- * @author: Russ Frank
+ * @author Russ Frank
  */
 public class Protocol implements Communicator {
   private String state; // states:
@@ -154,8 +154,7 @@ public class Protocol implements Communicator {
     return false;
   }
 
-  // ## listen
-  // Read data from the peer
+  /** Read data from the peer */
   public boolean onReadable () {
     try {
       numRead += channel.read(readBuffer); // try to read some bytes from peer
@@ -183,8 +182,7 @@ public class Protocol implements Communicator {
 
   public boolean onAcceptable () { return false; }
 
-  // ## parse
-  // Parse the message and reset the state of the listen logic.
+  /** Parse the message and reset the state of the listen logic. */
   private void parse () {
     readBuffer.position(0);
     if (state == "handshake") {
@@ -218,16 +216,17 @@ public class Protocol implements Communicator {
     numRead = nextMsgRead;
   }
 
-  // ## findLength
-  // Grab the length of the next message out of the read buffer if possible
+  /** Grab the length of the next message out of the read buffer if possible */
   public void findLength () throws Exception {
     // If we've read at least four bytes, we haven't gotten a length yet,
     // and we're not reading a handshake message, then grab the length out of
     // the readBuffer.
-    if (length == -1 && numRead >= 4 && !state.equals("handshake"))
+    if (length == -1 && numRead >= 4 && !state.equals("handshake")) {
       // add 4 to account for the length of the integer specifying the length
       length = readBuffer.getInt(0) + 4;
-
+      Log.d("Int: " + readBuffer.getInt(0) + ", bytes: " + readBuffer.get(0) + "." +
+      readBuffer.get(1) + "." + readBuffer.get(2) + "." + readBuffer.get(3));
+    }
     // If we expect a handshake and we don't have a length yet,
     else if (length == -1 && numRead >= 1 && state.equals("handshake")) 
       // `length` here is actually just the length of the protocol identifier
@@ -241,12 +240,12 @@ public class Protocol implements Communicator {
     }
   }
 
-  // called by the Broker to send messages
+  /** called by the Broker to send messages */
   public void send (Message message) {
     outbox.offer(message);
   }
 
-  // called by the Broker to receive messages
+  /** called by the Broker to receive messages */
   public Message receive () {
     if (inbox.size() > 0) return inbox.poll();
     else return null;
