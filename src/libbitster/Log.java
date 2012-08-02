@@ -1,6 +1,7 @@
 package libbitster;
 
 import java.util.Calendar;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 
 public class Log {
@@ -11,6 +12,9 @@ public class Log {
   static final String YELLOW = "\u001B[0;33m";
   public static final String GREEN = "\u001B[0;32m";
   static final String DATE_FORMAT_NOW = "HH:mm:ss";
+  static PrintStream output = System.out;
+  
+  public static void setOutput(PrintStream os) { output = os; }
 
   public static String time () {
     Calendar cal = Calendar.getInstance();
@@ -43,7 +47,7 @@ public class Log {
   public static void error (String message) { e(message); }
 
   public static void p (String message) {
-    System.out.println(message);
+    output.println(message);
   }
 }
 
