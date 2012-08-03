@@ -45,6 +45,7 @@ public class Manager extends Actor implements Communicator {
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
   private ArrayList<Piece> pieces;
+  private Object[] piecesByAvailability;
   private BitSet           received;
 
   private HashMap<String, Broker> peersByAddress;
@@ -109,6 +110,9 @@ public class Manager extends Actor implements Communicator {
   }
 
   private void initialize() {
+    // We have all the piece objects, now populate our RPF array
+    piecesByAvailability = pieces.toArray();
+    
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -209,6 +213,7 @@ public class Manager extends Actor implements Communicator {
           p.incAvailable();
         }
       }
+      Arrays.sort(piecesByAvailability);
     }
     
     // sent when a Broker gets a have message
@@ -216,6 +221,7 @@ public class Manager extends Actor implements Communicator {
       int piece = (Integer) memo.getPayload();
       Piece p = pieces.get(piece);
       p.incAvailable();
+      Arrays.sort(piecesByAvailability);
     }
     
     // Received from Brokers when a block has been requested
@@ -236,7 +242,6 @@ public class Manager extends Actor implements Communicator {
         pieces.set(p.getNumber(), p);
         received.set(p.getNumber());
       }
-
       Log.info("Resuming, " + left + " left to download.");
       initialize();
     }
@@ -313,6 +318,8 @@ public class Manager extends Actor implements Communicator {
             // We are interested in the peer, we have less than 5 requests
             // queued on the peer, and we have more shit to download.  We should
             // queue up a request on the peer.
+            
+            // TODO: actually check if the peer has this piece
             Piece p = next();
 
             if (p != null) {
@@ -406,13 +413,22 @@ public class Manager extends Actor implements Communicator {
    * Get the next piece we need to download. Uses rarest-piece-first.
    */
   private Piece next () {
-    Object[] ordered = pieces.toArray();
-    Arrays.sort(ordered);
-    for(int i = 0; i < ordered.length; i++) {
-      Piece p = (Piece) ordered[i];
-      if (!p.requested()) return p;
+    // list of rarest pieces. We return a random value in this.
+    ArrayList<Piece> rarestPieces = new ArrayList<Piece>();
+    
+    for(int i = 0; i < piecesByAvailability.length; i++) {
+      Piece p = (Piece) piecesByAvailability[i];
+      if (!p.requested()) {
+        if(rarestPieces.isEmpty() || rarestPieces.get(0).compareTo(p) >= 0) {
+          rarestPieces.add(p);
+        }
+        else {
+          Random r = new Random();
+          return rarestPieces.get(r.nextInt(rarestPieces.size()));
+        }
+      }
     }
-
+    
     return null;
   }
 
