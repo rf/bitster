@@ -3,6 +3,8 @@ package libbitster;
 import java.util.HashSet;
 import java.util.Iterator;
 
+import bitstercli.Cli;
+
 /**
  * Singleton. Cleans up the program when shutting down.
  * @author Martin Miralles-Cordal
@@ -47,8 +49,15 @@ public class Janitor extends Actor {
    * When thread starts, send halt message to Managers
    */
   protected void idle () {
+    // if we've already shut down
+    if(state.equals("done")) {
+      shutdown();
+      return;
+    }
+    
     if(state.equals("init")) {
       state = "normal";
+      Cli.getInstance().shutdown();
       Iterator<Manager> it = managers.iterator();
       while(it.hasNext()) {
         Log.info("Sending halt memo to manager.");
@@ -59,6 +68,7 @@ public class Janitor extends Actor {
     
     if(managers.isEmpty()) {
       Log.info("All managers report done. Shutting down...");
+      this.state = "done";
       Util.shutdown();
       BitsterInfo.getInstance().shutdown();
       shutdown();
