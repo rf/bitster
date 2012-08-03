@@ -87,8 +87,4 @@ public class Cli extends Actor {
   }
   
   public void addManager(Manager manager) { this.managers.add(manager); }
-  
-  public void shutdown() {
-    super.shutdown();
-  }
 }
