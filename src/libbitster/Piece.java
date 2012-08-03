@@ -10,6 +10,7 @@ import java.util.BitSet;
  * Tracks the state of a piece, assembles it together and verifies it against
  * a given hash.
  * @author Theodore Surgent
+ * @author Martin Miralles-Cordal
  */
 public class Piece implements Comparable<Piece> {
   private int number;
