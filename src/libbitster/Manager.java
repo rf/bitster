@@ -302,12 +302,14 @@ public class Manager extends Actor implements Communicator {
 
           // Updating our availability
           BitSet field = b.bitfield();
-          for(int j = 0; j < field.length(); j++) {
-            if(!field.get(j)) {
-              Piece p = pieces.get(j);
-              p.decAvailable();
-              piecesByAvailability.remove(p);
-              piecesByAvailability.add(p);
+          if(field != null) {
+            for(int j = 0; j < field.length(); j++) {
+              if(!field.get(j)) {
+                Piece p = pieces.get(j);
+                p.decAvailable();
+                piecesByAvailability.remove(p);
+                piecesByAvailability.add(p);
+              }
             }
           }
           peersByAddress.put(b.address(), null);
@@ -416,6 +418,7 @@ public class Manager extends Actor implements Communicator {
     Piece p;
     while (i.hasNext()) {
       p = i.next();
+      System.out.print("[" + p.getAvailability() + "],");
       if (!p.requested()) return p;
     }
 
