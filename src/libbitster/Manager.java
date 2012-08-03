@@ -45,6 +45,7 @@ public class Manager extends Actor implements Communicator {
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
   private ArrayList<Piece> pieces;
+  private PriorityQueue<Piece> piecesByAvailability;
   private BitSet           received;
 
   private HashMap<String, Broker> peersByAddress;
@@ -72,6 +73,7 @@ public class Manager extends Actor implements Communicator {
     this.metainfo = metainfo;
     this.dest = dest;
     this.downloaded = 0;
+    piecesByAvailability = new PriorityQueue<Piece>();
     
     this.setLeft(metainfo.file_length);
 
@@ -200,6 +202,28 @@ public class Manager extends Actor implements Communicator {
       Log.info("Got block, " + left + " left to download.");
     }
     
+    // sent when a Broker gets a bitfield message
+    else if(memo.getType().equals("bitfield")) {
+      BitSet field = (BitSet) memo.getPayload();
+      for(int i = 0; i < field.length(); i++) {
+        if(field.get(i)) {
+          Piece p = pieces.get(i);
+          p.incAvailable();
+          piecesByAvailability.remove(p);
+          piecesByAvailability.add(p);
+        }
+      }
+    }
+    
+    // sent when a Broker gets a have message
+    else if(memo.getType().equals("have")) {
+      int piece = (Integer) memo.getPayload();
+      Piece p = pieces.get(piece);
+      pieces.get(piece).incAvailable();
+      piecesByAvailability.remove(p);
+      piecesByAvailability.add(p);
+    }
+    
     // Received from Brokers when a block has been requested
     else if (memo.getType().equals("request")) {
       Message msg = (Message) memo.getPayload();
@@ -275,6 +299,17 @@ public class Manager extends Actor implements Communicator {
         b.tick();
         if (b.state().equals("error")) {
           i.remove();
+
+          // Updating our availability
+          BitSet field = b.bitfield();
+          for(int j = 0; j < field.length(); j++) {
+            if(!field.get(j)) {
+              Piece p = pieces.get(j);
+              p.decAvailable();
+              piecesByAvailability.remove(p);
+              piecesByAvailability.add(p);
+            }
+          }
           peersByAddress.put(b.address(), null);
         }
 
@@ -284,10 +319,6 @@ public class Manager extends Actor implements Communicator {
             // We are interested in the peer, we have less than 5 requests
             // queued on the peer, and we have more shit to download.  We should
             // queue up a request on the peer.
-
-            //log.info("We're interested in a peer. Finding something to req");
-
-            // TODO: actually check if the peer has this piece
             Piece p = next();
 
             if (p != null) {
@@ -378,11 +409,10 @@ public class Manager extends Actor implements Communicator {
   }
 
   /**
-   * Get the next piece we need to download.
-   * TODO: replace with a better algorithm for finding next piece. 
+   * Get the next piece we need to download. Uses rarest-piece-first
    */
   private Piece next () {
-    Iterator<Piece> i = pieces.iterator();
+    Iterator<Piece> i = piecesByAvailability.iterator();
     Piece p;
     while (i.hasNext()) {
       p = i.next();

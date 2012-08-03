@@ -11,7 +11,6 @@ import java.nio.channels.*;
  * `Protocol` class for the actual communication.
  * @author Russ Frank
  * @author Martin Miralles-Cordal
- *
  */
 
 public class Broker extends Actor {
@@ -255,4 +254,5 @@ public class Broker extends Actor {
   public int numQueued () { return numQueued; }
   public ByteBuffer peerId () { return peer.getPeerId(); }
   public String address() { return peer.getAddress(); }
+  public BitSet bitfield() { return this.pieces; }
 }
