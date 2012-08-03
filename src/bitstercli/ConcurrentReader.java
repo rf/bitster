@@ -21,7 +21,7 @@ public class ConcurrentReader {
    * Returns the next input scanned in, or null if buffer is empty.
    * @return The next scanned token, or null if no token exists.
    */
-  public String next() {    
+  public String readLine() {    
     try {
       if(is.available() > 0) {
         return s.readLine();

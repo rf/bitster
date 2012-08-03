@@ -42,7 +42,7 @@ public class Cli extends Actor {
       System.out.print(prompt);
       state = "running";
     }
-    String in = s.next();
+    String in = s.readLine();
     if(in != null) {
       if(in.equals("quit")) {
         Janitor.getInstance().start();
