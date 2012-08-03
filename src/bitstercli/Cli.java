@@ -78,11 +78,11 @@ public class Cli extends Actor {
       int i;
       
       System.out.print(manager.getFileName() + ": [");
-      System.out.print(Log.green());
+      System.out.print(Log.color(Log.GREEN));
       for(i = 0; i < numDots; i++) System.out.print("=");
-      System.out.print(Log.red());
+      System.out.print(Log.color(Log.RED));
       for( ; i < 50; i++) System.out.print("-");
-      System.out.print(Log.sane() + "]" + percentDone + "%" + " [R: " + ratio + "]\n");
+      System.out.print(Log.color(Log.SANE) + "]" + percentDone + "%" + " [R: " + ratio + "]\n");
     }
   }
   
