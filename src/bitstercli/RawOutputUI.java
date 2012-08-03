@@ -5,7 +5,9 @@ import libbitster.Memo;
 import libbitster.UserInterface;
 
 /**
- * Dummy interface, used when -no-cli flag is set
+ * Dummy interface, used when -no-cli flag is set. It's our /dev/null
+ * which as we all know supports sharding and is very fast so you should
+ * use it
  * @author Martin Miralles-Cordal
  */
 public class RawOutputUI implements UserInterface {
