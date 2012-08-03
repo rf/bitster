@@ -45,7 +45,6 @@ public class Manager extends Actor implements Communicator {
   private LinkedList<Broker> brokers; // broker objects for peer communication
 
   private ArrayList<Piece> pieces;
-  private PriorityQueue<Piece> piecesByAvailability;
   private BitSet           received;
 
   private HashMap<String, Broker> peersByAddress;
@@ -73,7 +72,6 @@ public class Manager extends Actor implements Communicator {
     this.metainfo = metainfo;
     this.dest = dest;
     this.downloaded = 0;
-    piecesByAvailability = new PriorityQueue<Piece>();
     
     this.setLeft(metainfo.file_length);
 
@@ -209,8 +207,6 @@ public class Manager extends Actor implements Communicator {
         if(field.get(i)) {
           Piece p = pieces.get(i);
           p.incAvailable();
-          piecesByAvailability.remove(p);
-          piecesByAvailability.add(p);
         }
       }
     }
@@ -219,9 +215,7 @@ public class Manager extends Actor implements Communicator {
     else if(memo.getType().equals("have")) {
       int piece = (Integer) memo.getPayload();
       Piece p = pieces.get(piece);
-      pieces.get(piece).incAvailable();
-      piecesByAvailability.remove(p);
-      piecesByAvailability.add(p);
+      p.incAvailable();
     }
     
     // Received from Brokers when a block has been requested
@@ -307,8 +301,6 @@ public class Manager extends Actor implements Communicator {
               if(!field.get(j)) {
                 Piece p = pieces.get(j);
                 p.decAvailable();
-                piecesByAvailability.remove(p);
-                piecesByAvailability.add(p);
               }
             }
           }
@@ -414,12 +406,10 @@ public class Manager extends Actor implements Communicator {
    * Get the next piece we need to download. Uses rarest-piece-first
    */
   private Piece next () {
-    Iterator<Piece> i = piecesByAvailability.iterator();
-    Piece p;
-    while (i.hasNext()) {
-      p = i.next();
-      System.out.print("[" + p.getAvailability() + "],");
-      if (!p.requested()) return p;
+    Piece[] ordered = (Piece[]) pieces.toArray();
+    Arrays.sort(ordered);
+    for(int i = 0; i < ordered.length; i++) {
+      if (!ordered[i].requested()) return ordered[i];
     }
 
     return null;
