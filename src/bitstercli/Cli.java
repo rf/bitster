@@ -18,13 +18,13 @@ public class Cli extends Actor {
   private ArrayList<Manager> managers;
   private String prompt = "bitster]> ";
   private String state;
-  private ConcurrentScanner s;
+  private ConcurrentReader s;
   
   private Cli() {
     super();
     state = "init";
     managers = new ArrayList<Manager>();
-    s = new ConcurrentScanner(System.in);
+    s = new ConcurrentReader(System.in);
   }
   
   protected void receive (Memo memo) {
@@ -89,6 +89,5 @@ public class Cli extends Actor {
   
   public void shutdown() {
     super.shutdown();
-    s.close();
   }
 }
