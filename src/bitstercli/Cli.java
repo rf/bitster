@@ -8,12 +8,13 @@ import libbitster.Janitor;
 import libbitster.Log;
 import libbitster.Manager;
 import libbitster.Memo;
+import libbitster.UserInterface;
 
 /**
  * Singleton. Command line interface class.
  * @author Martin Miralles-Cordal
  */
-public class Cli extends Actor {
+public class Cli extends Actor implements UserInterface {
   
   private static Cli instance = null;
   private ArrayList<Manager> managers;
@@ -68,6 +69,10 @@ public class Cli extends Actor {
     }
     
     return instance;
+  }
+  
+  public static boolean hasInstance() {
+    return instance != null;
   }
   
   public void printProgress() {

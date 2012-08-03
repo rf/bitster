@@ -7,9 +7,6 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
 
-import bitstercli.Cli;
-
-
 /**
  * Coordinates actions of all the {@link Actor}s and manages
  * the application's operation. 
@@ -52,6 +49,7 @@ public class Manager extends Actor implements Communicator {
 
   // torrent info
   private int downloaded, left;
+  private UserInterface ui;
 
   private Funnel funnel;
 
@@ -62,7 +60,7 @@ public class Manager extends Actor implements Communicator {
    * a torrent.
    * @param dest The file to save the download as
    */
-  public Manager(TorrentInfo metainfo, File dest)
+  public Manager(TorrentInfo metainfo, File dest, UserInterface ui)
   {
     super();
 
@@ -73,6 +71,7 @@ public class Manager extends Actor implements Communicator {
     this.metainfo = metainfo;
     this.dest = dest;
     this.downloaded = 0;
+    this.ui = ui;
     
     this.setLeft(metainfo.file_length);
 
@@ -134,6 +133,7 @@ public class Manager extends Actor implements Communicator {
     state = "downloading";
     Janitor.getInstance().register(this);
     
+    ui.addManager(this);    
     deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
   }
@@ -312,7 +312,7 @@ public class Manager extends Actor implements Communicator {
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
-      Cli.getInstance().post(new Memo("done", null, this));
+      ui.post(new Memo("done", null, this));
     }
   }
 
