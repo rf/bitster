@@ -212,7 +212,7 @@ public class Manager extends Actor implements Communicator {
     }
     
     // sent when a Broker gets a have message
-    else if(memo.getType().equals("have")) {
+    else if(memo.getType().equals("have-message")) {
       int piece = (Integer) memo.getPayload();
       Piece p = pieces.get(piece);
       p.incAvailable();
@@ -406,10 +406,12 @@ public class Manager extends Actor implements Communicator {
    * Get the next piece we need to download. Uses rarest-piece-first
    */
   private Piece next () {
-    Piece[] ordered = (Piece[]) pieces.toArray();
+    Object[] ordered = pieces.toArray();
     Arrays.sort(ordered);
+    System.out.println(ordered);
     for(int i = 0; i < ordered.length; i++) {
-      if (!ordered[i].requested()) return ordered[i];
+      Piece p = (Piece) ordered[i];
+      if (!p.requested()) return p;
     }
 
     return null;

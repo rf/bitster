@@ -169,6 +169,7 @@ public class Broker extends Actor {
       case Message.HAVE:
         if (pieces == null) pieces = new BitSet();
         pieces.set(message.getIndex());
+        manager.post(new Memo("have-message", message.getIndex(), this));
         checkInterested();
       break;
 
