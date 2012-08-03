@@ -161,7 +161,8 @@ public class Broker extends Actor {
       
       case Message.NOT_INTERESTED: interesting = false;                 break;
       case Message.BITFIELD:       
-        pieces = message.getBitfield();   
+        pieces = message.getBitfield();
+        manager.post(new Memo("bitfield", pieces, this));
         checkInterested();
       break;
 
