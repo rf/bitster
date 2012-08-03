@@ -403,12 +403,11 @@ public class Manager extends Actor implements Communicator {
   }
 
   /**
-   * Get the next piece we need to download. Uses rarest-piece-first
+   * Get the next piece we need to download. Uses rarest-piece-first.
    */
   private Piece next () {
     Object[] ordered = pieces.toArray();
     Arrays.sort(ordered);
-    System.out.println(ordered);
     for(int i = 0; i < ordered.length; i++) {
       Piece p = (Piece) ordered[i];
       if (!p.requested()) return p;
