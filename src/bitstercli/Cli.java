@@ -3,6 +3,7 @@ package bitstercli;
 import java.util.ArrayList;
 
 import libbitster.Actor;
+import libbitster.ConcurrentReader;
 import libbitster.Janitor;
 import libbitster.Log;
 import libbitster.Manager;

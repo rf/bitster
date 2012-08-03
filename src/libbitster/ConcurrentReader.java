@@ -1,4 +1,4 @@
-package bitstercli;
+package libbitster;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
