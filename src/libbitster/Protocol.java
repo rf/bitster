@@ -71,8 +71,8 @@ public class Protocol implements Communicator {
     this.inbox = new LinkedList<Message>();
     this.channel = sc;
     try {
-      this.port = ((InetSocketAddress) sc.getRemoteAddress()).getPort();
-      this.host = ((InetSocketAddress) sc.getRemoteAddress()).getAddress();
+      this.port = ((InetSocketAddress) sc.socket().getRemoteSocketAddress()).getPort();
+      this.host = ((InetSocketAddress) sc.socket().getRemoteSocketAddress()).getAddress();
     } catch (Exception e) {
       e.printStackTrace();
     }
