@@ -334,7 +334,7 @@ public class Manager extends Actor implements Communicator {
             // queue up a request on the peer.
             
             // TODO: actually check if the peer has this piece
-            Piece p = next();
+            Piece p = next(b.bitfield());
 
             if (p != null) {
               if (!b.has(p.getNumber())) continue;
@@ -427,24 +427,27 @@ public class Manager extends Actor implements Communicator {
   /**
    * Get the next piece we need to download. Uses rarest-piece-first.
    */
-  private Piece next () {
+  private Piece next (BitSet b) {
     // list of rarest pieces. We return a random value in this.
     ArrayList<Piece> rarestPieces = new ArrayList<Piece>();
     
     for(int i = 0; i < piecesByAvailability.length; i++) {
       Piece p = (Piece) piecesByAvailability[i];
-      if (!p.requested()) {
-        if(rarestPieces.isEmpty() || rarestPieces.get(0).compareTo(p) >= 0) {
-          rarestPieces.add(p);
-        }
-        else {
-          Random r = new Random();
-          return rarestPieces.get(r.nextInt(rarestPieces.size()));
-        }
+      if (b.get(i) && !p.requested()) {
+        rarestPieces.add(p);
+      }
+      if(rarestPieces.size() == 5) {
+        break;
       }
     }
     
-    return null;
+    if(!rarestPieces.isEmpty()) {
+      Random r = new Random();
+      return rarestPieces.get(r.nextInt(rarestPieces.size()));
+    }
+    else {
+      return null;
+    }
   }
 
   /** Add a peer to our internal list of peer ids */
