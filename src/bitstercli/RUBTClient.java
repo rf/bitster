@@ -3,43 +3,78 @@ package bitstercli;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import libbitster.BencodingException;
 import libbitster.Janitor;
 import libbitster.Log;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
+import libbitster.UserInterface;
 
 /**
  * Driver class for Bitster
  * @author Martin Miralles-Cordal
  */
 public class RUBTClient {
-
+  
+  private static boolean cli = true;
+  private static boolean gui = false;
+  
+  private static boolean processSwitch(String arg) {
+    if(arg.equals("-color")) {
+      Log.setColor(true);
+    }
+    else if(arg.equals("-gui")) {
+      gui = true;
+      cli = false;
+    }
+    else if(arg.equals("-no-cli")) {
+      cli = false;
+    }
+    else {
+      return false;
+    }
+    return true;
+  }
+  
   /**
-   * @param args Takes in a torrent file and a destination file name as arguments 
+   * @param args Takes in a torrent file, a destination file name, and switches as arguments 
    */
-  public static void main(String[] args) {    
+  public static void main(String[] args) {
+    // initialize to minimalist debug output UI by default
+    UserInterface ui = RawOutputUI.getInstance();
+    
+    String argTorrent = null, argDest = null;
+    for(int i = 0; i < args.length; i++) {
+      if(!processSwitch(args[i])) {
+        if(argTorrent == null) {
+          argTorrent = args[i];
+        }
+        else if(argDest == null) {
+          argDest = args[i];
+        }
+      }
+    }
+    
     // check if we have a valid number of arguments
-    if(args.length != 2)
-    {
+    if(argTorrent == null || argDest == null) {
       Log.e("Error: Invalid number of arguments.");
       return;
     }
     
-    // validate argument 1
-    File torrentFile = new File(args[0]);
-    if(!torrentFile.exists() || torrentFile.isDirectory())
-    {
-      Log.e("Error: " + args[0] + " is not a file.");
+    // validate argTorrent
+    File torrentFile = new File(argTorrent);
+    if(!torrentFile.exists() || torrentFile.isDirectory()) {
+      Log.e("Error: " + argTorrent + " is not a file.");
       return;
     }
     
-    // validate argument 2
-    File dest = new File(args[1]);
-    if(!dest.exists())
-    {
+    // validate argDest
+    File dest = new File(argDest);
+    if(!dest.exists()) {
       try {
           // try to create file to validate target name
           dest.createNewFile();
@@ -57,11 +92,21 @@ public class RUBTClient {
       dis.readFully(torrentBytes);
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
-      
+            
       // attempt to gracefully shut down from term and interrupt signals
       Runtime.getRuntime().addShutdownHook(new Thread(Janitor.getInstance()));
       
-      final Manager manager = new Manager(metainfo, dest);
+      if(cli) {
+        ui = Cli.getInstance();
+        Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
+      }
+      else if(gui) {
+        // do gui
+      }
+      
+      ui.start();
+      
+      final Manager manager = new Manager(metainfo, dest, ui);
       manager.start();
     } catch (IOException e) {
       Log.e("Error: unable to read torrent file.");

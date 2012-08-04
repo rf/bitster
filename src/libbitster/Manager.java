@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.util.*;
 import java.net.*;
 
-
 /**
  * Coordinates actions of all the {@link Actor}s and manages
  * the application's operation. 
@@ -25,7 +24,6 @@ public class Manager extends Actor implements Communicator {
   private TorrentInfo metainfo;
   
   // destination file
-  @SuppressWarnings("unused")
   private File dest;
 
   // communicates with tracker
@@ -47,10 +45,11 @@ public class Manager extends Actor implements Communicator {
   private ArrayList<Piece> pieces;
   private BitSet           received;
 
-  private HashMap<ByteBuffer, Broker> peersById;
+  private HashMap<String, Broker> peersByAddress;
 
   // torrent info
   private int downloaded, left;
+  private UserInterface ui;
 
   private Funnel funnel;
 
@@ -61,7 +60,7 @@ public class Manager extends Actor implements Communicator {
    * a torrent.
    * @param dest The file to save the download as
    */
-  public Manager(TorrentInfo metainfo, File dest)
+  public Manager(TorrentInfo metainfo, File dest, UserInterface ui)
   {
     super();
 
@@ -72,6 +71,7 @@ public class Manager extends Actor implements Communicator {
     this.metainfo = metainfo;
     this.dest = dest;
     this.downloaded = 0;
+    this.ui = ui;
     
     this.setLeft(metainfo.file_length);
 
@@ -90,7 +90,7 @@ public class Manager extends Actor implements Communicator {
     
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
-    peersById = new HashMap<ByteBuffer, Broker>();
+    peersByAddress = new HashMap<String, Broker>();
     
     Log.info("Our peer id: " + Util.buff2str(peerId));
 
@@ -133,6 +133,7 @@ public class Manager extends Actor implements Communicator {
     state = "downloading";
     Janitor.getInstance().register(this);
     
+    ui.addManager(this);    
     deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
   }
@@ -154,9 +155,10 @@ public class Manager extends Actor implements Communicator {
         // find the right peer for part one
         Map<String,Object> currPeer = peers.get(i);
         String ip = (String) currPeer.get("ip");
+        String address = ip + ":" + currPeer.get("port");
 
         if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
-            && peersById.get(currPeer.get("peerId")) == null)
+            && peersByAddress.get(address) == null)
         {
           try {
             InetAddress inetip = InetAddress.getByName(ip);
@@ -169,7 +171,7 @@ public class Manager extends Actor implements Communicator {
               bitfield
             );
             brokers.add(b);
-            peersById.put((ByteBuffer) currPeer.get("peerId"), b);
+            peersByAddress.put(b.address(), b);
           } 
 
           catch (UnknownHostException e) {
@@ -274,7 +276,7 @@ public class Manager extends Actor implements Communicator {
         b.tick();
         if (b.state().equals("error")) {
           i.remove();
-          peersById.put(b.peerId(), null);
+          peersByAddress.put(b.address(), null);
         }
 
         else {
@@ -310,6 +312,7 @@ public class Manager extends Actor implements Communicator {
 
       funnel.post(new Memo("save", null, this));
       deputy.post(new Memo("done", null, this));
+      ui.post(new Memo("done", null, this));
     }
   }
 
@@ -392,10 +395,10 @@ public class Manager extends Actor implements Communicator {
   }
 
   /** Add a peer to our internal list of peer ids */
-  public boolean addPeer (ByteBuffer peerId, Broker b) {
-    if (peersById.get(peerId) != null) return false;
+  public boolean addPeer (String address, Broker b) {
+    if (peersByAddress.get(address) != null) return false;
 
-    peersById.put(peerId, b);
+    peersByAddress.put(address, b);
     return true;
   }
 
@@ -429,5 +432,7 @@ public class Manager extends Actor implements Communicator {
 
   public String getState () { return state; }
   public Overlord getOverlord () { return overlord; }
+  
+  public String getFileName() { return dest.getName(); }
 
 }
