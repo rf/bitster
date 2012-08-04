@@ -144,144 +144,157 @@ public class Manager extends Actor implements Communicator {
   
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
-
-    // Peer list received from Deputy.
-    if(memo.getType().equals("peers") && memo.getSender() == deputy)
-    { 
-      Log.info("Received peer list");
-      peers = (ArrayList<Map<String, Object>>) memo.getPayload();
-      if (peers.isEmpty()) Log.warning("Peer list empty!");
-      
-      Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
-      
-      for(int i = 0; i < peers.size(); i++)
-      {
-        // find the right peer for part one
-        Map<String,Object> currPeer = peers.get(i);
-        String ip = (String) currPeer.get("ip");
-        String address = ip + ":" + currPeer.get("port");
-
-        if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
-            && peersByAddress.get(address) == null)
+    
+    /*
+     * Messages received from our Deputy.
+     */
+    if(memo.getSender() == deputy) {
+      // Peer list received from Deputy.
+      if(memo.getType().equals("peers"))
+      { 
+        Log.info("Received peer list");
+        peers = (ArrayList<Map<String, Object>>) memo.getPayload();
+        if (peers.isEmpty()) Log.warning("Peer list empty!");
+        
+        Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+        
+        for(int i = 0; i < peers.size(); i++)
         {
-          try {
-            InetAddress inetip = InetAddress.getByName(ip);
-
-            // set up a broker
-            Broker b = new Broker(
-              inetip,
-              (Integer) currPeer.get("port"),
-              this,
-              bitfield
-            );
-            brokers.add(b);
-            peersByAddress.put(b.address(), b);
-          } 
-
-          catch (UnknownHostException e) {
-            // Malformed ip, just ignore it
+          // find the right peer for part one
+          Map<String,Object> currPeer = peers.get(i);
+          String ip = (String) currPeer.get("ip");
+          String address = ip + ":" + currPeer.get("port");
+  
+          if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
+              && peersByAddress.get(address) == null)
+          {
+            try {
+              InetAddress inetip = InetAddress.getByName(ip);
+  
+              // set up a broker
+              Broker b = new Broker(
+                inetip,
+                (Integer) currPeer.get("port"),
+                this,
+                bitfield
+              );
+              brokers.add(b);
+              peersByAddress.put(b.address(), b);
+            } 
+  
+            catch (UnknownHostException e) {
+              // Malformed ip, just ignore it
+            }
           }
         }
-
       }
-    }
-
-    // Received from Brokers when they get a block.
-    else if (memo.getType().equals("block")) {
-      Message msg = (Message) memo.getPayload();
-      Piece p = pieces.get(msg.getIndex());
-
-      if (p.addBlock(msg.getBegin(), msg.getBlock())) {
-        downloaded += msg.getBlockLength();
-        left -= msg.getBlockLength();
-      }
-
-      if (p.finished()) {
-        Log.info("Posting piece " + p.getNumber() + " to funnel");
-        funnel.post(new Memo("piece", p, this));
-        received.set(p.getNumber());
-      }
-
-      Log.info("Got block, " + left + " left to download.");
-    }
-    
-    // sent when a Broker gets a bitfield message
-    else if(memo.getType().equals("bitfield")) {
-      BitSet field = (BitSet) memo.getPayload();
-      for(int i = 0; i < field.length(); i++) {
-        if(field.get(i)) {
-          Piece p = pieces.get(i);
-          p.incAvailable();
-        }
-      }
-      Arrays.sort(piecesByAvailability);
-    }
-    
-    // sent when a Broker gets a have message
-    else if(memo.getType().equals("have-message")) {
-      int piece = (Integer) memo.getPayload();
-      Piece p = pieces.get(piece);
-      p.incAvailable();
-      Arrays.sort(piecesByAvailability);
-    }
-    
-    // Received from Brokers when a block has been requested
-    else if (memo.getType().equals("request")) {
-      Message msg = (Message) memo.getPayload();
-      funnel.post(new Memo("block", memo.getPayload(), memo.getSender()));
-      this.addUploaded(msg.getBlockLength());
-    }
-    
-    else if (memo.getType().equals("pieces")) {
-      ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
       
-      for(int i = 0, l = ps.size(); i < l; ++i) {
-        Piece p = ps.get(i);
-        int length = p.getData().length;
-        downloaded += length;
-        left -= length;
-        pieces.set(p.getNumber(), p);
-        received.set(p.getNumber());
+      // Part 2: Deputy is done telling the tracker we're shutting down
+      else if (memo.getType().equals("done")) {
+        funnel.post(new Memo("halt", null, this));
       }
-      Log.info("Resuming, " + left + " left to download.");
-      initialize();
     }
     
-    // Received from Funnel when we successfully verify and store some piece.
-    // We forward the message off to each Broker so they can inform peers.
-    else if (memo.getType().equals("have")) {
-      for (Broker b : brokers) 
-        b.post(new Memo("have", memo.getPayload(), this));
-    }
-
-    // Received from Brokers when they can't requested a block from a peer
-    // anymore, ie when choked or when the connection is dropped.
-    else if (memo.getType().equals("blockFail")) {
-      Message m = (Message) memo.getPayload();
-      Piece p = pieces.get(m.getIndex());
-      p.blockFail(m.getBegin());
+    /*
+     * Messages received from our Brokers.
+     */
+    else if (memo.getSender() instanceof Broker) {
+      // Received from Brokers when they get a block.
+      if (memo.getType().equals("block")) {
+        Message msg = (Message) memo.getPayload();
+        Piece p = pieces.get(msg.getIndex());
+  
+        if (p.addBlock(msg.getBegin(), msg.getBlock())) {
+          downloaded += msg.getBlockLength();
+          left -= msg.getBlockLength();
+        }
+  
+        if (p.finished()) {
+          Log.info("Posting piece " + p.getNumber() + " to funnel");
+          funnel.post(new Memo("piece", p, this));
+          received.set(p.getNumber());
+        }
+  
+        Log.info("Got block, " + left + " left to download.");
+      }
+      
+      // sent when a Broker gets a bitfield message
+      else if(memo.getType().equals("bitfield")) {
+        BitSet field = (BitSet) memo.getPayload();
+        for(int i = 0; i < field.length(); i++) {
+          if(field.get(i)) {
+            Piece p = pieces.get(i);
+            p.incAvailable();
+          }
+        }
+        Arrays.sort(piecesByAvailability);
+      }
+      
+      // sent when a Broker gets a have message
+      else if(memo.getType().equals("have-message")) {
+        int piece = (Integer) memo.getPayload();
+        Piece p = pieces.get(piece);
+        p.incAvailable();
+        Arrays.sort(piecesByAvailability);
+      }
+      
+      // Received from Brokers when a block has been requested
+      else if (memo.getType().equals("request")) {
+        Message msg = (Message) memo.getPayload();
+        funnel.post(new Memo("block", memo.getPayload(), memo.getSender()));
+        this.addUploaded(msg.getBlockLength());
+      }
+      
+      // Received from Brokers when they can't requested a block from a peer
+      // anymore, ie when choked or when the connection is dropped.
+      else if (memo.getType().equals("blockFail")) {
+        Message m = (Message) memo.getPayload();
+        Piece p = pieces.get(m.getIndex());
+        p.blockFail(m.getBegin());
+      }
     }
     
-    /* These three memos should be received in a chain, and are part of the
-     * shutdown sequence. */
-    
-    // Part 1: halt message from Janitor
-    else if (memo.getType().equals("halt"))
-    {
-      state = "shutdown";
-      try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
-      deputy.post(new Memo("halt", null, this));
+    /*
+     * Messages sent from the Funnel.
+     */
+    else if (memo.getSender() == funnel) {
+      if (memo.getType().equals("pieces")) {
+        ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
+        
+        for(int i = 0, l = ps.size(); i < l; ++i) {
+          Piece p = ps.get(i);
+          int length = p.getData().length;
+          downloaded += length;
+          left -= length;
+          pieces.set(p.getNumber(), p);
+          received.set(p.getNumber());
+        }
+        Log.info("Resuming, " + left + " left to download.");
+        initialize();
+      }
+      
+      // Received from Funnel when we successfully verify and store some piece.
+      // We forward the message off to each Broker so they can inform peers.
+      else if (memo.getType().equals("have")) {
+        for (Broker b : brokers) 
+          b.post(new Memo("have", memo.getPayload(), this));
+      }
+      
+      // Part 3: Received from Funnel when we're ready to shut down.
+      else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
+        shutdown();
+        Janitor.getInstance().post(new Memo("done", null, this));
+      }
     }
     
-    // Part 2: Deputy is done telling the tracker we're shutting down
-    else if (memo.getType().equals("done") && memo.getSender().equals(deputy)) {
-      funnel.post(new Memo("halt", null, this));
-    }
-
-    // Part 3: Received from Funnel when we're ready to shut down.
-    else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
-      shutdown();
-      Janitor.getInstance().post(new Memo("done", null, this));
+    else if (memo.getSender() instanceof Janitor) {
+      // Part 1: halt message from Janitor
+      if (memo.getType().equals("halt"))
+      {
+        state = "shutdown";
+        try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
+        deputy.post(new Memo("halt", null, this));
+      }
     }
   }
 
