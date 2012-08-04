@@ -430,7 +430,7 @@ public class Manager extends Actor implements Communicator {
     
     for(int i = 0; i < piecesByAvailability.length; i++) {
       Piece p = (Piece) piecesByAvailability[i];
-      if (b.get(i) && !p.requested()) {
+      if (b.get(p.getNumber()) && !p.requested()) {
         rarestPieces.add(p);
       }
       if(rarestPieces.size() == 5) {

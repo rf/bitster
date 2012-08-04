@@ -106,7 +106,7 @@ public class Broker extends Actor {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
       ByteBuffer stoof = (ByteBuffer) ((Object[])memo.getPayload())[1];
       Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
-      Log.i("Sending to " + new String(this.peerId().array()) + ": " + response);
+      Log.d("Sending to " + new String(this.peerId().array()) + ": " + response);
       peer.send(response);
     }
 
