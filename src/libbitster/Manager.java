@@ -333,11 +333,9 @@ public class Manager extends Actor implements Communicator {
             // queued on the peer, and we have more shit to download.  We should
             // queue up a request on the peer.
             
-            // TODO: actually check if the peer has this piece
             Piece p = next(b.bitfield());
 
             if (p != null) {
-              if (!b.has(p.getNumber())) continue;
               int index = p.next();
 
               b.post(new Memo("request", Message.createRequest(
@@ -411,8 +409,7 @@ public class Manager extends Actor implements Communicator {
     return ByteBuffer.wrap(id);
   }
 
-  // ## isInteresting
-  // Returns true if the given bitset is interesting to us.  Run by Brokers.
+  /** Returns true if the given bitset is interesting to us.  Run by Brokers. */
   public boolean isInteresting (BitSet peer) {
     Iterator<Piece> i = pieces.iterator();
     Piece p;
