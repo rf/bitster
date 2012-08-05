@@ -216,6 +216,9 @@ public class Manager extends Actor implements Communicator {
         }
   
         Log.info("Got block, " + left + " left to download.");
+        
+        // request more shit
+        request((Broker)memo.getSender());
       }
       
       // sent when a Broker gets a bitfield message
@@ -228,6 +231,8 @@ public class Manager extends Actor implements Communicator {
           }
         }
         Arrays.sort(piecesByAvailability);
+        // Git dem peecazzz
+        request((Broker)memo.getSender());
       }
       
       // sent when a Broker gets a have message
@@ -236,6 +241,7 @@ public class Manager extends Actor implements Communicator {
         Piece p = pieces.get(piece);
         p.incAvailable();
         Arrays.sort(piecesByAvailability);
+        request((Broker)memo.getSender());
       }
       
       // Received from Brokers when a block has been requested
@@ -297,6 +303,25 @@ public class Manager extends Actor implements Communicator {
       }
     }
   }
+  
+  private void request(Broker b) {
+    if (b.interested() && b.numQueued() < 5 && left > 0) {
+
+      // We are interested in the peer, we have less than 5 requests
+      // queued on the peer, and we have more shit to download.  We should
+      // queue up a request on the peer.
+      
+      Piece p = next(b.bitfield());
+
+      if (p != null) {
+        int index = p.next();
+
+        b.post(new Memo("request", Message.createRequest(
+          p.getNumber(), index * blockSize, p.sizeOf(index)
+        ), this));
+      }
+    }
+  }
 
   protected void idle () {
     // actually select() on sockets and do network io
@@ -304,9 +329,9 @@ public class Manager extends Actor implements Communicator {
     try { Thread.sleep(50); } catch (InterruptedException e) {}
 
     if (state.equals("downloading") || state.equals("seeding")) {
-
       Iterator<Broker> i = brokers.iterator();
       Broker b;
+      
       while (i.hasNext()) {
         b = i.next();
         b.tick();
@@ -325,28 +350,7 @@ public class Manager extends Actor implements Communicator {
           }
           peersByAddress.put(b.address(), null);
         }
-
-        else {
-          if (b.interested() && b.numQueued() < 5 && left > 0) {
-
-            // We are interested in the peer, we have less than 5 requests
-            // queued on the peer, and we have more shit to download.  We should
-            // queue up a request on the peer.
-            
-            Piece p = next(b.bitfield());
-
-            if (p != null) {
-              int index = p.next();
-
-              b.post(new Memo("request", Message.createRequest(
-                p.getNumber(), index * blockSize, p.sizeOf(index)
-              ), this));
-            } 
-
-          }
-        }
       }
-
     }
 
     if (left == 0 && !state.equals("shutdown") && !state.equals("seeding")) {
