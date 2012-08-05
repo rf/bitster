@@ -86,7 +86,7 @@ public class Broker extends Actor {
   
   /** Receive a memo */
   protected void receive (Memo memo) {
-    if ("request".equals( memo.getType() )) {
+    if (memo.getType().equals("request")) {
       numQueued += 1;
       Message m = (Message) memo.getPayload();
       requests.put(m.getIndex() + ":" + m.getBegin(), m);
@@ -110,18 +110,28 @@ public class Broker extends Actor {
       peer.send(response);
     }
 
-    else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
+    else if (memo.getType().equals("keepalive") && state.equals("normal")) {
       Log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
-
-    else if ("have".equals(memo.getType())) {
+    
+    // received from Manager when we've finished downloading a piece
+    else if (memo.getType().equals("have")) {
       if (peer.getState().equals("normal")) {
         Piece p = (Piece) memo.getPayload();
-        peer.send(Message.createHave(p.getNumber()));
-        Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
-          " that we have piece " + p.getNumber());
+        
+        /* Only send have message if peer doesn't have said piece. This lowers overhead
+         * about 35% on average, but it could consequently make pieces seem rarer than 
+         * they are to seeders.
+         * See http://wiki.theory.org/BitTorrentSpecification#have:_.3Clen.3D0005.3E.3Cid.3D4.3E.3Cpiece_index.3E
+         */
+        if(!pieces.get(p.getNumber())) {
+          peer.send(Message.createHave(p.getNumber()));
+          Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+              " that we have piece " + p.getNumber());
+        }
+        
       } else Log.info("Peer not connected, not sending have.");
     }
   }
