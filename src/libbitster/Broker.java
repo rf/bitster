@@ -126,7 +126,7 @@ public class Broker extends Actor {
          * they are to seeders.
          * See http://wiki.theory.org/BitTorrentSpecification#have:_.3Clen.3D0005.3E.3Cid.3D4.3E.3Cpiece_index.3E
          */
-        if(!pieces.get(p.getNumber())) {
+        if(pieces == null || !pieces.get(p.getNumber())) {
           peer.send(Message.createHave(p.getNumber()));
           Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
               " that we have piece " + p.getNumber());
