@@ -131,7 +131,7 @@ public class Deputy extends Actor {
     return announce(null);
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings({ "unchecked" })
   /**
    * Sends an HTTP GET request and gets fresh info from the tracker.
    * @param args extra parameters for the HTTP GET request. Must start with "&".
@@ -192,13 +192,13 @@ public class Deputy extends Actor {
         dis.readFully(bytes);
 
         // bdecode response
-        Map response = (Map) Bencoder2.decode(bytes);
+        Map<String, Object> response = (Map<String, Object>) BDecoder.decode(ByteBuffer.wrap(bytes));
 
         // get our peer list and work it into something nicer
-        Object rawPeers = response.get(Util.s("peers"));
+        Object rawPeers = response.get("peers");
         ArrayList<Map<String,Object>> peers = null;
         if(rawPeers instanceof ArrayList<?>)
-          peers = parsePeers((ArrayList<Map>) rawPeers);
+          peers = (ArrayList<Map<String,Object>>)rawPeers;
         else if(rawPeers instanceof ByteBuffer)
           peers = parsePeers((ByteBuffer) rawPeers);
         
@@ -207,7 +207,7 @@ public class Deputy extends Actor {
           manager.post(new Memo("peers", peers, this));
 
         // get our announce interval
-        announceInterval = (Integer) response.get(Util.s("interval"));
+        announceInterval = (Integer) response.get("interval");
         return true;
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
@@ -216,8 +216,6 @@ public class Deputy extends Actor {
         
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
-      } catch (BencodingException e) {
-        error(e, "Error: invalid tracker response.");
       }
       return false;
     }
