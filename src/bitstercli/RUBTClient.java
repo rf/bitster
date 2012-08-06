@@ -60,7 +60,7 @@ public class RUBTClient {
     }
     
     // check if we have a valid number of arguments
-    if(argTorrent == null || argDest == null) {
+    if(argTorrent == null) {
       Log.e("Error: Invalid number of arguments.");
       return;
     }
@@ -72,19 +72,6 @@ public class RUBTClient {
       return;
     }
     
-    // validate argDest
-    File dest = new File(argDest);
-    if(!dest.exists()) {
-      try {
-          // try to create file to validate target name
-          dest.createNewFile();
-          dest.delete();
-      } catch (IOException e) {
-        Log.e("Error: invalid destination file.");
-        return;
-      }
-    }
-    
     try {
       byte[] torrentBytes = new byte[(int) torrentFile.length()]; 
       DataInputStream dis;
@@ -92,6 +79,22 @@ public class RUBTClient {
       dis.readFully(torrentBytes);
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
+      
+      if(argDest == null) {
+        argDest = metainfo.file_name;
+      }
+      // validate argDest
+      File dest = new File(argDest);
+      if(!dest.exists()) {
+        try {
+            // try to create file to validate target name
+            dest.createNewFile();
+            dest.delete();
+        } catch (IOException e) {
+          Log.e("Error: invalid destination file.");
+          return;
+        }
+      }
             
       // attempt to gracefully shut down from term and interrupt signals
       Runtime.getRuntime().addShutdownHook(new Thread(Janitor.getInstance()));
