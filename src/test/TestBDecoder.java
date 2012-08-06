@@ -14,6 +14,7 @@ public class TestBDecoder {
   /**
    * @param args
    */
+  @SuppressWarnings("unchecked")
   public static void main(String[] args) {
     try {
       File torrentFile = new File("project2.torrent");
