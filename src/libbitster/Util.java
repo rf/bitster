@@ -34,7 +34,7 @@ public class Util {
     for (int i = 0; i < input.array().length; i++) 
       ss.append((char) input.array()[i]);
     input.position(oldpos);
-    return ss.toString();
+    return ss.toString().replaceAll("\\p{C}", "?");
   }
 
   public static void setTimeout (int timeout, Memo memo) {

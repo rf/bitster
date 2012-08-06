@@ -9,15 +9,17 @@ import java.util.BitSet;
 /** 
  * Tracks the state of a piece, assembles it together and verifies it against
  * a given hash.
- * @author: Theodore Surgent
+ * @author Theodore Surgent
+ * @author Martin Miralles-Cordal
  */
-public class Piece {
+public class Piece implements Comparable<Piece> {
   private int number;
   private int blockSize;
   private byte[] data;
   private byte[] hash;
   private BitSet completed;
   private BitSet requested;
+  private int availability;
 
   /** size of the whole piece */
   private int size;
@@ -41,6 +43,7 @@ public class Piece {
     this.data = data;
     this.size = data.length;
     this.hash = hash;
+    this.availability = 0;
 
     //One bit for each block
     int blocks = (int)Math.ceil((double)size / (double)blockSize);
@@ -73,6 +76,7 @@ public class Piece {
     data = new byte[size];
     this.size = size;
     this.hash = hash;
+    this.availability = 0;
 
     //One bit for each block
     completed = new BitSet( (int)Math.ceil((double)size / (double)blockSize) );
@@ -248,5 +252,28 @@ public class Piece {
     hash = sha1.digest(data);
 
     return Arrays.equals(hash, this.hash);
+  }
+
+  public int getAvailability() {
+    return availability;
+  }
+
+  public void incAvailable() { this.availability++; }
+  public void decAvailable() { this.availability--; }
+
+  /**
+   * Natural ordering is based on availability.
+   */
+  @Override
+  public int compareTo(Piece p) {
+    if(this.getAvailability() > p.getAvailability()) {
+      return 1;
+    }
+    else if(this.getAvailability() < p.getAvailability()) {
+      return -1;
+    }
+    else {
+      return 0;
+    }
   }
 }
