@@ -439,21 +439,21 @@ public class Manager extends Actor implements Communicator {
    */
   private Piece next (BitSet b) {
     // list of rarest pieces. We return a random value in this.
-    ArrayList<Piece> rarestPieces = new ArrayList<Piece>();
-    
+    Piece[] rarestPieces = new Piece[5];
+    int rpi = 0;
     for(int i = 0; i < piecesByAvailability.length; i++) {
       Piece p = (Piece) piecesByAvailability[i];
       if (b.get(p.getNumber()) && !p.requested()) {
-        rarestPieces.add(p);
+        rarestPieces[rpi++] = p;
       }
-      if(rarestPieces.size() == 5) {
+      if(rpi == 5) {
         break;
       }
     }
     
-    if(!rarestPieces.isEmpty()) {
+    if(rpi > 0) {
       Random r = new Random();
-      return rarestPieces.get(r.nextInt(rarestPieces.size()));
+      return rarestPieces[r.nextInt(rpi)];
     }
     else {
       return null;
