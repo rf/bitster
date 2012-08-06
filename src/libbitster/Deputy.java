@@ -216,7 +216,7 @@ public class Deputy extends Actor {
         
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
-      } catch (BencodingException e) {
+      } catch (Exception e) {
         Log.e("Error: Invalid torrent response.");
       }
       return false;
@@ -245,39 +245,6 @@ public class Deputy extends Actor {
       int port = 0xFFFF & rawPeers.getShort();
       peerInfo.put("port", port);
       
-      // add it to our peer list
-      processedPeerList.add(peerInfo);
-    }
-    return processedPeerList;
-  }
-
-  /**
-   * Takes the raw peer list from the tracker response and processes it into something
-   * that's nicer to work with
-   * @param rawPeerList The {@code ArrayList<Map>} of peers sent from announce()
-   * @return An {@code ArrayList<Map<String, Object>>} of peers and their information
-   */
-  private ArrayList<Map<String, Object>> parsePeers(@SuppressWarnings("rawtypes") ArrayList<Map> rawPeerList)
-  {
-    ArrayList<Map<String, Object>> processedPeerList = new ArrayList<Map<String, Object>>();
-    for(int i = 0; i < rawPeerList.size(); ++i)
-    {
-      HashMap<String,Object> peerInfo = new HashMap<String,Object>();
-
-      // get this peer's peer ID
-      ByteBuffer peer_id_bytes =
-          (ByteBuffer) rawPeerList.get(i).get(Util.s("peer id"));
-      peerInfo.put("peerId", peer_id_bytes);
-
-      // get this peer's ip
-      ByteBuffer ip_bytes = (ByteBuffer) rawPeerList.get(i).get(Util.s("ip"));
-      String ip = new String(ip_bytes.array());
-      peerInfo.put("ip", ip);
-
-      // get this peer's port
-      Integer port = (Integer) rawPeerList.get(i).get(Util.s("port"));
-      peerInfo.put("port", port);
-
       // add it to our peer list
       processedPeerList.add(peerInfo);
     }

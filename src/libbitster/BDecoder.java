@@ -17,7 +17,7 @@ public class BDecoder {
    * is recommended to pass a copy of your buffer to this function.
    * @return A Map, String, List, or Integer, depending on what was bencoded.
    */
-  public static Object decode(ByteBuffer bytes) throws BencodingException {
+  public static Object decode(ByteBuffer bytes) throws Exception {
     try {
       bytes.compact().rewind();
       byte next = bytes.get();
@@ -39,11 +39,11 @@ public class BDecoder {
         return null;
       }
     } catch (Exception e) {
-      throw new BencodingException(e.getMessage());
+      throw new Exception(e.getMessage());
     }
   }
   
-  public static HashMap<String, Object> decodeDictionary(ByteBuffer bytes) throws BencodingException {
+  public static HashMap<String, Object> decodeDictionary(ByteBuffer bytes) throws Exception {
     try {
       byte next;
       bytes.compact().rewind();
@@ -59,11 +59,11 @@ public class BDecoder {
       
       return dictionary;
     } catch (Exception e) {
-      throw new BencodingException(e.getMessage());
+      throw new Exception(e.getMessage());
     }
   }
   
-  public static String decodeString(ByteBuffer bytes) throws BencodingException {
+  public static String decodeString(ByteBuffer bytes) throws Exception {
     try {
       byte next;
       bytes.compact().rewind();
@@ -76,11 +76,11 @@ public class BDecoder {
       bytes.get(keyBytes);
       return new String(keyBytes);
     } catch (Exception e) {
-      throw new BencodingException(e.getMessage());
+      throw new Exception(e.getMessage());
     }
   }
   
-  public static Integer decodeInteger(ByteBuffer bytes) throws BencodingException {
+  public static Integer decodeInteger(ByteBuffer bytes) throws Exception {
     try {
       byte next;
       bytes.compact().rewind();
@@ -90,11 +90,11 @@ public class BDecoder {
       }
       return Integer.parseInt(sb.toString());
     } catch (Exception e) {
-      throw new BencodingException(e.getMessage());
+      throw new Exception(e.getMessage());
     }
   }
   
-  public static ArrayList<Object> decodeList(ByteBuffer bytes) throws BencodingException {
+  public static ArrayList<Object> decodeList(ByteBuffer bytes) throws Exception {
     try {
       ArrayList<Object> list = new ArrayList<Object>();
       bytes.compact().rewind();
@@ -109,7 +109,7 @@ public class BDecoder {
       
       return list;
     } catch (Exception e) {
-      throw new BencodingException(e.getMessage());
+      throw new Exception(e.getMessage());
     }
   }
   // static class
