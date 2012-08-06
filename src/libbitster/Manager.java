@@ -53,6 +53,10 @@ public class Manager extends Actor implements Communicator {
   private UserInterface ui;
 
   private Funnel funnel;
+  
+  // true if the torrent was already done when we started.
+  // This is for suppressing "completed" messages when we're already seeding.
+  boolean startedSeeding = false;
 
   /**
    * Instantiates the Manager and its Deputy, sending a memo containing the
@@ -110,6 +114,9 @@ public class Manager extends Actor implements Communicator {
   }
 
   private void initialize() {
+  	if(left == 0) {
+      this.startedSeeding = true;
+    }
     // We have all the piece objects, now populate our RPF array
     piecesByAvailability = pieces.toArray();
     
