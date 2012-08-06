@@ -5,8 +5,7 @@ import java.util.ArrayList;
 
 /**
  * Reimplementation of TorrentInfo class.
- * @author martin
- *
+ * @author Martin Miralles-Cordal
  */
 public class Metainfo {
   

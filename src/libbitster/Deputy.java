@@ -212,10 +212,12 @@ public class Deputy extends Actor {
       } catch (MalformedURLException e) {
         error(e, "Error: malformed announce URL " + finalURL.toString());
       } catch (IOException e) {
-        Log.error("Warning: Unable to communicate with tracker. Retrying in 60 seconds...");
+        Log.w("Warning: Unable to communicate with tracker. Retrying in 60 seconds...");
         
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
+      } catch (BencodingException e) {
+        Log.e("Error: Invalid torrent response.");
       }
       return false;
     }
