@@ -52,6 +52,10 @@ public class Manager extends Actor implements Communicator {
   private UserInterface ui;
 
   private Funnel funnel;
+  
+  // true if the torrent was already done when we started.
+  // This is for suppressing "completed" messages when we're already seeding.
+  boolean startedSeeding = false;
 
   /**
    * Instantiates the Manager and its Deputy, sending a memo containing the
@@ -109,6 +113,9 @@ public class Manager extends Actor implements Communicator {
   }
 
   private void initialize() {
+    if(left == 0) {
+      this.startedSeeding = true;
+    }
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -311,7 +318,9 @@ public class Manager extends Actor implements Communicator {
       state = "seeding";
 
       funnel.post(new Memo("save", null, this));
-      deputy.post(new Memo("done", null, this));
+      if(!startedSeeding) {
+        deputy.post(new Memo("done", null, this));
+      }
       ui.post(new Memo("done", null, this));
     }
   }
