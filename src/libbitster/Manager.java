@@ -364,8 +364,10 @@ public class Manager extends Actor implements Communicator {
       Log.info("Download complete");
       state = "seeding";
 
-      funnel.post(new Memo("save", null, this));
-      deputy.post(new Memo("done", null, this));
+      funnel.post(new Memo("save", null, this));      
+      if(!startedSeeding) {
+        deputy.post(new Memo("done", null, this));  
+      }
       ui.post(new Memo("done", null, this));
     }
   }
