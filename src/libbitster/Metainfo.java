@@ -9,6 +9,8 @@ import java.util.ArrayList;
  */
 public class Metainfo {
   
+  public final ByteBuffer[] piece_hashes;
+  
   private ArrayList<ByteBuffer> announceUrls;
   
   public Metainfo(byte[] fileBytes) {
