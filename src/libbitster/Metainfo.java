@@ -15,12 +15,18 @@ public class Metainfo {
   
   // info dictionary
   private HashMap<String, Object> info;
+  
   // the whole metainfo file dictionary
   private HashMap<String, Object> metainfo;
   
+  // list of trackers
   private ArrayList<String> announceUrls;
   
+  // whether or not the torrent has multiple files
   private boolean multiFile = false;
+  
+  // file name/root directory as defined by the metainfo file
+  private String rootName;
   
   @SuppressWarnings("unchecked")
   public Metainfo(byte[] fileBytes) {
@@ -37,7 +43,7 @@ public class Metainfo {
         
         // grab the length of this torrent's pieces
         if(info.containsKey("piece length")) {
-          pieceLength = (Integer) metainfo.get("piece length");
+          pieceLength = (Integer) info.get("piece length");
         }
         else {
           pieceLength = 0;
@@ -46,14 +52,21 @@ public class Metainfo {
         
         // get our piece hashes
         if(info.containsKey("pieces")) {
-          ByteBuffer pieces = (ByteBuffer) metainfo.get("pieces");
+          ByteBuffer pieces = (ByteBuffer) info.get("pieces");
           int numPieces = pieces.remaining()/pieceLength; 
           pieceHashes = new ByteBuffer[numPieces];
           for(int i = 0; i < numPieces; i++) {
-            byte[] dst = new byte[10];
+            byte[] dst = new byte[20];
             pieces.get(dst);
             pieceHashes[i] = ByteBuffer.wrap(dst);
           }
+        }
+      }
+      
+      if(metainfo.containsKey("name")) {
+        Object item = metainfo.get("name");
+        if(item instanceof ByteBuffer) {
+          rootName = Util.buff2str((ByteBuffer) item);
         }
       }
       
@@ -78,7 +91,7 @@ public class Metainfo {
         throw new Exception("Missing announce URL.");
       }
       
-    } catch (Exception e) { /* TBD */ }
+    } catch (Exception e) { e.printStackTrace(); }
   }
 
   /**
@@ -99,5 +112,9 @@ public class Metainfo {
 
   public boolean isMultiFile() {
     return multiFile;
+  }
+
+  public String getRootName() {
+    return rootName;
   }
 }
