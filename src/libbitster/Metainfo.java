@@ -1,6 +1,7 @@
 package libbitster;
 
 import java.nio.ByteBuffer;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -36,6 +37,8 @@ public class Metainfo {
   // file length for single torrent file
   private int fileLength;
   
+  private ByteBuffer infoHash;
+  
   @SuppressWarnings("unchecked")
   public Metainfo(byte[] fileBytes) {
     this.fileBytes = Arrays.copyOf(fileBytes, fileBytes.length);
@@ -46,6 +49,12 @@ public class Metainfo {
       // Get our info dictionary
       if(metainfo.containsKey("info") && (metainfo.get("info") instanceof HashMap<?,?>)) {
         info = (HashMap<String, Object>) metainfo.get("info");
+        
+        try {
+          MessageDigest digest = MessageDigest.getInstance("SHA-1");
+          byte[] bytes = Bencoder2.getInfoBytes(this.fileBytes).array(); // TODO DAMN YOU
+          infoHash = ByteBuffer.wrap(digest.digest(bytes));           
+        } catch (BencodingException e) { e.printStackTrace(); }
         
         if(info.containsKey("name")) {
           Object item = info.get("name");
@@ -149,5 +158,9 @@ public class Metainfo {
 
   public String getAnnounceUrl(int index) {
     return announceUrls.get(index);
+  }
+
+  public ByteBuffer getInfoHash() {
+    return infoHash;
   }
 }

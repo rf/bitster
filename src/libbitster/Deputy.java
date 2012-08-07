@@ -188,10 +188,13 @@ public class Deputy extends Actor {
         byte[] bytes = new byte[trackerConn.getContentLength()];
         DataInputStream dis = new DataInputStream(trackerConn.getInputStream());
         dis.readFully(bytes);
-        
-        System.err.println(new String(bytes));
+
         // bdecode response
         Map<String, Object> response = (Map<String, Object>) BDecoder.decode(ByteBuffer.wrap(bytes));
+        
+        if(response.containsKey("failure reason")) {
+          throw new Exception("Received failure reason: " + Util.buff2str((ByteBuffer) response.get("failure reason")));
+        }
 
         // get our peer list and work it into something nicer
         Object rawPeers = response.get("peers");

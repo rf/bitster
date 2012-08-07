@@ -493,10 +493,7 @@ public class Manager extends Actor implements Communicator {
   }
 
   public ByteBuffer getInfoHash () {
-    try {
-      return Bencoder2.getInfoBytes(metainfo.getFileBytes()); // DAMN YOU
-    } catch (BencodingException e) { e.printStackTrace(); }
-    return null;
+    return metainfo.getInfoHash();
   }
 
   public String getState () { return state; }
