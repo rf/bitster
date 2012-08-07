@@ -50,7 +50,7 @@ public class BDecoder {
       HashMap<String, Object> dictionary = new HashMap<String, Object>();
       do {
         bytes.rewind();
-        String key = decodeString(bytes);
+        String key = Util.buff2str(decodeString(bytes));
         Object value = decode(bytes);
         dictionary.put(key, value);
         bytes.compact().rewind();
@@ -63,7 +63,7 @@ public class BDecoder {
     }
   }
   
-  public static String decodeString(ByteBuffer bytes) throws Exception {
+  public static ByteBuffer decodeString(ByteBuffer bytes) throws Exception {
     try {
       byte next;
       bytes.compact().rewind();
@@ -74,7 +74,7 @@ public class BDecoder {
       int len = Integer.parseInt(sb.toString());
       byte[] keyBytes = new byte[len];
       bytes.get(keyBytes);
-      return new String(keyBytes);
+      return ByteBuffer.wrap(keyBytes);
     } catch (Exception e) {
       throw new Exception(e.getMessage());
     }
