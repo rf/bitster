@@ -13,15 +13,45 @@ public class Metainfo {
   private ByteBuffer[] pieceHashes;
   private int pieceLength;
   
+  // info dictionary
+  private HashMap<String, Object> info;
+  // the whole metainfo file dictionary
+  private HashMap<String, Object> metainfo;
+  
   private ArrayList<String> announceUrls;
   
   @SuppressWarnings("unchecked")
   public Metainfo(byte[] fileBytes) {
-    HashMap<String, Object> metainfo;
     try {
       metainfo = (HashMap<String, Object>) BDecoder.decode(ByteBuffer.wrap(fileBytes));
       
-      // get our announce URLs
+      // Get our info dictionary
+      if(metainfo.containsKey("info") && (metainfo.get("info") instanceof HashMap<?,?>)) {
+        info = (HashMap<String, Object>) metainfo.get("info");
+        
+        // grab the length of this torrent's pieces
+        if(info.containsKey("piece length")) {
+          pieceLength = (Integer) metainfo.get("piece length");
+        }
+        else {
+          pieceLength = 0;
+          throw new Exception("Piece length field missing from info dictionary.");
+        }
+        
+        // get our piece hashes
+        if(info.containsKey("pieces")) {
+          ByteBuffer pieces = (ByteBuffer) metainfo.get("pieces");
+          int numPieces = pieces.remaining()/pieceLength; 
+          pieceHashes = new ByteBuffer[numPieces];
+          for(int i = 0; i < numPieces; i++) {
+            byte[] dst = new byte[10];
+            pieces.get(dst);
+            pieceHashes[i] = ByteBuffer.wrap(dst);
+          }
+        }
+      }
+      
+      // get our announce URL list. This field is not required.
       if(metainfo.containsKey("announce-list")) {
         ArrayList<Object> announceList = (ArrayList<Object>) metainfo.get("announce-list");
         for(Object item : announceList) {
@@ -31,6 +61,7 @@ public class Metainfo {
         }
       }
       
+      // get our announce URL. This is the one that's required.
       if(metainfo.containsKey("announce")){
         if(announceUrls == null) {
           announceUrls = new ArrayList<String>();
@@ -38,27 +69,9 @@ public class Metainfo {
         announceUrls.add(Util.buff2str((ByteBuffer) metainfo.get("announce")));
       }
       else {
-        throw new Exception("Invalid metainfo file.");
+        throw new Exception("Missing announce URL.");
       }
       
-      if(metainfo.containsKey("piece length")) {
-        pieceLength = (Integer) metainfo.get("piece length");
-      }
-      else {
-        pieceLength = 0;
-        throw new Exception("Invalid metainfo file.");
-      }
-      
-      if(metainfo.containsKey("pieces")) {
-        ByteBuffer pieces = (ByteBuffer) metainfo.get("pieces");
-        int numPieces = pieces.remaining()/pieceLength; 
-        pieceHashes = new ByteBuffer[numPieces];
-        for(int i = 0; i < numPieces; i++) {
-          byte[] dst = new byte[10];
-          pieces.get(dst);
-          pieceHashes[i] = ByteBuffer.wrap(dst);
-        }
-      }
     } catch (Exception e) { /* TBD */ }
   }
 
