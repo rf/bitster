@@ -36,18 +36,16 @@ public class Deputy extends Actor {
    * @param metainfo The data from the metainfo file
    * @param port The port the manager is listening for incoming connections on
    */
-  public Deputy(TorrentInfo metainfo, int port, Manager manager)
+  public Deputy(String announceURL, int port, Manager manager)
   {
       this.listenPort = port;
       this.manager = manager;
 
       // assemble our announce URL from metainfo
-      announceURL = metainfo.announce_url.getProtocol() + "://" +
-        metainfo.announce_url.getHost() + ":" + metainfo.announce_url.getPort()
-        + metainfo.announce_url.getPath();
+      this.announceURL = announceURL;
 
       // encode our info hash
-      infoHash = escapeURL(metainfo.info_hash);
+      infoHash = escapeURL(manager.getInfoHash());
       
       // posts a memo to itself to announce when thread starts
       this.post(new Memo("announce", Util.s("&event=started"), this));
@@ -190,7 +188,8 @@ public class Deputy extends Actor {
         byte[] bytes = new byte[trackerConn.getContentLength()];
         DataInputStream dis = new DataInputStream(trackerConn.getInputStream());
         dis.readFully(bytes);
-
+        
+        System.err.println(new String(bytes));
         // bdecode response
         Map<String, Object> response = (Map<String, Object>) BDecoder.decode(ByteBuffer.wrap(bytes));
 
@@ -217,6 +216,7 @@ public class Deputy extends Actor {
         // Try again in a minute
         Util.setTimeout(60000, new Memo("announce", args, this));
       } catch (Exception e) {
+        e.printStackTrace();
         Log.e("Error: Invalid torrent response.");
       }
       return false;

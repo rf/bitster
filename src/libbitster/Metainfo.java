@@ -2,6 +2,7 @@ package libbitster;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -11,7 +12,11 @@ import java.util.HashMap;
 public class Metainfo {
   
   private ByteBuffer[] pieceHashes;
+  
   private int pieceLength;
+  
+  // raw file bytes
+  private byte[] fileBytes;
   
   // info dictionary
   private HashMap<String, Object> info;
@@ -28,8 +33,13 @@ public class Metainfo {
   // file name/root directory as defined by the metainfo file
   private String rootName;
   
+  // file length for single torrent file
+  private int fileLength;
+  
   @SuppressWarnings("unchecked")
   public Metainfo(byte[] fileBytes) {
+    this.fileBytes = Arrays.copyOf(fileBytes, fileBytes.length);
+    
     try {
       metainfo = (HashMap<String, Object>) BDecoder.decode(ByteBuffer.wrap(fileBytes));
       
@@ -37,8 +47,21 @@ public class Metainfo {
       if(metainfo.containsKey("info") && (metainfo.get("info") instanceof HashMap<?,?>)) {
         info = (HashMap<String, Object>) metainfo.get("info");
         
+        if(info.containsKey("name")) {
+          Object item = info.get("name");
+          if(item instanceof ByteBuffer) {
+            rootName = Util.buff2str((ByteBuffer) item);
+          }
+        }
+        
         if(info.containsKey("files")) {
           multiFile = true;
+        }
+        else if(info.containsKey("length")) {
+            fileLength = (Integer) info.get("length");
+        }
+        else {
+          throw new Exception("Can't determine files to download.");
         }
         
         // grab the length of this torrent's pieces
@@ -53,20 +76,14 @@ public class Metainfo {
         // get our piece hashes
         if(info.containsKey("pieces")) {
           ByteBuffer pieces = (ByteBuffer) info.get("pieces");
-          int numPieces = pieces.remaining()/pieceLength; 
+          int numPieces = pieces.array().length/20;
+          System.out.println(numPieces);
           pieceHashes = new ByteBuffer[numPieces];
           for(int i = 0; i < numPieces; i++) {
             byte[] dst = new byte[20];
             pieces.get(dst);
             pieceHashes[i] = ByteBuffer.wrap(dst);
           }
-        }
-      }
-      
-      if(metainfo.containsKey("name")) {
-        Object item = metainfo.get("name");
-        if(item instanceof ByteBuffer) {
-          rootName = Util.buff2str((ByteBuffer) item);
         }
       }
       
@@ -116,5 +133,21 @@ public class Metainfo {
 
   public String getRootName() {
     return rootName;
+  }
+
+  public int getFileLength() {
+    return fileLength;
+  }
+
+  public int getPieceLength() {
+    return pieceLength;
+  }
+
+  public byte[] getFileBytes() {
+    return fileBytes;
+  }
+
+  public String getAnnounceUrl(int index) {
+    return announceUrls.get(index);
   }
 }

@@ -27,11 +27,11 @@ public class Funnel extends Actor {
    * @param pieceSize The size of each piece being received except possibly the last (usually 2^14 or 16KB)
    * @throws IOException 
    */
-  public Funnel(TorrentInfo info, File dest, Actor creator) throws IOException {
-    size = info.file_length;
-    pieceSize = info.piece_length;
+  public Funnel(Metainfo info, File dest, Actor creator) throws IOException {
+    size = info.getFileLength();
+    pieceSize = info.getPieceLength();
     pieceCount =  (int)Math.ceil((double)size / (double)pieceSize);
-    hashes = info.piece_hashes;
+    hashes = info.getPieceHashes();
     
     if(size < 0 || pieceSize < 0 || size < pieceSize) {
       String msg = "Bad size arguments in Funnel constructor";

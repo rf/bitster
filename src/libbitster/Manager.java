@@ -21,7 +21,7 @@ public class Manager extends Actor implements Communicator {
   private String state;
 
   // the contents of the metainfo file
-  private TorrentInfo metainfo;
+  private Metainfo metainfo;
   
   // destination file
   private File dest;
@@ -65,7 +65,7 @@ public class Manager extends Actor implements Communicator {
    * a torrent.
    * @param dest The file to save the download as
    */
-  public Manager(TorrentInfo metainfo, File dest, UserInterface ui)
+  public Manager(Metainfo metainfo, File dest, UserInterface ui)
   {
     super();
 
@@ -78,13 +78,13 @@ public class Manager extends Actor implements Communicator {
     this.downloaded = 0;
     this.ui = ui;
     
-    this.setLeft(metainfo.file_length);
+    this.setLeft(metainfo.getFileLength());
 
     overlord = new Overlord();
 
     brokers = new LinkedList<Broker>();
     pieces = new ArrayList<Piece>();
-    received = new BitSet(metainfo.piece_hashes.length);
+    received = new BitSet(metainfo.getPieceHashes().length);
     try {
       funnel = new Funnel(metainfo, dest, this);
     } catch (IOException e1) {
@@ -99,17 +99,17 @@ public class Manager extends Actor implements Communicator {
     
     Log.info("Our peer id: " + Util.buff2str(peerId));
 
-    int i, total = metainfo.file_length;
-    for (i = 0; i < metainfo.piece_hashes.length; i++) {
+    int i, total = metainfo.getFileLength();
+    for (i = 0; i < metainfo.getPieceHashes().length; i++) {
       pieces.add(new Piece(
-        metainfo.piece_hashes[i].array(), 
+        metainfo.getPieceHash(i).array(), 
         i, 
         blockSize, 
         // If the last piece is truncated (which it probably is) total will
         // be less than piece_length and will be the last piece's length.
-        Math.min(metainfo.piece_length, total)
+        Math.min(metainfo.getPieceLength(), total)
       ));
-      total -= metainfo.piece_length;
+      total -= metainfo.getPieceLength();
     }
   }
 
@@ -144,8 +144,8 @@ public class Manager extends Actor implements Communicator {
     state = "downloading";
     Janitor.getInstance().register(this);
     
-    ui.addManager(this);    
-    deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
+    ui.addManager(this);
+    deputy = new Deputy(metainfo.getAnnounceUrl(0), listen.socket().getLocalPort(), this);
     deputy.start();
   }
   
@@ -163,7 +163,7 @@ public class Manager extends Actor implements Communicator {
         peers = (ArrayList<Map<String, Object>>) memo.getPayload();
         if (peers.isEmpty()) Log.warning("Peer list empty!");
         
-        Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+        Message bitfield = Message.createBitfield(received, metainfo.getPieceHashes().length);
         
         for(int i = 0; i < peers.size(); i++)
         {
@@ -374,7 +374,7 @@ public class Manager extends Actor implements Communicator {
 
   public boolean onAcceptable () {
     try {
-      Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
+      Message bitfield = Message.createBitfield(received, metainfo.getPieceHashes().length);
       
       SocketChannel newConnection = listen.accept();
       newConnection.configureBlocking(false);
@@ -493,7 +493,10 @@ public class Manager extends Actor implements Communicator {
   }
 
   public ByteBuffer getInfoHash () {
-    return metainfo.info_hash;
+    try {
+      return Bencoder2.getInfoBytes(metainfo.getFileBytes()); // DAMN YOU
+    } catch (BencodingException e) { e.printStackTrace(); }
+    return null;
   }
 
   public String getState () { return state; }
