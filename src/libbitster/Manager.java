@@ -169,9 +169,9 @@ public class Manager extends Actor implements Communicator {
         {
           // find the right peer for part one
           Map<String,Object> currPeer = peers.get(i);
-          String ip = (String) currPeer.get("ip");
+          String ip = Util.buff2str((ByteBuffer) currPeer.get("ip"));
           String address = ip + ":" + currPeer.get("port");
-  
+
           if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
               && peersByAddress.get(address) == null)
           {

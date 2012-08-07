@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
- * Reimplementation of TorrentInfo class.
+ * Reimplementation of TorrentInfo class. Adds multi-file torrent support.
  * @author Martin Miralles-Cordal
  */
 public class Metainfo {
@@ -20,6 +20,8 @@ public class Metainfo {
   
   private ArrayList<String> announceUrls;
   
+  private boolean multiFile = false;
+  
   @SuppressWarnings("unchecked")
   public Metainfo(byte[] fileBytes) {
     try {
@@ -28,6 +30,10 @@ public class Metainfo {
       // Get our info dictionary
       if(metainfo.containsKey("info") && (metainfo.get("info") instanceof HashMap<?,?>)) {
         info = (HashMap<String, Object>) metainfo.get("info");
+        
+        if(info.containsKey("files")) {
+          multiFile = true;
+        }
         
         // grab the length of this torrent's pieces
         if(info.containsKey("piece length")) {
@@ -89,5 +95,9 @@ public class Metainfo {
     else {
       throw new ArrayIndexOutOfBoundsException("Invalid piece number " + index);
     }
+  }
+
+  public boolean isMultiFile() {
+    return multiFile;
   }
 }

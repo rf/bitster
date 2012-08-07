@@ -6,11 +6,13 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 
 import libbitster.BencodingException;
 import libbitster.Janitor;
 import libbitster.Log;
 import libbitster.Manager;
+import libbitster.Metainfo;
 import libbitster.TorrentInfo;
 import libbitster.UserInterface;
 
@@ -78,6 +80,8 @@ public class RUBTClient {
       dis = new DataInputStream(new FileInputStream(torrentFile));
       dis.readFully(torrentBytes);
       dis.close();
+      byte[] torrent = Arrays.copyOf(torrentBytes, torrentBytes.length);
+      Metainfo file = new Metainfo(torrent);
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       
       if(argDest == null) {
