@@ -18,99 +18,79 @@ public class BDecoder {
    * @return A Map, String, List, or Integer, depending on what was bencoded.
    */
   public static Object decode(ByteBuffer bytes) throws Exception {
-    try {
-      bytes.compact().rewind();
-      byte next = bytes.get();
-      if(next == 'd') {
-        return decodeDictionary(bytes);
-      }
-      else if(next == 'i') {
-        return decodeInteger(bytes);
-      }
-      else if(Character.isDigit(next)) {
-        bytes.rewind();
-        return decodeString(bytes);
-      }
-      else if(next == 'l') {
-        return decodeList(bytes);
-      }
-      else {
-        Log.e("Error bdecoding bytes: " + Util.buff2str(bytes));
-        return null;
-      }
-    } catch (Exception e) {
-      throw new Exception(e.getMessage());
+    bytes.compact().rewind();
+    byte next = bytes.get();
+    if(next == 'd') {
+      return decodeDictionary(bytes);
+    }
+    else if(next == 'i') {
+      return decodeInteger(bytes);
+    }
+    else if(Character.isDigit(next)) {
+      bytes.rewind();
+      return decodeString(bytes);
+    }
+    else if(next == 'l') {
+      return decodeList(bytes);
+    }
+    else {
+      Log.e("Error bdecoding bytes: " + Util.buff2str(bytes));
+      return null;
     }
   }
   
   public static HashMap<String, Object> decodeDictionary(ByteBuffer bytes) throws Exception {
-    try {
-      byte next;
+    byte next;
+    bytes.compact().rewind();
+    HashMap<String, Object> dictionary = new HashMap<String, Object>();
+    do {
+      bytes.rewind();
+      String key = Util.buff2str(decodeString(bytes));
+      Object value = decode(bytes);
+      dictionary.put(key, value);
       bytes.compact().rewind();
-      HashMap<String, Object> dictionary = new HashMap<String, Object>();
-      do {
-        bytes.rewind();
-        String key = Util.buff2str(decodeString(bytes));
-        Object value = decode(bytes);
-        dictionary.put(key, value);
-        bytes.compact().rewind();
-        next = bytes.get();
-      } while(next != 'e');
-      
-      return dictionary;
-    } catch (Exception e) {
-      throw new Exception(e.getMessage());
-    }
+      next = bytes.get();
+    } while(next != 'e');
+    
+    return dictionary;
   }
   
   public static ByteBuffer decodeString(ByteBuffer bytes) throws Exception {
-    try {
-      byte next;
-      bytes.compact().rewind();
-      StringBuilder sb = new StringBuilder();
-      while((next = bytes.get()) != ':') {
-        sb.append((char) next);
-      }
-      int len = Integer.parseInt(sb.toString());
-      byte[] keyBytes = new byte[len];
-      bytes.get(keyBytes);
-      return ByteBuffer.wrap(keyBytes);
-    } catch (Exception e) {
-      throw new Exception(e.getMessage());
+    byte next;
+    bytes.compact().rewind();
+    StringBuilder sb = new StringBuilder();
+    while((next = bytes.get()) != ':') {
+      sb.append((char) next);
     }
+    int len = Integer.parseInt(sb.toString());
+    byte[] keyBytes = new byte[len];
+    bytes.get(keyBytes);
+    return ByteBuffer.wrap(keyBytes);
   }
   
-  public static Integer decodeInteger(ByteBuffer bytes) throws Exception {
-    try {
-      byte next;
-      bytes.compact().rewind();
-      StringBuilder sb = new StringBuilder();
-      while((next = bytes.get()) != 'e') {
-        sb.append((char) next);
-      }
-      return Integer.parseInt(sb.toString());
-    } catch (Exception e) {
-      throw new Exception(e.getMessage());
+  public static Long decodeInteger(ByteBuffer bytes) throws Exception {
+    byte next;
+    bytes.compact().rewind();
+    StringBuilder sb = new StringBuilder();
+    while((next = bytes.get()) != 'e') {
+      sb.append((char) next);
     }
+    return Long.parseLong(sb.toString());
   }
   
   public static ArrayList<Object> decodeList(ByteBuffer bytes) throws Exception {
-    try {
-      ArrayList<Object> list = new ArrayList<Object>();
+    ArrayList<Object> list = new ArrayList<Object>();
+    bytes.compact().rewind();
+    byte next;
+    do {
+      bytes.rewind();
+      Object value = decode(bytes);
+      list.add(value);
       bytes.compact().rewind();
-      byte next;
-      do {
-        bytes.rewind();
-        Object value = decode(bytes);
-        list.add(value);
-        bytes.compact().rewind();
-        next = bytes.get();      
-      } while(next != 'e');
-      
-      return list;
-    } catch (Exception e) {
-      throw new Exception(e.getMessage());
-    }
+      next = bytes.get();      
+    } while(next != 'e');
+    
+    return list;
   }
   // static class
   private BDecoder() { }
