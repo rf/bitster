@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import libbitster.Actor;
 import libbitster.Manager;
@@ -25,6 +26,10 @@ public class Gui extends Actor implements UserInterface {
     wnd = new MainWindow();
   }
   
+  protected void idle () {
+    try { Thread.sleep(100); } catch (Exception e) {}
+  }
+  
   @Override
   public void addManager(Manager manager) {
     managers.add(manager);
@@ -44,14 +49,11 @@ public class Gui extends Actor implements UserInterface {
   }
   
   private void nimbusLookAndFeel() {
-    //http://docs.oracle.com/javase/tutorial/uiswing/lookandfeel/nimbus.html#enable
-    try {
-      for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
-        if ("Nimbus".equals(info.getName())) {
-          UIManager.setLookAndFeel(info.getClassName());
-          break;
-        }
+    for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+      if ("Nimbus".equals(info.getName())) {
+        try { UIManager.setLookAndFeel(info.getClassName()); } catch (Exception e) {} //Don't care
+        return;
       }
-    } catch (Exception e) {}
+    }
   }
 }
