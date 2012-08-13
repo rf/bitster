@@ -11,7 +11,6 @@ import java.nio.channels.*;
  * `Protocol` class for the actual communication.
  * @author Russ Frank
  * @author Martin Miralles-Cordal
- *
  */
 
 public class Broker extends Actor {
@@ -87,7 +86,7 @@ public class Broker extends Actor {
   
   /** Receive a memo */
   protected void receive (Memo memo) {
-    if ("request".equals( memo.getType() )) {
+    if (memo.getType().equals("request")) {
       numQueued += 1;
       Message m = (Message) memo.getPayload();
       requests.put(m.getIndex() + ":" + m.getBegin(), m);
@@ -107,22 +106,32 @@ public class Broker extends Actor {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
       ByteBuffer stoof = (ByteBuffer) ((Object[])memo.getPayload())[1];
       Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
-      Log.i("Sending to " + new String(this.peerId().array()) + ": " + response);
+      Log.d("Sending to " + new String(this.peerId().array()) + ": " + response);
       peer.send(response);
     }
 
-    else if ("keepalive".equals(memo.getType()) && state.equals("normal")) {
+    else if (memo.getType().equals("keepalive") && state.equals("normal")) {
       Log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
-
-    else if ("have".equals(memo.getType())) {
+    
+    // received from Manager when we've finished downloading a piece
+    else if (memo.getType().equals("have")) {
       if (peer.getState().equals("normal")) {
         Piece p = (Piece) memo.getPayload();
-        peer.send(Message.createHave(p.getNumber()));
-        Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
-          " that we have piece " + p.getNumber());
+        
+        /* Only send have message if peer doesn't have said piece. This lowers overhead
+         * about 35% on average, but it could consequently make pieces seem rarer than 
+         * they are to seeders.
+         * See http://wiki.theory.org/BitTorrentSpecification#have:_.3Clen.3D0005.3E.3Cid.3D4.3E.3Cpiece_index.3E
+         */
+        if(pieces == null || !pieces.get(p.getNumber())) {
+          peer.send(Message.createHave(p.getNumber()));
+          Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+              " that we have piece " + p.getNumber());
+        }
+        
       } else Log.info("Peer not connected, not sending have.");
     }
   }
@@ -162,13 +171,15 @@ public class Broker extends Actor {
       
       case Message.NOT_INTERESTED: interesting = false;                 break;
       case Message.BITFIELD:       
-        pieces = message.getBitfield();   
+        pieces = message.getBitfield();
+        manager.post(new Memo("bitfield", pieces, this));
         checkInterested();
       break;
 
       case Message.HAVE:
         if (pieces == null) pieces = new BitSet();
         pieces.set(message.getIndex());
+        manager.post(new Memo("have-message", message.getIndex(), this));
         checkInterested();
       break;
 
@@ -255,4 +266,5 @@ public class Broker extends Actor {
   public int numQueued () { return numQueued; }
   public ByteBuffer peerId () { return peer.getPeerId(); }
   public String address() { return peer.getAddress(); }
+  public BitSet bitfield() { return this.pieces; }
 }
