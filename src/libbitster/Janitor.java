@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 import bitstercli.Cli;
+import bitstergui.Gui;
 
 /**
  * Singleton. Cleans up the program when shutting down.
@@ -58,6 +59,7 @@ public class Janitor extends Actor {
     if(state.equals("init")) {
       state = "normal";
       Cli.getInstance().shutdown();
+      Gui.getInstance().shutdown();
       Iterator<Manager> it = managers.iterator();
       while(it.hasNext()) {
         Log.info("Sending halt memo to manager.");

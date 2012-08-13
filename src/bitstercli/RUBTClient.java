@@ -7,6 +7,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 
+import bitstergui.Gui;
+
 import libbitster.BencodingException;
 import libbitster.Janitor;
 import libbitster.Log;
@@ -101,7 +103,8 @@ public class RUBTClient {
         Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
       }
       else if(gui) {
-        // do gui
+        ui = Gui.getInstance();
+        Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
       }
       
       ui.start();
