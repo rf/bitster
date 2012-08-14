@@ -49,8 +49,8 @@ public class Gui extends Actor implements UserInterface {
     int seed = manager.getSeeds();
     int leech = manager.getBrokerCount() - seed;
     double ratio = 0;
-    if(manager.getUploaded() != 0) {
-      ratio = ((double) manager.getDownloaded()) / manager.getUploaded();
+    if(manager.getDownloaded() != 0) {
+      ratio = ((double) manager.getUploaded()) / manager.getDownloaded();
     }
     
     int index = wnd.tblDls.addRow(file, status, size, progress, seed, leech, ratio);
@@ -84,7 +84,7 @@ public class Gui extends Actor implements UserInterface {
       
       int row = downloadTblRows.get(manager);
       
-      wnd.tblDls.setRatio(row, ((int)(((double)manager.getDownloaded() / (double)uploaded)*100))/100.0);
+      wnd.tblDls.setRatio(row, ((int)(((double)uploaded / (double)manager.getDownloaded())*100))/100.0);
     }
     else if(memo.getType() == "block received") {
       @SuppressWarnings("unchecked")
@@ -99,7 +99,7 @@ public class Gui extends Actor implements UserInterface {
 
       wnd.tblDls.setStatus(row, left > 0 ? "downloading" : "seeding");
       wnd.tblDls.setProgress(row, (int)(((double)downloaded / (double)manager.getSize()) * 100));
-      wnd.tblDls.setRatio(row, ((int)(((double)downloaded / (double)manager.getUploaded())*100))/100.0);
+      wnd.tblDls.setRatio(row, ((int)(((double)manager.getUploaded() / (double)downloaded)*100))/100.0);
     }
     else if(memo.getType() == "broker added") {
       Manager manager = (Manager)memo.getSender();
@@ -136,7 +136,10 @@ public class Gui extends Actor implements UserInterface {
       wnd.tblPeers.mdl.removeRow(0);
     peerInfoRows.clear();
 
-    LinkedList<Broker> peers = manager.getBrokers();
+    // peers list may change when this is called, so we need to clone the list
+    @SuppressWarnings("unchecked")
+    LinkedList<Broker> peers = (LinkedList<Broker>) manager.getBrokers().clone();
+    
     if(peers != null) {
       for(Broker peer : peers) {
         String address = peer.address();
