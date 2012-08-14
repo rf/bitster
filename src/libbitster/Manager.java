@@ -612,8 +612,10 @@ public class Manager extends Actor implements Communicator {
     return brokers;
   }
   
+  @SuppressWarnings("unchecked")
   public int getSeeds() {
     int seeds = 0;
+    LinkedList<Broker> brokers = (LinkedList<Broker>) this.brokers.clone();
     for(Broker b : brokers) {
       try {
       if(b.bitfield().cardinality() == metainfo.piece_hashes.length)
