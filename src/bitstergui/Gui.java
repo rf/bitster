@@ -54,4 +54,10 @@ public class Gui extends Actor implements UserInterface {
       }
     }
   }
+  
+  @Override
+  public void shutdown() {
+    wnd.dispose();
+    super.shutdown();
+  }
 }

@@ -5,6 +5,8 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 import javax.swing.BorderFactory;
 import javax.swing.JFrame;
@@ -85,5 +87,13 @@ public class MainWindow extends JFrame {
       this.pack();
       this.setLocationRelativeTo(null);
       this.setVisible(true);
+      this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+      this.addWindowListener(new WindowAdapter(){
+        //Window is disposed in Gui.java shutdown()
+        @Override
+        public void windowClosing(WindowEvent e) {
+          Janitor.getInstance().start();
+        }
+      });
   }
 }

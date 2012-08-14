@@ -58,8 +58,10 @@ public class Janitor extends Actor {
     
     if(state.equals("init")) {
       state = "normal";
-      Cli.getInstance().shutdown();
-      Gui.getInstance().shutdown();
+      if(Cli.hasInstance())
+        Cli.getInstance().shutdown();
+      if(Gui.hasInstance())
+        Gui.getInstance().shutdown();
       Iterator<Manager> it = managers.iterator();
       while(it.hasNext()) {
         Log.info("Sending halt memo to manager.");
