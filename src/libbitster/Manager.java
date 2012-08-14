@@ -252,7 +252,6 @@ public class Manager extends Actor implements Communicator {
           
           // Signal piece received
           HashMap<String, Object> info = new HashMap<String, Object>();
-            info.put("manager", this);
             info.put("broker", (Broker)memo.getSender());
             info.put("piece number", p.getNumber());
             info.put("downloaded", downloaded);
@@ -281,7 +280,6 @@ public class Manager extends Actor implements Communicator {
         
         // Signal bitfield received
         HashMap<String, Object> info = new HashMap<String, Object>();
-          info.put("manager", this);
           info.put("broker", (Broker)memo.getSender());
           info.put("field", field);
         this.signal("bitfield received", info, this);
@@ -297,7 +295,6 @@ public class Manager extends Actor implements Communicator {
         
         // Signal have received
         HashMap<String, Object> info = new HashMap<String, Object>();
-          info.put("manager", this);
           info.put("broker", (Broker)memo.getSender());
           info.put("piece number", piece);
         this.signal("have received", info, this);
@@ -311,7 +308,6 @@ public class Manager extends Actor implements Communicator {
         
         //Signal block sent
         HashMap<String, Object> info = new HashMap<String, Object>();
-          info.put("manager", this);
           info.put("broker", (Broker)memo.getSender());
           info.put("piece number", msg.getIndex());
           info.put("uploaded", this.getUploaded());
@@ -327,7 +323,6 @@ public class Manager extends Actor implements Communicator {
         
         // Signal block fail
         HashMap<String, Object> info = new HashMap<String, Object>();
-          info.put("manager", this);
           info.put("broker", (Broker)memo.getSender());
           info.put("piece number", m.getIndex());
         this.signal("block fail", info, this);
@@ -354,7 +349,6 @@ public class Manager extends Actor implements Communicator {
 
         // Signal resume
         HashMap<String, Object> info = new HashMap<String, Object>();
-          info.put("manager", this);
           info.put("funnel", funnel);
           info.put("downloaded", downloaded);
           info.put("left", left);
@@ -600,6 +594,26 @@ public class Manager extends Actor implements Communicator {
 
   private void setLeft(int left) {
     this.left = left;
+  }
+  
+  public int getSize() {
+    return metainfo.file_length;
+  }
+  
+  public int getPeers() {
+    return brokers.size();
+  }
+  
+  public int getSeeds() {
+    int seeds = 0;
+    for(Broker b : brokers) {
+      try {
+      if(b.bitfield().cardinality() == metainfo.piece_hashes.length)
+        ++seeds;
+      } catch(Exception e) {}
+    }
+    
+    return seeds;
   }
 
   public ByteBuffer getPeerId () {

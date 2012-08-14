@@ -1,6 +1,7 @@
 package bitstergui;
 
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 
 final class PeerTable extends JTable {
@@ -23,6 +24,7 @@ final class PeerTable extends JTable {
       }
     });
 
+    this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     this.setAutoCreateRowSorter(true);
     this.setFillsViewportHeight(true);
     this.getColumnModel().getColumn(2).setCellRenderer(new ProgressBarCellRenderer());
@@ -68,6 +70,7 @@ final class PeerTable extends JTable {
     mdl.setValueAt(interesting, row, 8);
   }
   
+  //Getters
   String getAddress(int row){
     return (String)mdl.getValueAt(row, 0);
   }
@@ -102,5 +105,42 @@ final class PeerTable extends JTable {
   
   boolean getInteresting(int row){
     return (Boolean)mdl.getValueAt(row, 8);
+  }
+  
+  //Setters
+  void setAddress(int row, String address){
+    mdl.setValueAt(address, row, 0);
+  }
+  
+  void setState(int row, String state){
+    mdl.setValueAt(state, row, 1);
+  }
+  
+  void setProgress(int row, int progress){
+    mdl.setValueAt(progress, row, 2);
+  }
+  
+  void setLastSent(int row, String lastSent){
+    mdl.setValueAt(lastSent, row, 3);
+  }
+  
+  void setLastReceived(int row, String lastReceived){
+    mdl.setValueAt(lastReceived, row, 4);
+  }
+  
+  void setChoked(int row, boolean choked){
+    mdl.setValueAt(choked, row, 5);
+  }
+  
+  void setChoking(int row, boolean choking){
+    mdl.setValueAt(choking, row, 6);
+  }
+  
+  void setInterested(int row, boolean interested){
+    mdl.setValueAt(interested, row, 7);
+  }
+  
+  void setInteresting(int row, boolean interesting){
+    mdl.setValueAt(interesting, row, 8);
   }
 }

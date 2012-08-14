@@ -43,7 +43,7 @@ public class MainWindow extends JFrame {
     JMenu mnuFile;
       JMenuItem miOpen;
   
-  DownloadsTable tblDls;
+  DownloadTable tblDls;
   JScrollPane spDls;
   PeerTable tblPeers;
   JScrollPane spPeers;
@@ -86,7 +86,7 @@ public class MainWindow extends JFrame {
       this.setJMenuBar(mbTopMenu);
       
     // Downloads
-      tblDls = new DownloadsTable();
+      tblDls = new DownloadTable();
       spDls = new JScrollPane(tblDls);
       spDls.setBorder(BorderFactory.createTitledBorder("Downloads"));
     

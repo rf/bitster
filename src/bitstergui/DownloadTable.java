@@ -1,14 +1,15 @@
 package bitstergui;
 
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 
-final class DownloadsTable extends JTable {
+final class DownloadTable extends JTable {
   private static final long serialVersionUID = 0xDeadFeel;
   private static String[] columns = {"File","Status","Size","Progress","Seeds","Leechers","Ratio"};
   DefaultTableModel mdl;
   
-  DownloadsTable() {
+  DownloadTable() {
     super(new DefaultTableModel(null, columns) {
       private static final long serialVersionUID = 0xDeadFeel;
 
@@ -23,6 +24,7 @@ final class DownloadsTable extends JTable {
       }
     });
     
+    this.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     this.setAutoCreateRowSorter(true);
     this.setFillsViewportHeight(true);
     this.getColumnModel().getColumn(3).setCellRenderer(new ProgressBarCellRenderer());
@@ -46,6 +48,7 @@ final class DownloadsTable extends JTable {
     mdl.setValueAt(ratio, row, 6);
   }
   
+  //Getters
   String getFile(int row) {
     return (String)mdl.getValueAt(row, 0);
   }
@@ -72,5 +75,34 @@ final class DownloadsTable extends JTable {
   
   double getRatio(int row) {
     return (Double)mdl.getValueAt(row, 6);
+  }
+  
+  //Setters
+  void setFile(int row, String file) {
+    mdl.setValueAt(file, row, 0);
+  }
+  
+  void setStatus(int row, String status) {
+    mdl.setValueAt(status, row, 1);
+  }
+  
+  void setSize(int row, String size) {
+    mdl.setValueAt(size, row, 2);
+  }
+  
+  void setProgress(int row, int progress) {
+    mdl.setValueAt(progress, row, 3);
+  }
+  
+  void setSeed(int row, int seed) {
+    mdl.setValueAt(seed, row, 4);
+  }
+  
+  void setLeech(int row, int leech) {
+    mdl.setValueAt(leech, row, 5);
+  }
+  
+  void setRatio(int row, double ratio) {
+    mdl.setValueAt(ratio, row, 6);
   }
 }
