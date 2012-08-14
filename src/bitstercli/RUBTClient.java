@@ -110,12 +110,15 @@ public class RUBTClient {
           }
         }
         
-        if(cli)
-          ui = Cli.getInstance();
-        else if(gui)
-          ui = Gui.getInstance();
-        
-        Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
+        if(cli || gui) {
+          if(cli) {
+            ui = Cli.getInstance();
+          }
+          else if(gui) {
+            ui = Gui.getInstance();
+          }
+          Log.setOutput(new PrintStream(new FileOutputStream("bitster.log")));
+        }
         
         ui.start();
         
