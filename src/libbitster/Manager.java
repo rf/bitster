@@ -600,8 +600,12 @@ public class Manager extends Actor implements Communicator {
     return metainfo.file_length;
   }
   
-  public int getPeers() {
+  public int getBrokerCount() {
     return brokers.size();
+  }
+  
+  public LinkedList<Broker> getBrokers() {
+    return brokers;
   }
   
   public int getSeeds() {

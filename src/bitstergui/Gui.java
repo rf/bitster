@@ -45,7 +45,7 @@ public class Gui extends Actor implements UserInterface {
     String size = ((int)((manager.getSize()/1024.0/1024.0)*100))/100.0 + "MB";
     int progress = (int)(((double)manager.getDownloaded() / (double)manager.getSize()) * 100);
     int seed = manager.getSeeds();
-    int leech = manager.getPeers() - seed;
+    int leech = manager.getBrokerCount() - seed;
     double ratio = manager.getDownloaded() / manager.getUploaded();
     
     int index = wnd.tblDls.addRow(file, status, size, progress, seed, leech, ratio);
@@ -101,7 +101,7 @@ public class Gui extends Actor implements UserInterface {
       //Broker broker = (Broker)memo.getPayload();
       
       int seed = manager.getSeeds();
-      int leech = manager.getPeers() - seed;
+      int leech = manager.getBrokerCount() - seed;
 
       int row = downloadTblRows.get(manager);
       
