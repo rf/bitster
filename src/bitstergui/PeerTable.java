@@ -4,6 +4,10 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * Table of peers
+ * @author Theodore Surgent
+ */
 final class PeerTable extends JTable {
   private static final long serialVersionUID = 0xDeadFeel;
   private static String[] columns = {"Address", "State", "Progress", "Last Sent", "Last Received", "Choked", "Is Choking", "Interested", "Is Interesting"};

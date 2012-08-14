@@ -4,6 +4,10 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * Table of downloading torrents
+ * @author Theodore Surgent
+ */
 final class DownloadTable extends JTable {
   private static final long serialVersionUID = 0xDeadFeel;
   private static String[] columns = {"File","Status","Size","Progress","Seeds","Leechers","Ratio"};

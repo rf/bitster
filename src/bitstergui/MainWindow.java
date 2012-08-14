@@ -31,6 +31,11 @@ import libbitster.Log;
 import libbitster.Manager;
 import libbitster.TorrentInfo;
 
+/**
+ * Main JFrame for bitster GUI
+ * @author Theodore Surgent
+ * @author Martin Miralles-Cordal
+ */
 public class MainWindow extends JFrame {
 
   private static final long serialVersionUID = 0xDEADBEEFL;
