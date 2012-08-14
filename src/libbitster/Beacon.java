@@ -12,6 +12,10 @@ import java.util.concurrent.ConcurrentHashMap;
 class Beacon {
   private ConcurrentHashMap<String, Set<Actor>> eventTypes;
   
+  Beacon() {
+    eventTypes = new ConcurrentHashMap<String, Set<Actor>>();
+  }
+  
   /**
    * Register to watch for an event
    * @param type The event type
@@ -39,6 +43,18 @@ class Beacon {
     
     if(actors.size() == 0)
       eventTypes.remove(type);
+  }
+
+  /**
+   * Unregister a watch for all events
+   * @param actor The Actor currently watching the events
+   */
+  public void ignoreAll(Actor actor) {
+    Set<String> keys = eventTypes.keySet();
+    
+    for(String key : keys) {
+      eventTypes.get(key).remove(actor);
+    }
   }
   
   /**

@@ -10,6 +10,23 @@ import java.net.*;
 /**
  * Coordinates actions of all the {@link Actor}s and manages
  * the application's operation. 
+ * 
+ * Available memo types for use with manager.watch(String type, Actor actor)
+ *   "bitfield received"
+ *   "block fail"
+ *   "block received"
+ *   "block sent"
+ *   "broker added"
+ *   "broker choked"
+ *   "broker choking"
+ *   "broker interested"
+ *   "broker interesting"
+ *   "broker numQueued"
+ *   "broker state"
+ *   "have received"
+ *   "piece received"
+ *   "resume"
+ * 
  * @author Martin Miralles-Cordal
  * @author Russell Frank
  * @author Theodore Surgent
@@ -187,6 +204,8 @@ public class Manager extends Actor implements Communicator {
               );
               brokers.add(b);
               peersByAddress.put(b.address(), b);
+              
+              this.signal("broker added", b, this);
             } 
   
             catch (UnknownHostException e) {
@@ -214,12 +233,31 @@ public class Manager extends Actor implements Communicator {
         if (p.addBlock(msg.getBegin(), msg.getBlock())) {
           downloaded += msg.getBlockLength();
           left -= msg.getBlockLength();
+          
+          // Signal block received
+          HashMap<String, Object> info = new HashMap<String, Object>();
+            info.put("broker", (Broker)memo.getSender());
+            info.put("piece number", msg.getIndex());
+            info.put("begin", msg.getBegin());
+            info.put("length", msg.getBlockLength());
+            info.put("downloaded", downloaded);
+            info.put("left", left);
+          this.signal("block received", info, this);
         }
   
         if (p.finished()) {
           Log.info("Posting piece " + p.getNumber() + " to funnel");
           funnel.post(new Memo("piece", p, this));
           received.set(p.getNumber());
+          
+          // Signal piece received
+          HashMap<String, Object> info = new HashMap<String, Object>();
+            info.put("manager", this);
+            info.put("broker", (Broker)memo.getSender());
+            info.put("piece number", p.getNumber());
+            info.put("downloaded", downloaded);
+            info.put("left", left);
+          this.signal("piece received", info, this);
         }
   
         Log.info("Got block, " + left + " left to download.");
@@ -240,6 +278,13 @@ public class Manager extends Actor implements Communicator {
         Arrays.sort(piecesByAvailability);
         // Git dem peecazzz
         request((Broker)memo.getSender());
+        
+        // Signal bitfield received
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          info.put("manager", this);
+          info.put("broker", (Broker)memo.getSender());
+          info.put("field", field);
+        this.signal("bitfield received", info, this);
       }
       
       // sent when a Broker gets a have message
@@ -249,6 +294,13 @@ public class Manager extends Actor implements Communicator {
         p.incAvailable();
         Arrays.sort(piecesByAvailability);
         request((Broker)memo.getSender());
+        
+        // Signal have received
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          info.put("manager", this);
+          info.put("broker", (Broker)memo.getSender());
+          info.put("piece number", piece);
+        this.signal("have received", info, this);
       }
       
       // Received from Brokers when a block has been requested
@@ -256,6 +308,14 @@ public class Manager extends Actor implements Communicator {
         Message msg = (Message) memo.getPayload();
         funnel.post(new Memo("block", memo.getPayload(), memo.getSender()));
         this.addUploaded(msg.getBlockLength());
+        
+        //Signal block sent
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          info.put("manager", this);
+          info.put("broker", (Broker)memo.getSender());
+          info.put("piece number", msg.getIndex());
+          info.put("uploaded", this.getUploaded());
+        this.signal("block sent", info, this);
       }
       
       // Received from Brokers when they can't requested a block from a peer
@@ -264,6 +324,13 @@ public class Manager extends Actor implements Communicator {
         Message m = (Message) memo.getPayload();
         Piece p = pieces.get(m.getIndex());
         p.blockFail(m.getBegin());
+        
+        // Signal block fail
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          info.put("manager", this);
+          info.put("broker", (Broker)memo.getSender());
+          info.put("piece number", m.getIndex());
+        this.signal("block fail", info, this);
       }
     }
     
@@ -284,6 +351,15 @@ public class Manager extends Actor implements Communicator {
         }
         Log.info("Resuming, " + left + " left to download.");
         initialize();
+
+        // Signal resume
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          info.put("manager", this);
+          info.put("funnel", funnel);
+          info.put("downloaded", downloaded);
+          info.put("left", left);
+          info.put("uploaded", this.getUploaded());
+        this.signal("resume", info, this);
       }
       
       // Received from Funnel when we successfully verify and store some piece.
@@ -297,6 +373,42 @@ public class Manager extends Actor implements Communicator {
       else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
         shutdown();
         Janitor.getInstance().post(new Memo("done", null, this));
+      }
+      
+      //Forward broker change events
+      else {
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          
+        if(memo.getType().equals("broker state")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("state", memo.getPayload());
+          this.signal("broker state", info, this);
+        }
+        else if(memo.getType().equals("broker numQueued")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("numQueued", memo.getPayload());
+          this.signal("broker numQueued", info, this);
+        }
+        else if(memo.getType().equals("broker choked")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("choked", memo.getPayload());
+          this.signal("broker choked", info, this);
+        }
+        else if(memo.getType().equals("broker choking")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("choking", memo.getPayload());
+          this.signal("broker choking", info, this);
+        }
+        else if(memo.getType().equals("broker interested")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("interested", memo.getPayload());
+          this.signal("broker interested", info, this);
+        }
+        else if(memo.getType().equals("broker interesting")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("interesting", memo.getPayload());
+          this.signal("broker interesting", info, this);
+        }
       }
     }
     
@@ -379,7 +491,9 @@ public class Manager extends Actor implements Communicator {
       SocketChannel newConnection = listen.accept();
       newConnection.configureBlocking(false);
       if (newConnection != null) {
-        brokers.add(new Broker(newConnection, this, bitfield));
+        Broker b = new Broker(newConnection, this, bitfield);
+        brokers.add(b);
+        this.signal("broker added", b, this);
       }
     } catch (IOException e) {
       // connection failed, ignore

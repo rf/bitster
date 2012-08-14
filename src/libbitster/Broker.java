@@ -59,6 +59,7 @@ public class Broker extends Actor {
     this.manager = manager;
     state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
+    forwardWatches(manager);
   }
 
   public Broker (InetAddress host, int port, Manager manager, Message bitfield) {
@@ -81,6 +82,7 @@ public class Broker extends Actor {
     this.manager = manager;
     state = "normal";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
+    forwardWatches(manager);
   }
 
   
@@ -88,6 +90,7 @@ public class Broker extends Actor {
   protected void receive (Memo memo) {
     if (memo.getType().equals("request")) {
       numQueued += 1;
+      this.signal("broker numQueued", numQueued, this);
       Message m = (Message) memo.getPayload();
       requests.put(m.getIndex() + ":" + m.getBegin(), m);
       if (choked) {
@@ -138,6 +141,7 @@ public class Broker extends Actor {
 
   private void error (Exception e) {
     state = "error";
+    this.signal("broker state", state, this);
     exception = e;
     peer.close();
 
@@ -161,15 +165,28 @@ public class Broker extends Actor {
     switch (message.getType()) {
 
       // Handle basic messages
-      case Message.CHOKE:          choked = true;                       break;
-      case Message.UNCHOKE:        choked = false;                      break;
-      case Message.INTERESTED:
-        interesting = true;
-        peer.send(Message.createUnchoke());
-        choking = false;
+      case Message.CHOKE:
+        choked = true;
+        this.signal("broker choked", choked, this);
       break;
       
-      case Message.NOT_INTERESTED: interesting = false;                 break;
+      case Message.UNCHOKE:
+        choked = false;
+        this.signal("broker choked", choked, this);
+      break;
+      
+      case Message.INTERESTED:
+        interesting = true;
+        this.signal("broker interesting", interesting, this);
+        peer.send(Message.createUnchoke());
+        choking = false;
+        this.signal("broker choking", choking, this);
+      break;
+      
+      case Message.NOT_INTERESTED:
+        interesting = false;
+        this.signal("broker interesting", interesting, this);
+      break;
       case Message.BITFIELD:       
         pieces = message.getBitfield();
         manager.post(new Memo("bitfield", pieces, this));
@@ -186,6 +203,7 @@ public class Broker extends Actor {
       // Send pieces to our `Manager`.
       case Message.PIECE:
         numQueued -= 1;
+        this.signal("broker numQueued", numQueued, this);
         requests.remove(message.getIndex() + ":" + message.getBegin());
         manager.post(new Memo("block", message, this));
       break;
@@ -219,6 +237,7 @@ public class Broker extends Actor {
         error(new Exception("duplicate"));
       } else {
         state = "normal";
+        this.signal("broker state", state, this);
       }
     }
 
@@ -228,6 +247,7 @@ public class Broker extends Actor {
           "error: " + peer.exception);
       }
       state = "error";
+      this.signal("broker state", state, this);
     }
 
     if (outbox.size() > 0 && !choked) {
@@ -246,10 +266,21 @@ public class Broker extends Actor {
     if (manager.isInteresting(pieces) && !interested) {
       Log.debug("We are interested in " + Util.buff2str(peer.getPeerId()));
       interested = true;
+      this.signal("broker interested", interested, this);
       choking = false;
+      this.signal("broker choking", choking, this);
       peer.send(Message.createUnchoke());
       peer.send(Message.createInterested());
     }
+  }
+  
+  private void forwardWatches(Manager manager) {
+    this.watch("broker state", manager);
+    this.watch("broker numQueued", manager);
+    this.watch("broker choked", manager);
+    this.watch("broker choking", manager);
+    this.watch("broker interested", manager);
+    this.watch("broker interesting", manager);
   }
 
   /** Checks to see if the peer has this piece. */
