@@ -199,9 +199,14 @@ public class Broker extends Actor {
     }
 
     if (choked) {
+      // If we're choked, assume any pending requests have been discarded by
+      // the peer.
       if (requests.size() > 0) {
-        for (Message m : requests.values()) {
+        Iterator <Message> i = requests.iterator();
+        while (i.hasNext()) {
+          Message item = i.next();
           manager.post(new Memo("blockFail", m, this));
+          i.remove();
         }
       }
     }
