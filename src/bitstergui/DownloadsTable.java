@@ -18,6 +18,7 @@ final class DownloadsTable extends JTable {
       }
     });
     
+    this.setAutoCreateRowSorter(true);
     this.setFillsViewportHeight(true);
     this.getColumnModel().getColumn(3).setCellRenderer(new ProgressBarCellRenderer());
     

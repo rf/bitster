@@ -5,7 +5,7 @@ import javax.swing.table.DefaultTableModel;
 
 final class PeerTable extends JTable {
   private static final long serialVersionUID = 0xDeadFeel;
-  private static String[] columns = {"Address", "State", "Progress", "Last Piece Sent", "Last Piece Received", "Choked", "Is Choking", "Interested", "Is Interesting"};
+  private static String[] columns = {"Address", "State", "Progress", "Last Sent", "Last Received", "Choked", "Is Choking", "Interested", "Is Interesting"};
   DefaultTableModel mdl;
   
   PeerTable() {
@@ -17,7 +17,8 @@ final class PeerTable extends JTable {
          return false;
       }
     });
-    
+
+    this.setAutoCreateRowSorter(true);
     this.setFillsViewportHeight(true);
     this.getColumnModel().getColumn(2).setCellRenderer(new ProgressBarCellRenderer());
     
@@ -57,5 +58,41 @@ final class PeerTable extends JTable {
     mdl.setValueAt(choking, row, 6);
     mdl.setValueAt(interested, row, 7);
     mdl.setValueAt(interesting, row, 8);
+  }
+  
+  String getAddress(int row){
+    return (String)mdl.getValueAt(row, 0);
+  }
+  
+  String getState(int row){
+    return (String)mdl.getValueAt(row, 1);
+  }
+  
+  int getProgress(int row){
+    return (Integer)mdl.getValueAt(row, 2);
+  }
+  
+  String getLastSent(int row){
+    return (String)mdl.getValueAt(row, 3);
+  }
+  
+  String getLastReceived(int row){
+    return (String)mdl.getValueAt(row, 4);
+  }
+  
+  boolean getChoked(int row){
+    return (Boolean)mdl.getValueAt(row, 5);
+  }
+  
+  boolean getChoking(int row){
+    return (Boolean)mdl.getValueAt(row, 6);
+  }
+  
+  boolean getInterested(int row){
+    return (Boolean)mdl.getValueAt(row, 7);
+  }
+  
+  boolean getInteresting(int row){
+    return (Boolean)mdl.getValueAt(row, 8);
   }
 }
