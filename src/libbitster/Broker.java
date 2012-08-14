@@ -194,7 +194,11 @@ public class Broker extends Actor {
         // Post a "request" memo to Manager, which passes it on as
         // a "block" memo to Funnel, who grabs the block and forwards
         // it to the requesting Broker
-        manager.post(new Memo("request", message, this));
+        if (!choking) manager.post(new Memo("request", message, this));
+
+        // Be an asshole and drop peers who attempt to request from us when
+        // we're choking them.  They should know better.
+        else error(new Exception("protocol error"));
       break;
     }
 
