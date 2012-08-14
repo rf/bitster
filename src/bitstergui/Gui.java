@@ -21,7 +21,7 @@ public class Gui extends Actor implements UserInterface {
     super();
     managers = new ArrayList<Manager>();
     nimbusLookAndFeel();
-    wnd = new MainWindow();
+    wnd = new MainWindow(this);
   }
   
   protected void idle () {
