@@ -59,13 +59,18 @@ public class MainWindow extends JFrame {
       miQuit = new JMenuItem("quit");
       miQuit.setAccelerator(KeyStroke.getKeyStroke('q'));
       miQuit.addActionListener(new ActionListener() {
-        public void actionPerformed(ActionEvent arg0) {
+        public void actionPerformed(ActionEvent e) {
           Janitor.getInstance().start();
         }
       });
       
       miAbout = new JMenuItem("about");
       miAbout.setAccelerator(KeyStroke.getKeyStroke('a'));
+      miAbout.addActionListener(new ActionListener() {
+        public void actionPerformed(ActionEvent e) {
+          JOptionPane.showMessageDialog(null, "bitster - a lightweight bittorrent client\n\nCreds:\n\tMartin Miralles-Cordal\n\tRussell Frank\n\tTheodore Surgent", "About", JOptionPane.INFORMATION_MESSAGE);
+        }
+      });
       mnuBitster = new JMenu("bitster");
       mnuBitster.add(miAbout);
       mnuBitster.add(miQuit);

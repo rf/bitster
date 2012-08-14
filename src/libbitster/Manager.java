@@ -600,6 +600,10 @@ public class Manager extends Actor implements Communicator {
     return metainfo.file_length;
   }
   
+  public int getPieceCount() {
+    return metainfo.piece_hashes.length;
+  }
+  
   public int getBrokerCount() {
     return brokers.size();
   }

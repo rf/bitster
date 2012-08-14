@@ -2,6 +2,7 @@ package bitstergui;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.swing.UIManager;
@@ -28,6 +29,7 @@ public class Gui extends Actor implements UserInterface {
     super();
     managers = new ArrayList<Manager>();
     downloadTblRows = new HashMap<Manager, Integer>();
+    peerInfoRows = new HashMap<Broker, Integer>();
     nimbusLookAndFeel();
     wnd = new MainWindow(this);
   }
@@ -107,6 +109,8 @@ public class Gui extends Actor implements UserInterface {
       
       wnd.tblDls.setSeed(row, seed);
       wnd.tblDls.setLeech(row, leech);
+      
+      buildPeerTabelRows(manager);
     }
   }
   
@@ -127,8 +131,28 @@ public class Gui extends Actor implements UserInterface {
     //Clear out old info
     while(wnd.tblPeers.mdl.getRowCount() > 0)
       wnd.tblPeers.mdl.removeRow(0);
-    
-    //Finish
+    peerInfoRows.clear();
+
+    LinkedList<Broker> peers = manager.getBrokers();
+    if(peers != null) {
+      for(Broker peer : peers) {
+        String address = peer.address();
+        String state = peer.state();
+        int progress = 0;
+        if(peer.bitfield() != null)
+          progress = (peer.bitfield().cardinality()*100) / manager.getPieceCount();
+        String lastSent = "";
+        String lastReceived = "";
+        boolean choked = peer.choked();
+        boolean choking = peer.choking();
+        boolean interested = peer.interested();
+        boolean interesting = peer.interesting();
+        
+        int row = wnd.tblPeers.addRow(address, state, progress, lastSent, lastReceived, choked, choking, interested, interesting);
+
+        peerInfoRows.put(peer, row);
+      }
+    }
   }
   
   private void nimbusLookAndFeel() {
