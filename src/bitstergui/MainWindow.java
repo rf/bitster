@@ -28,6 +28,7 @@ public class MainWindow extends JFrame {
   
   DownloadsTable tblDls;
   JScrollPane spDls;
+  PeerTable tblPeers;
   JScrollPane spPeers;
   
   public MainWindow() {
@@ -65,7 +66,10 @@ public class MainWindow extends JFrame {
       spDls.setBorder(BorderFactory.createTitledBorder("Downloads"));
     
     // Peers
-      spPeers = new JScrollPane(new JLabel("To do"));
+      tblPeers = new PeerTable();
+      for(int i=0; i < 100; ++i)
+        tblPeers.addRow("127.0.0.1", "normal", 22, "", "42", false, false, true, false);
+      spPeers = new JScrollPane(tblPeers);
       spPeers.setBorder(BorderFactory.createTitledBorder("Peers"));
       
     // DL/Peer Splitter

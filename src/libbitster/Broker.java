@@ -34,7 +34,7 @@ public class Broker extends Actor {
 
   private BitSet pieces;
 
-  private int numReceived = 0; // # of recvd messages
+  private int numReceived = 0; // # of received messages
   private int numQueued = 0;
 
   private LinkedList<Message> outbox;
