@@ -16,6 +16,11 @@ final class DownloadsTable extends JTable {
       public boolean isCellEditable(int row, int column) {
          return false;
       }
+      
+      @Override
+      public int getColumnCount() {
+        return 7;
+      }
     });
     
     this.setAutoCreateRowSorter(true);

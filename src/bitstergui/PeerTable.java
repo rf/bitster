@@ -16,11 +16,19 @@ final class PeerTable extends JTable {
       public boolean isCellEditable(int row, int column) {
          return false;
       }
+      
+      @Override
+      public int getColumnCount() {
+        return 9;
+      }
     });
 
     this.setAutoCreateRowSorter(true);
     this.setFillsViewportHeight(true);
     this.getColumnModel().getColumn(2).setCellRenderer(new ProgressBarCellRenderer());
+    CheckCellRenderer ccr = new CheckCellRenderer();
+    for(int i=5; i<=8; ++i)
+      this.getColumnModel().getColumn(i).setCellRenderer(ccr);
     
     mdl = (DefaultTableModel)this.getModel();
   }
