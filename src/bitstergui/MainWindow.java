@@ -56,7 +56,7 @@ public class MainWindow extends JFrame {
     this.setLayout(gb);
     
     // Menu
-      miQuit = new JMenuItem("quit");
+      miQuit = new JMenuItem("Quit");
       miQuit.setAccelerator(KeyStroke.getKeyStroke('q'));
       miQuit.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
@@ -64,7 +64,7 @@ public class MainWindow extends JFrame {
         }
       });
       
-      miAbout = new JMenuItem("about");
+      miAbout = new JMenuItem("About");
       miAbout.setAccelerator(KeyStroke.getKeyStroke('a'));
       miAbout.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
@@ -75,14 +75,14 @@ public class MainWindow extends JFrame {
       mnuBitster.add(miAbout);
       mnuBitster.add(miQuit);
       
-      miOpen = new JMenuItem("open");
+      miOpen = new JMenuItem("Open");
       miOpen.setAccelerator(KeyStroke.getKeyStroke('o'));
       miOpen.addActionListener(new ActionListener() {
         public void actionPerformed(ActionEvent e) {
           doOpen();
         }
       });
-      mnuFile = new JMenu("file");
+      mnuFile = new JMenu("File");
       mnuFile.add(miOpen);
       
       mbTopMenu = new JMenuBar();
