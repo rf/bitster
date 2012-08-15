@@ -160,6 +160,12 @@ public class Broker extends Actor {
     }
   }
 
+  /** Send a state update to manager **/
+  private void updateManager () {
+    manager.post(new Memo("stateChanged", null, this));
+  }
+
+  /** Close the connection **/
   public void close () { peer.close(); }
 
   /** Receive a message via tcp */
@@ -173,10 +179,10 @@ public class Broker extends Actor {
     switch (message.getType()) {
 
       // Handle basic messages
-      case Message.CHOKE:          choked = true;                       break;
-      case Message.UNCHOKE:        choked = false;                      break;
-      case Message.INTERESTED:     interesting = true;                  break;
-      case Message.NOT_INTERESTED: interesting = false;                 break;
+      case Message.CHOKE:          choked = true;       updateManager(); break;
+      case Message.UNCHOKE:        choked = false;      updateManager(); break;
+      case Message.INTERESTED:     interesting = true;  updateManager(); break;
+      case Message.NOT_INTERESTED: interesting = false; updateManager(); break;
 
       case Message.BITFIELD:       
         pieces = message.getBitfield();
