@@ -252,6 +252,7 @@ public class Broker extends Actor {
           "error: " + peer.exception);
       }
       state = "error";
+      updateManager();
     }
 
     if (outbox.size() > 0 && !choked) {

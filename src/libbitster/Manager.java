@@ -237,6 +237,14 @@ public class Manager extends Actor implements Communicator {
         request((Broker)memo.getSender());
       }
 
+      else if (memo.getType().equals("stateChanged")) {
+        // determine if we want to interact with this peer
+        // If we don't have all upload slots filled and this peer is interesting
+          // Add them to the preferred set and return
+        // If it's a choke message or the peer has disconnected
+          // Find a new peer to fill the upload slot and fill it
+      }
+
       // sent when a Broker gets a bitfield message
       else if(memo.getType().equals("bitfield")) {
         BitSet field = (BitSet) memo.getPayload();
@@ -317,6 +325,14 @@ public class Manager extends Actor implements Communicator {
         try { listen.close(); } catch (IOException e) { e.printStackTrace(); }
         deputy.post(new Memo("halt", null, this));
       }
+    }
+
+    else if (memo.getType().equals("optimisticUnchoke")) {
+      // Check status of previous optimistic unchoke, if there was one.
+      // If he's doing better than someone in our current preferred set..
+        // Promote him to a preferred peer.
+
+      // Choose a new optimistic unchoke.
     }
   }
 
