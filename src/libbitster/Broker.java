@@ -102,12 +102,13 @@ public class Broker extends Actor {
       } 
 
       else {
-        //Log.info("Sending " + m);
+        Log.info("Sending " + m);
         peer.send(m);
       }
     }
 
     else if (memo.getType().equals("unchoke")) {
+      Log.info("unchoking peer " + Util.buff2str(peer.getPeerId()));
       peer.send(Message.createUnchoke());
       choking = false;
     }
@@ -178,8 +179,6 @@ public class Broker extends Actor {
     if (numReceived > 0 && message.getType() == Message.BITFIELD) 
       error(new Exception("protocol error"));
     numReceived += 1;
-
-    //Log.info(message.toString());
 
     switch (message.getType()) {
 

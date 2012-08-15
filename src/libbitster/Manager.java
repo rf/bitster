@@ -240,6 +240,8 @@ public class Manager extends Actor implements Communicator {
       }
 
       else if (memo.getType().equals("stateChanged")) {
+        if (state.equals("seeding")) return;
+
         Broker b = (Broker) memo.getSender();
         // determine if we want to interact with this peer
         // If we don't have all upload slots filled and we are interested
@@ -351,6 +353,8 @@ public class Manager extends Actor implements Communicator {
     }
 
     else if (memo.getType().equals("optimisticUnchoke")) {
+      if (state.equals("seeding")) return;
+
       // Check status of previous optimistic unchoke, if there was one.
       if (optimisticUnchoke!= null) {
         Iterator <Broker> i = preferred.iterator();
@@ -427,14 +431,23 @@ public class Manager extends Actor implements Communicator {
     }
 
     if (state.equals("seeding")) {
-      if (preferred.size() < uploadSlots) {
-        // unchoke interested peers
-        Iterator <Broker> i = brokers.iterator();
-        while (i.hasNext()) {
-          Broker item = i.next();
-          if (item.interesting()) {
-            preferred.add(item);
-          }
+      Iterator <Broker> j = preferred.iterator();
+      while (j.hasNext()) {
+        Broker item = j.next();
+        if (!item.interesting() || item.state().equals("error")) {
+          j.remove();
+        }
+      }
+
+      // unchoke interested peers
+      //Log.debug("Seeding, unchoking interested peers. Preferred size: " + preferred.size());
+      Iterator <Broker> i = brokers.iterator();
+      while (i.hasNext()) {
+        if (preferred.size() > uploadSlots) break;
+        Broker item = i.next();
+        if (item.interesting()) {
+          item.post(new Memo("unchoke", null, this));
+          preferred.add(item);
         }
       }
     }
