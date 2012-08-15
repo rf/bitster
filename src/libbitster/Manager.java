@@ -231,7 +231,9 @@ public class Manager extends Actor implements Communicator {
           received.set(p.getNumber());
         }
 
-        Log.info("Got block, " + left + " left to download.");
+        Broker b = (Broker) memo.getSender();
+
+        Log.info("Got block of piece " + p.getNumber() + " from " + Util.buff2str(b.peerId()) + " who has speed " + b.speed);
 
         // request more shit
         //request((Broker)memo.getSender());
@@ -243,6 +245,7 @@ public class Manager extends Actor implements Communicator {
         // If we don't have all upload slots filled and we are interested
         if (preferred.size() < uploadSlots && !b.choked() && b.interested()) {
           // Add them to the preferred set and return
+          Log.info("Not enough upload slots filled so immediately communicating with " + Util.buff2str(b.peerId()));
           preferred.add(b);
           return;
         }
@@ -420,6 +423,12 @@ public class Manager extends Actor implements Communicator {
           }
           peersByAddress.put(b.address(), null);
         }
+      }
+    }
+
+    if (state.equals("seeding")) {
+      if (preferred < uploadSlots) {
+        // unchoke interested peers
       }
     }
 

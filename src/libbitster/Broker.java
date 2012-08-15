@@ -117,12 +117,12 @@ public class Broker extends Actor {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
       ByteBuffer stoof = (ByteBuffer) ((Object[])memo.getPayload())[1];
       Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
-      Log.d("Sending to " + new String(this.peerId().array()) + ": " + response);
+      //Log.d("Sending to " + new String(this.peerId().array()) + ": " + response);
       peer.send(response);
     }
 
     else if (memo.getType().equals("keepalive") && state.equals("normal")) {
-      Log.info("Sending keep alive");
+      //Log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
@@ -139,8 +139,8 @@ public class Broker extends Actor {
          */
         if(pieces == null || !pieces.get(p.getNumber())) {
           peer.send(Message.createHave(p.getNumber()));
-          Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
-              " that we have piece " + p.getNumber());
+          //Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+              //" that we have piece " + p.getNumber());
         }
 
       } else Log.info("Peer not connected, not sending have.");
