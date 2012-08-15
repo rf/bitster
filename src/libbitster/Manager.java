@@ -120,6 +120,7 @@ public class Manager extends Actor implements Communicator {
     }
 
     Util.setTimeout(30000, new Memo("optimisticUnchoke", null, this));
+    Util.setTimeout(60000, new Memo("status", null, this));
   }
 
   private void initialize() {
@@ -233,7 +234,7 @@ public class Manager extends Actor implements Communicator {
 
         Broker b = (Broker) memo.getSender();
 
-        Log.info("Got block of piece " + p.getNumber() + " from " + Util.buff2str(b.peerId()) + " who has speed " + b.speed);
+        //Log.info("Got block of piece " + p.getNumber() + " from " + Util.buff2str(b.peerId()) + " who has speed " + b.speed);
 
         // request more shit
         //request((Broker)memo.getSender());
@@ -355,6 +356,8 @@ public class Manager extends Actor implements Communicator {
     else if (memo.getType().equals("optimisticUnchoke")) {
       if (state.equals("seeding")) return;
 
+      Log.info("Running optimistic unchoke code");
+
       // Check status of previous optimistic unchoke, if there was one.
       if (optimisticUnchoke!= null) {
         Iterator <Broker> i = preferred.iterator();
@@ -364,6 +367,8 @@ public class Manager extends Actor implements Communicator {
           if (optimisticUnchoke.speed > item.speed) {
             // Promote him to a preferred peer.
             i.remove();
+            item.post(new Memo("choke", null, this));
+            Log.info("Promoting our optimistic unchoke " + Util.buff2str(optimisticUnchoke.peerId()));
             brokers.add(optimisticUnchoke);
             break;
           }
@@ -374,8 +379,16 @@ public class Manager extends Actor implements Communicator {
       for (Broker b : brokers) {
         if (!preferred.contains(b) && b.interested() && !b.choked()) {
           optimisticUnchoke = b;
+          Log.info("Chose a new optimistic unchoke: " + Util.buff2str(optimisticUnchoke.peerId()));
           b.post(new Memo("unchoke", null, this));
+          break;
         }
+      }
+    }
+
+    else if (memo.getType().equals("status")) {
+      for (Broker b : preferred) {
+        Log.info("preferred: " + b);
       }
     }
   }

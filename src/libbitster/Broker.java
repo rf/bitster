@@ -102,7 +102,7 @@ public class Broker extends Actor {
       } 
 
       else {
-        Log.info("Sending " + m);
+        //Log.info("Sending " + m);
         peer.send(m);
       }
     }
@@ -113,12 +113,18 @@ public class Broker extends Actor {
       choking = false;
     }
 
+    else if (memo.getType().equals("choke")) {
+      Log.info("choking peer " + Util.buff2str(peer.getPeerId()));
+      peer.send(Message.createChoke());
+      choking = false;
+    }
+
     // Get block back from funnel
     else if (memo.getType().equals("block")) {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
       ByteBuffer stoof = (ByteBuffer) ((Object[])memo.getPayload())[1];
       Message response = Message.createPiece(msg.getIndex(), msg.getBegin(), stoof);
-      //Log.d("Sending to " + new String(this.peerId().array()) + ": " + response);
+      Log.d("Sending to " + new String(this.peerId().array()) + ": " + response);
       peer.send(response);
     }
 
@@ -296,4 +302,8 @@ public class Broker extends Actor {
   public ByteBuffer peerId () { return peer.getPeerId(); }
   public String address() { return peer.getAddress(); }
   public BitSet bitfield() { return this.pieces; }
+
+  public String toString () {
+    return "Broker [" + Util.buff2str(peer.getPeerId()) + "] choked: " + choked + " choking: " + choking +" interested: " + interested +" interesting: " + interesting + " speed: " + speed;
+  }
 }
