@@ -369,7 +369,7 @@ public class Manager extends Actor implements Communicator {
             i.remove();
             item.post(new Memo("choke", null, this));
             Log.info("Promoting our optimistic unchoke " + Util.buff2str(optimisticUnchoke.peerId()));
-            brokers.add(optimisticUnchoke);
+            preferred.add(optimisticUnchoke);
             break;
           }
         }
