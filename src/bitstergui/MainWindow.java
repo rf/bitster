@@ -129,7 +129,7 @@ public class MainWindow extends JFrame {
     
     if(result == JFileChooser.APPROVE_OPTION) {
       File file = fc.getSelectedFile();
-      gui.openFile(file);
+      gui.openFile(file, null);
     }
   }
 }

@@ -168,7 +168,7 @@ public class Gui extends Actor implements UserInterface {
     }
   }
   
-  public void openFile(File file) {
+  public void openFile(File file, File dest) {
     String msg;
     
     if(!file.exists()) {
@@ -195,7 +195,7 @@ public class Gui extends Actor implements UserInterface {
       }
       
       // validate metainfo.file_name
-      File dest = new File(metainfo.file_name);
+      dest = new File(metainfo.file_name);
       if(!dest.exists()) {
         try {
             // try to create file to validate target name
