@@ -429,6 +429,14 @@ public class Manager extends Actor implements Communicator {
     if (state.equals("seeding")) {
       if (preferred < uploadSlots) {
         // unchoke interested peers
+        Iterator <Broker> i = brokers.iterator();
+        while (i.hasNext()) {
+          if (preferred.size() > uploadSlots) break;
+          Broker item = i.next();
+          if (item.interesting()) {
+            preferred.add(item);
+          }
+        }
       }
     }
 
