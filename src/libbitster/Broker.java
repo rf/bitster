@@ -37,6 +37,10 @@ public class Broker extends Actor {
   private int numReceived = 0; // # of recvd messages
   private int numQueued = 0;
 
+  public int piecesReceived = 0;
+  public float speed = 0;
+
+
   private LinkedList<Message> outbox;
 
   // Pieces we've requested from the peer. Heinous, I know, but it works.
@@ -59,6 +63,8 @@ public class Broker extends Actor {
     this.manager = manager;
     state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
+
+    Util.setTimeout(20000, new Memo("calcSpeed", null, this));
   }
 
   public Broker (InetAddress host, int port, Manager manager, Message bitfield) {
@@ -77,13 +83,13 @@ public class Broker extends Actor {
     );
     peer.establish();
     peer.send(bitfield);
-    
+
     this.manager = manager;
     state = "normal";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
+    Util.setTimeout(20000, new Memo("calcSpeed", null, this));
   }
 
-  
   /** Receive a memo */
   protected void receive (Memo memo) {
     if (memo.getType().equals("request")) {
@@ -94,13 +100,13 @@ public class Broker extends Actor {
         Log.info("We're choked, queuing message");
         outbox.add(m);
       } 
-      
+
       else {
         //Log.info("Sending " + m);
         peer.send(m);
       }
     }
-    
+
     // Get block back from funnel
     else if (memo.getType().equals("block")) {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
@@ -115,12 +121,12 @@ public class Broker extends Actor {
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
-    
+
     // received from Manager when we've finished downloading a piece
     else if (memo.getType().equals("have")) {
       if (peer.getState().equals("normal")) {
         Piece p = (Piece) memo.getPayload();
-        
+
         /* Only send have message if peer doesn't have said piece. This lowers overhead
          * about 35% on average, but it could consequently make pieces seem rarer than 
          * they are to seeders.
@@ -131,8 +137,14 @@ public class Broker extends Actor {
           Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
               " that we have piece " + p.getNumber());
         }
-        
+
       } else Log.info("Peer not connected, not sending have.");
+    }
+
+    else if (memo.getType().equals("calcSpeed")) {
+      // Rough speed calculation
+      speed = (float) piecesReceived / 20000.0;
+      piecesReceived = 0;
     }
   }
 
@@ -182,6 +194,7 @@ public class Broker extends Actor {
       // Send pieces to our `Manager`.
       case Message.PIECE:
         numQueued -= 1;
+        piecesReceived += 1;
         requests.remove(message.getIndex() + ":" + message.getBegin());
         manager.post(new Memo("block", message, this));
       break;
