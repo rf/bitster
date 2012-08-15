@@ -1,15 +1,23 @@
 package bitstergui;
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import libbitster.Actor;
+import libbitster.BencodingException;
 import libbitster.Broker;
+import libbitster.Log;
 import libbitster.Manager;
 import libbitster.Memo;
+import libbitster.TorrentInfo;
 import libbitster.UserInterface;
 
 /**
@@ -44,7 +52,7 @@ public class Gui extends Actor implements UserInterface {
     String file = manager.getFileName();
     String status = manager.getLeft() > 0 ? "downloading" : "seeding";
     String size = ((int)((manager.getSize()/1024.0/1024.0)*100))/100.0 + "MB";
-    int progress = (int)(((double)manager.getDownloaded() / (double)manager.getSize()) * 100);
+    int progress = (100 * manager.getDownloaded()) / manager.getSize();
     int seed = manager.getSeeds();
     int leech = manager.getBrokerCount() - seed;
     double ratio = 0;
@@ -157,6 +165,54 @@ public class Gui extends Actor implements UserInterface {
 
         peerInfoRows.put(peer, row);
       }
+    }
+  }
+  
+  public void openFile(File file) {
+    String msg;
+    
+    if(!file.exists()) {
+      msg = "Error: " + file.getName() + " is not a file.";
+      Log.e(msg);
+      JOptionPane.showMessageDialog(wnd, msg, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+    
+    try {
+      byte[] torrentBytes = new byte[(int) file.length()]; 
+      DataInputStream dis;
+      dis = new DataInputStream(new FileInputStream(file));
+      dis.readFully(torrentBytes);
+      dis.close();
+      TorrentInfo metainfo = new TorrentInfo(torrentBytes);
+      
+      // validate metainfo.file_name
+      File dest = new File(metainfo.file_name);
+      if(!dest.exists()) {
+        try {
+            // try to create file to validate target name
+            dest.createNewFile();
+            dest.delete();
+        } catch (IOException e) {
+          msg = "Error: invalid destination file.";
+          Log.e(msg);
+          JOptionPane.showMessageDialog(wnd, msg, "Error", JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      }
+      
+      Manager manager = new Manager(metainfo, dest, this);
+      manager.start();
+      
+    } catch (IOException e) {
+      msg = "Error: unable to read torrent file.";
+      Log.e(msg);
+      JOptionPane.showMessageDialog(wnd, msg, "Error", JOptionPane.ERROR_MESSAGE);
+      return;
+    } catch (BencodingException e) {
+      msg = "Error: invalid or corrupt torrent file.";
+      Log.e(msg);
+      JOptionPane.showMessageDialog(wnd, msg, "Error", JOptionPane.ERROR_MESSAGE);
+      return;
     }
   }
   
