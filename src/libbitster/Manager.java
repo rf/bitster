@@ -17,7 +17,7 @@ import java.net.*;
 
 public class Manager extends Actor implements Communicator {
 
-  private Broker optimisticUnchoke;
+  private Broker optimisticUnchoke = null;
   private ArrayList<Broker> preferred; // preferred peers
 
   private int uploadSlots = 4;
@@ -234,15 +234,35 @@ public class Manager extends Actor implements Communicator {
         Log.info("Got block, " + left + " left to download.");
 
         // request more shit
-        request((Broker)memo.getSender());
+        //request((Broker)memo.getSender());
       }
 
       else if (memo.getType().equals("stateChanged")) {
+        Broker b = (Broker) memo.getSender();
         // determine if we want to interact with this peer
-        // If we don't have all upload slots filled and this peer is interesting
+        // If we don't have all upload slots filled and we are interested
+        if (preferred.size() < uploadSlots && !b.choked() && b.interested()) {
           // Add them to the preferred set and return
-        // If it's a choke message or the peer has disconnected
+          preferred.add(b);
+          return;
+        }
+
+        // If it's a choke message or the peer has disconnected and peer is 
+        // preferred
+        if (preferred.contains(b) && (b.choked() || b.state().equals("error"))) {
           // Find a new peer to fill the upload slot and fill it
+          preferred.remove(b);
+          
+          for (Broker n : brokers) {
+            if (
+              !preferred.contains(n) && !n.choked() && n.interested() && 
+              n != optimisticUnchoke
+            ) {
+              preferred.add(n);
+              return;
+            }
+          }
+        }
       }
 
       // sent when a Broker gets a bitfield message
@@ -256,7 +276,7 @@ public class Manager extends Actor implements Communicator {
         }
         Arrays.sort(piecesByAvailability);
         // Git dem peecazzz
-        request((Broker)memo.getSender());
+        //request((Broker)memo.getSender());
       }
 
       // sent when a Broker gets a have message
@@ -265,7 +285,7 @@ public class Manager extends Actor implements Communicator {
         Piece p = pieces.get(piece);
         p.incAvailable();
         Arrays.sort(piecesByAvailability);
-        request((Broker)memo.getSender());
+        //request((Broker)memo.getSender());
       }
 
       // Received from Brokers when a block has been requested
@@ -329,10 +349,27 @@ public class Manager extends Actor implements Communicator {
 
     else if (memo.getType().equals("optimisticUnchoke")) {
       // Check status of previous optimistic unchoke, if there was one.
-      // If he's doing better than someone in our current preferred set..
-        // Promote him to a preferred peer.
+      if (optimisticUnchoke!= null) {
+        Iterator <Broker> i = preferred.iterator();
+        while (i.hasNext()) {
+          Broker item = i.next();
+          // If he's doing better than someone in our current preferred set..
+          if (optimisticUnchoke.speed > item.speed) {
+            // Promote him to a preferred peer.
+            i.remove();
+            brokers.add(optimisticUnchoke);
+            break;
+          }
+        }
+      }
 
       // Choose a new optimistic unchoke.
+      for (Broker b : brokers) {
+        if (!preferred.contains(b) && b.interested() && !b.choked()) {
+          optimisticUnchoke = b;
+          b.post(new Memo("unchoke", null, this));
+        }
+      }
     }
   }
 
@@ -366,6 +403,7 @@ public class Manager extends Actor implements Communicator {
 
       while (i.hasNext()) {
         b = i.next();
+        request(b);
         b.tick();
         if (b.state().equals("error")) {
           i.remove();

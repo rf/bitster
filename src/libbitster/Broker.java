@@ -107,6 +107,11 @@ public class Broker extends Actor {
       }
     }
 
+    else if (memo.getType().equals("unchoke")) {
+      peer.send(Message.createUnchoke());
+      choking = false;
+    }
+
     // Get block back from funnel
     else if (memo.getType().equals("block")) {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
@@ -143,7 +148,7 @@ public class Broker extends Actor {
 
     else if (memo.getType().equals("calcSpeed")) {
       // Rough speed calculation
-      speed = (float) piecesReceived / 20000.0;
+      speed = (float) piecesReceived / 20000.0f;
       piecesReceived = 0;
     }
   }
@@ -221,10 +226,10 @@ public class Broker extends Actor {
       // If we're choked, assume any pending requests have been discarded by
       // the peer.
       if (requests.size() > 0) {
-        Iterator <Message> i = requests.iterator();
+        Iterator <Message> i = requests.values().iterator();
         while (i.hasNext()) {
           Message item = i.next();
-          manager.post(new Memo("blockFail", m, this));
+          manager.post(new Memo("blockFail", item, this));
           i.remove();
         }
       }
