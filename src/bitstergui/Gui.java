@@ -185,6 +185,15 @@ public class Gui extends Actor implements UserInterface {
       dis.close();
       TorrentInfo metainfo = new TorrentInfo(torrentBytes);
       
+   // if we are already downloading this torrent, skip
+      for(Manager m : managers) {
+        if (metainfo.info_hash.equals(m.getInfoHash())) {
+          msg = "Error: torrent already being downloaded.";
+          JOptionPane.showMessageDialog(wnd, msg, "Error", JOptionPane.ERROR_MESSAGE);
+          return;
+        }
+      }
+      
       // validate metainfo.file_name
       File dest = new File(metainfo.file_name);
       if(!dest.exists()) {
