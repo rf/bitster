@@ -73,7 +73,9 @@ public class Janitor extends Actor {
       synchronized (managers) {
         Iterator<Manager> it = managers.iterator();
         while(it.hasNext()) {
-          unregister(it.next());
+          try { //Fix this sometimes get exception
+            unregister(it.next());
+          } catch (Exception e) {}
         }
       }
       Util.setTimeout(10000, new Memo("kill", null, this));

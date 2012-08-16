@@ -7,13 +7,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
 import libbitster.Actor;
 import libbitster.BencodingException;
+import libbitster.BitsterInfo;
 import libbitster.Broker;
 import libbitster.Log;
 import libbitster.Manager;
@@ -44,10 +48,20 @@ public class Gui extends Actor implements UserInterface {
     rowIndexToBroker = new HashMap<Integer, Broker>();
     nimbusLookAndFeel();
     wnd = new MainWindow(this);
+    
+    Set<Entry<File, File>> downloads = BitsterInfo.getInstance().getDownloads();
+    Entry<File, File> download;
+    synchronized (downloads) {
+      Iterator<Entry<File, File>> it = downloads.iterator();
+      while(it.hasNext()) {
+        download = it.next();
+        openFile(download.getValue(), download.getKey());
+      }
+    }
   }
   
   protected void idle () {
-    try { Thread.sleep(100); } catch (Exception e) {}
+    try { Thread.sleep(50); } catch (Exception e) {}
   }
   
   @Override
@@ -228,10 +242,8 @@ public class Gui extends Actor implements UserInterface {
         }
       }
     }
-    
-    System.out.println(memo.getType());
   }
-  int count = 0;
+
   public boolean managerSelected(Manager manager) {
     return managerToRowIndex.containsKey(manager) &&
     managerToRowIndex.get(manager) == wnd.getSelectedDownloadRowIndex();
@@ -337,6 +349,8 @@ public class Gui extends Actor implements UserInterface {
       
       Manager manager = new Manager(metainfo, dest, this);
       manager.start();
+      
+      BitsterInfo.getInstance().addDownload(dest, file);
       
     } catch (IOException e) {
       msg = "Error: unable to read torrent file.";
