@@ -10,7 +10,7 @@ import javax.swing.table.DefaultTableModel;
  */
 final class PeerTable extends JTable {
   private static final long serialVersionUID = 0xDeadFeel;
-  private static String[] columns = {"Address", "State", "Progress", "Choked", "Is Choking", "Interested", "Is Interesting"};
+  private static String[] columns = {"Address", "State", "Available", "Choked", "Is Choking", "Interested", "Is Interesting"};
   DefaultTableModel mdl;
   
   PeerTable() {
@@ -41,12 +41,12 @@ final class PeerTable extends JTable {
   
   public int addRow(String address,
                     String state,
-                    int progress,
+                    int available,
                     boolean choked,
                     boolean choking,
                     boolean interested,
                     boolean interesting) {
-    Object[] row = {address, state, progress, choked, choking, interested, interesting};
+    Object[] row = {address, state, available, choked, choking, interested, interesting};
     mdl.addRow(row);
     return mdl.getRowCount() - 1;
   }
@@ -54,14 +54,14 @@ final class PeerTable extends JTable {
   public void setRow(int row, 
                      String address,
                      String state,
-                     int progress,
+                     int available,
                      boolean choked,
                      boolean choking,
                      boolean interested,
                      boolean interesting) {
     mdl.setValueAt(address, row, 0);
     mdl.setValueAt(state, row, 1);
-    mdl.setValueAt(progress, row, 2);
+    mdl.setValueAt(available, row, 2);
     mdl.setValueAt(choked, row, 3);
     mdl.setValueAt(choking, row, 4);
     mdl.setValueAt(interested, row, 5);
@@ -77,7 +77,7 @@ final class PeerTable extends JTable {
     return (String)mdl.getValueAt(row, 1);
   }
   
-  int getProgress(int row){
+  int getAvailable(int row){
     return (Integer)mdl.getValueAt(row, 2);
   }
   
@@ -106,8 +106,8 @@ final class PeerTable extends JTable {
     mdl.setValueAt(state, row, 1);
   }
   
-  void setProgress(int row, int progress){
-    mdl.setValueAt(progress, row, 2);
+  void setAvailable(int row, int available){
+    mdl.setValueAt(available, row, 2);
   }
   
   void setChoked(int row, boolean choked){

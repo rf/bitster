@@ -15,10 +15,12 @@ import java.util.Set;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 import javax.swing.UIManager.LookAndFeelInfo;
+
 import libbitster.Actor;
 import libbitster.BencodingException;
 import libbitster.BitsterInfo;
 import libbitster.Broker;
+import libbitster.Janitor;
 import libbitster.Log;
 import libbitster.Manager;
 import libbitster.Memo;
@@ -104,8 +106,8 @@ public class Gui extends Actor implements UserInterface {
       int uploaded = (Integer)payload.get("uploaded");
       
       int row = managerToRowIndex.get(manager);
-      
-      wnd.tblDls.setRatio(row, ((int)(((double)uploaded / (double)manager.getDownloaded())*100))/100.0);
+      if(row >= 0)
+        wnd.tblDls.setRatio(row, ((int)(((double)uploaded / (double)manager.getDownloaded())*100))/100.0);
     }
     else if(memo.getType() == "block received") {
       @SuppressWarnings("unchecked")
@@ -116,9 +118,11 @@ public class Gui extends Actor implements UserInterface {
 
       int row = managerToRowIndex.get(manager);
 
-      wnd.tblDls.setStatus(row, left > 0 ? "downloading" : "seeding");
-      wnd.tblDls.setProgress(row, (int)(((double)downloaded / (double)manager.getSize()) * 100));
-      wnd.tblDls.setRatio(row, ((int)(((double)manager.getUploaded() / (double)downloaded)*100))/100.0);
+      if(row >= 0) {
+        wnd.tblDls.setStatus(row, left > 0 ? "downloading" : "seeding");
+        wnd.tblDls.setProgress(row, (int)(((double)downloaded / (double)manager.getSize()) * 100));
+        wnd.tblDls.setRatio(row, ((int)(((double)manager.getUploaded() / (double)downloaded)*100))/100.0);
+      }
     }
     else if(memo.getType() == "broker added") {
       Manager manager = (Manager)memo.getSender();
@@ -128,12 +132,14 @@ public class Gui extends Actor implements UserInterface {
       int leech = manager.getBrokerCount() - seed;
 
       int row = managerToRowIndex.get(manager);
+
+      if(row >= 0) {
+        wnd.tblDls.setSeed(row, seed);
+        wnd.tblDls.setLeech(row, leech);
       
-      wnd.tblDls.setSeed(row, seed);
-      wnd.tblDls.setLeech(row, leech);
-      
-      if(managerSelected(manager))
-        addPeer(manager, broker);
+        if(managerSelected(manager))
+          addPeer(manager, broker);
+      }
     }
     else if(memo.getType().equals("broker choked")) {
       Manager manager = (Manager)memo.getSender();
@@ -201,7 +207,7 @@ public class Gui extends Actor implements UserInterface {
       if(managerSelected(manager)) {
         Integer row = brokerToRowIndex.get(broker);
         if(row != null) { //Should not be the case though
-          wnd.tblPeers.setProgress(row, (100*field.cardinality())/manager.getPieceCount());
+          wnd.tblPeers.setAvailable(row, (100*field.cardinality())/manager.getPieceCount());
         }
       }
     }
@@ -219,7 +225,7 @@ public class Gui extends Actor implements UserInterface {
       if(managerSelected(manager)) {
         Integer row = brokerToRowIndex.get(broker);
         if(row != null) { //Should not be the case though
-          wnd.tblPeers.setProgress(row, (100*broker.bitfield().cardinality())/manager.getPieceCount());
+          wnd.tblPeers.setAvailable(row, (100*broker.bitfield().cardinality())/manager.getPieceCount());
         }
       }
     }
@@ -261,15 +267,6 @@ public class Gui extends Actor implements UserInterface {
     return instance != null;
   }
   
-  public void buildPeerTableRowsBySelected() {
-    int row = wnd.getSelectedDownloadRowIndex();
-    if(row < 0 || row >= rowIndexToManager.size())
-      return;
-    
-    Manager manager = rowIndexToManager.get(row);
-    buildPeerTableRows(manager);
-  }
-  
   public void addPeer(Manager manager, Broker peer) {
     String address = peer.address();
     String state = peer.state();
@@ -287,6 +284,17 @@ public class Gui extends Actor implements UserInterface {
     rowIndexToBroker.put(row, peer);
   }
   
+  public void buildPeerTableRowsBySelected() {
+    int row = wnd.getSelectedDownloadRowIndex();
+    if(row < 0 || row >= rowIndexToManager.size()) {
+      buildPeerTableRows(null);
+      return;
+    }
+    
+    Manager manager = rowIndexToManager.get(row);
+    buildPeerTableRows(manager);
+  }
+  
   //Helper method to build the peer table rows when a different Manager (download) is selected from the downloads list.
   public void buildPeerTableRows(Manager manager) {
     //Clear out old info
@@ -294,7 +302,10 @@ public class Gui extends Actor implements UserInterface {
       wnd.tblPeers.mdl.removeRow(0);
     brokerToRowIndex.clear();
     rowIndexToBroker.clear();
-
+    
+    if(manager == null)
+      return;
+    
     // peers list may change when this is called, so we need to clone the list
     @SuppressWarnings("unchecked")
     LinkedList<Broker> peers = (LinkedList<Broker>) manager.getBrokers().clone();
@@ -362,6 +373,18 @@ public class Gui extends Actor implements UserInterface {
       Log.e(msg);
       JOptionPane.showMessageDialog(wnd, msg, "Error", JOptionPane.ERROR_MESSAGE);
       return;
+    }
+  }
+  
+  public void removeDownload(int row) {
+    Manager manager = rowIndexToManager.get(row);
+    
+    if(manager != null) {
+      BitsterInfo.getInstance().removeDownload(new File(manager.getFileName()));
+      Janitor.getInstance().unregister(manager);
+      wnd.tblDls.mdl.removeRow(row);
+      rowIndexToManager.remove(row);
+      managerToRowIndex.remove(manager);
     }
   }
   

@@ -1,23 +1,30 @@
 package bitstergui;
 
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
@@ -46,6 +53,8 @@ public class MainWindow extends JFrame {
   JScrollPane spDls;
   PeerTable tblPeers;
   JScrollPane spPeers;
+  JPopupMenu pmDelete;
+  JMenuItem miDelete;
   
   public MainWindow(final Gui gui) {
     super("bitster");
@@ -97,6 +106,31 @@ public class MainWindow extends JFrame {
         @Override
         public void valueChanged(ListSelectionEvent e) {
           gui.buildPeerTableRowsBySelected();
+        }
+      });
+      
+    //Downloads context menu
+      pmDelete = new JPopupMenu();
+      miDelete = new JMenuItem("Stop download and remove from list");
+      pmDelete.add(miDelete);
+      miDelete.addActionListener(new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+          gui.removeDownload(getSelectedDownloadRowIndex());
+          gui.buildPeerTableRowsBySelected();
+        }
+      });
+      
+      tblDls.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mousePressed(MouseEvent e) {
+          if(SwingUtilities.isRightMouseButton(e))
+          {
+            pmDelete.show(tblDls, e.getX(), e.getY());
+            Point point = e.getPoint();
+            int row = tblDls.rowAtPoint(point);
+            tblDls.getSelectionModel().setSelectionInterval(row, row);
+          }
         }
       });
     
