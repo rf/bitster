@@ -258,14 +258,18 @@ public class Manager extends Actor implements Communicator {
         // preferred
         if (preferred.contains(b) && (b.choked() || b.state().equals("error"))) {
           // Find a new peer to fill the upload slot and fill it
+          Log.info("We are choked or peer is in an error state. Ceasing communication with " + Util.buff2str(b.peerId()));
           preferred.remove(b);
+          b.post(new Memo("choke", null, this));
           
           for (Broker n : brokers) {
             if (
               !preferred.contains(n) && !n.choked() && n.interested() && 
               n != optimisticUnchoke
             ) {
+              Log.info("Filling vacant slot with " + Util.buff2str(n.peerId()));
               preferred.add(n);
+              b.post(new Memo("unchoke", null, this));
               return;
             }
           }

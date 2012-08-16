@@ -302,7 +302,24 @@ public class Broker extends Actor {
   public ByteBuffer peerId () { return peer.getPeerId(); }
   public String address() { return peer.getAddress(); }
   public BitSet bitfield() { return this.pieces; }
+  
+  /**
+   * Checks to see if an object is equal to this.
+   * @return false if not a broker or peer IDs are not equal
+   */
+  public boolean equals(Object o) {
+    if(o == null || !(o instanceof Broker)) {
+      return false;
+    }
+    else {
+      Broker b = (Broker) o;
+      return b.peerId().equals(this.peerId());
+    }
+  }
 
+  /**
+   * @return a String representation of this object.
+   */
   public String toString () {
     return "Broker [" + Util.buff2str(peer.getPeerId()) + "] choked: " + choked + " choking: " + choking +" interested: " + interested +" interesting: " + interesting + " speed: " + speed;
   }
