@@ -337,7 +337,7 @@ public class Manager extends Actor implements Communicator {
         // Signal bitfield received
         HashMap<String, Object> info = new HashMap<String, Object>();
           info.put("broker", (Broker)memo.getSender());
-          info.put("field", field);
+          info.put("field", field.clone());
         this.signal("bitfield received", info, this);
       }
 
@@ -383,6 +383,42 @@ public class Manager extends Actor implements Communicator {
           info.put("piece number", m.getIndex());
         this.signal("block fail", info, this);
       }
+      
+      //Forward broker change events
+      else {
+        HashMap<String, Object> info = new HashMap<String, Object>();
+          
+        if(memo.getType().equals("broker state")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("state", memo.getPayload());
+          this.signal("broker state", info, this);
+        }
+        else if(memo.getType().equals("broker numQueued")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("numQueued", memo.getPayload());
+          this.signal("broker numQueued", info, this);
+        }
+        else if(memo.getType().equals("broker choked")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("choked", memo.getPayload());
+          this.signal("broker choked", info, this);
+        }
+        else if(memo.getType().equals("broker choking")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("choking", memo.getPayload());
+          this.signal("broker choking", info, this);
+        }
+        else if(memo.getType().equals("broker interested")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("interested", memo.getPayload());
+          this.signal("broker interested", info, this);
+        }
+        else if(memo.getType().equals("broker interesting")) {
+          info.put("broker", (Broker)memo.getSender());
+          info.put("interesting", memo.getPayload());
+          this.signal("broker interesting", info, this);
+        }
+      }
     }
 
     /*
@@ -423,42 +459,6 @@ public class Manager extends Actor implements Communicator {
       else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
         shutdown();
         Janitor.getInstance().post(new Memo("done", null, this));
-      }
-      
-      //Forward broker change events
-      else {
-        HashMap<String, Object> info = new HashMap<String, Object>();
-          
-        if(memo.getType().equals("broker state")) {
-          info.put("broker", (Broker)memo.getSender());
-          info.put("state", memo.getPayload());
-          this.signal("broker state", info, this);
-        }
-        else if(memo.getType().equals("broker numQueued")) {
-          info.put("broker", (Broker)memo.getSender());
-          info.put("numQueued", memo.getPayload());
-          this.signal("broker numQueued", info, this);
-        }
-        else if(memo.getType().equals("broker choked")) {
-          info.put("broker", (Broker)memo.getSender());
-          info.put("choked", memo.getPayload());
-          this.signal("broker choked", info, this);
-        }
-        else if(memo.getType().equals("broker choking")) {
-          info.put("broker", (Broker)memo.getSender());
-          info.put("choking", memo.getPayload());
-          this.signal("broker choking", info, this);
-        }
-        else if(memo.getType().equals("broker interested")) {
-          info.put("broker", (Broker)memo.getSender());
-          info.put("interested", memo.getPayload());
-          this.signal("broker interested", info, this);
-        }
-        else if(memo.getType().equals("broker interesting")) {
-          info.put("broker", (Broker)memo.getSender());
-          info.put("interesting", memo.getPayload());
-          this.signal("broker interesting", info, this);
-        }
       }
     }
 

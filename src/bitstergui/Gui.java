@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -70,8 +71,7 @@ public class Gui extends Actor implements UserInterface {
     rowIndexToManager.put(index, manager);
 
     //Watch download progress
-      //manager.watch("bitfield received", this);
-      //manager.watch("block fail", this);
+      manager.watch("bitfield received", this);
       manager.watch("block received", this);
       manager.watch("block sent", this);
       manager.watch("broker added", this);
@@ -79,8 +79,8 @@ public class Gui extends Actor implements UserInterface {
       manager.watch("broker choking", this);
       manager.watch("broker interested", this);
       manager.watch("broker interesting", this);
-      //manager.watch("broker state", this);
-      //manager.watch("have received", this);
+      manager.watch("broker state", this);
+      manager.watch("have received", this);
   }
   
   protected void receive (Memo memo) {
@@ -178,8 +178,51 @@ public class Gui extends Actor implements UserInterface {
         }
       }
     }
+    else if(memo.getType().equals("bitfield received")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        BitSet field = (BitSet)info.get("field");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setProgress(row, (100*field.cardinality())/manager.getPieceCount());
+        }
+      }
+    }
+    else if(memo.getType().equals("have received")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setProgress(row, (100*broker.bitfield().cardinality())/manager.getPieceCount());
+        }
+      }
+    }
+    else if(memo.getType().equals("broker state")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        String state = (String)info.get("state");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setState(row, state);
+        }
+      }
+    }
+    
+    System.out.println(memo.getType());
   }
-  
+  int count = 0;
   public boolean managerSelected(Manager manager) {
     return managerToRowIndex.containsKey(manager) &&
     managerToRowIndex.get(manager) == wnd.getSelectedDownloadRowIndex();
@@ -207,7 +250,7 @@ public class Gui extends Actor implements UserInterface {
   }
   
   public void addPeer(Manager manager, Broker peer) {
-    String address = Util.buff2str(peer.peerId());
+    String address = peer.address();
     String state = peer.state();
     int progress = 0;
     if(peer.bitfield() != null)

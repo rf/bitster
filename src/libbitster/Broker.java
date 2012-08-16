@@ -66,6 +66,7 @@ public class Broker extends Actor {
 
     Util.setTimeout(20000, new Memo("calcSpeed", null, this));
     forwardWatches(manager);
+    this.signal("broker state", state, this);
   }
 
   public Broker (InetAddress host, int port, Manager manager, Message bitfield) {
@@ -90,6 +91,7 @@ public class Broker extends Actor {
     Util.setTimeout(120000, new Memo("keepalive", null, this));
     Util.setTimeout(20000, new Memo("calcSpeed", null, this));
     forwardWatches(manager);
+    this.signal("broker state", state, this);
   }
 
   /** Receive a memo */

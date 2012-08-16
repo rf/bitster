@@ -96,7 +96,6 @@ public class MainWindow extends JFrame {
       tblDls.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
         @Override
         public void valueChanged(ListSelectionEvent e) {
-          // TODO Auto-generated method stub
           gui.buildPeerTableRowsBySelected();
         }
       });
