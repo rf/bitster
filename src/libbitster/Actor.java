@@ -1,11 +1,10 @@
 package libbitster;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-// Simple Actor class capable of sending and receiving `Memo`s. Can be run in
-// its own thread.
-//
-// author: Russ Frank
-
+/** Simple Actor class capable of sending and receiving `Memo`s. Can be run in
+ * its own thread.
+ * @author Russ Frank
+ */
 public class Actor extends Beacon implements Runnable {
   protected ConcurrentLinkedQueue<Memo> queue;
   private boolean running;
@@ -16,17 +15,17 @@ public class Actor extends Beacon implements Runnable {
     queue = new ConcurrentLinkedQueue<Memo>();
   }
 
-  // `post`s a message to this actor.
+  /** `post`s a message to this actor.*/
   public void post (Memo memo) {
     queue.offer(memo);
   }
 
-  // `receive` and `idle` are meant to be overridden.
+  /** `receive` and `idle` are meant to be overridden.*/
   protected void receive (Memo memo) {
     System.out.println(this + " received " + memo);
   }
 
-  // Default `idle` method, just sleeps.
+  /** Default `idle` method, just sleeps. */
   protected void idle () {
     try { Thread.sleep(1000); } catch (Exception e) {} 
   }
@@ -50,7 +49,7 @@ public class Actor extends Beacon implements Runnable {
     }
   }
 
-  // Sets `running` to false and stops the thread.
+  /** Sets `running` to false and stops the thread. */
   public void shutdown () {
     running = false;
   }
