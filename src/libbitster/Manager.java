@@ -394,7 +394,7 @@ public class Manager extends Actor implements Communicator {
   }
 
   private void request(Broker b) {
-    if (b.interested() && b.numQueued() < 5 && left > 0) {
+    if (!b.choking() && !b.choked() && b.interested() && b.numQueued() < 5 && left > 0) {
 
       // We are interested in the peer, we have less than 5 requests
       // queued on the peer, and we have more shit to download.  We should
