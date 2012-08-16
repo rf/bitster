@@ -37,6 +37,10 @@ public class Broker extends Actor {
   private int numReceived = 0; // # of received messages
   private int numQueued = 0;
 
+  public int piecesReceived = 0;
+  public float speed = 0;
+
+
   private LinkedList<Message> outbox;
 
   // Pieces we've requested from the peer. Heinous, I know, but it works.
@@ -59,6 +63,8 @@ public class Broker extends Actor {
     this.manager = manager;
     state = "check";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
+
+    Util.setTimeout(20000, new Memo("calcSpeed", null, this));
     forwardWatches(manager);
   }
 
@@ -78,14 +84,14 @@ public class Broker extends Actor {
     );
     peer.establish();
     peer.send(bitfield);
-    
+
     this.manager = manager;
     state = "normal";
     Util.setTimeout(120000, new Memo("keepalive", null, this));
+    Util.setTimeout(20000, new Memo("calcSpeed", null, this));
     forwardWatches(manager);
   }
 
-  
   /** Receive a memo */
   protected void receive (Memo memo) {
     if (memo.getType().equals("request")) {
@@ -97,13 +103,25 @@ public class Broker extends Actor {
         Log.info("We're choked, queuing message");
         outbox.add(m);
       } 
-      
+
       else {
         //Log.info("Sending " + m);
         peer.send(m);
       }
     }
-    
+
+    else if (memo.getType().equals("unchoke")) {
+      Log.info("unchoking peer " + Util.buff2str(peer.getPeerId()));
+      peer.send(Message.createUnchoke());
+      choking = false;
+    }
+
+    else if (memo.getType().equals("choke")) {
+      Log.info("choking peer " + Util.buff2str(peer.getPeerId()));
+      peer.send(Message.createChoke());
+      choking = true;
+    }
+
     // Get block back from funnel
     else if (memo.getType().equals("block")) {
       Message msg = (Message) ((Object[])memo.getPayload())[0];
@@ -114,16 +132,16 @@ public class Broker extends Actor {
     }
 
     else if (memo.getType().equals("keepalive") && state.equals("normal")) {
-      Log.info("Sending keep alive");
+      //Log.info("Sending keep alive");
       peer.send(Message.createKeepAlive());
       Util.setTimeout(120000, new Memo("keepalive", null, this));
     }
-    
+
     // received from Manager when we've finished downloading a piece
     else if (memo.getType().equals("have")) {
       if (peer.getState().equals("normal")) {
         Piece p = (Piece) memo.getPayload();
-        
+
         /* Only send have message if peer doesn't have said piece. This lowers overhead
          * about 35% on average, but it could consequently make pieces seem rarer than 
          * they are to seeders.
@@ -131,11 +149,17 @@ public class Broker extends Actor {
          */
         if(pieces == null || !pieces.get(p.getNumber())) {
           peer.send(Message.createHave(p.getNumber()));
-          Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
-              " that we have piece " + p.getNumber());
+          //Log.info("Informing peer " + Util.buff2str(peer.getPeerId()) + 
+              //" that we have piece " + p.getNumber());
         }
-        
+
       } else Log.info("Peer not connected, not sending have.");
+    }
+
+    else if (memo.getType().equals("calcSpeed")) {
+      // Rough speed calculation
+      speed = (float) piecesReceived / 20.0f;
+      piecesReceived = 0;
     }
   }
 
@@ -152,6 +176,12 @@ public class Broker extends Actor {
     }
   }
 
+  /** Send a state update to manager **/
+  private void updateManager () {
+    manager.post(new Memo("stateChanged", null, this));
+  }
+
+  /** Close the connection **/
   public void close () { peer.close(); }
 
   /** Receive a message via tcp */
@@ -160,23 +190,24 @@ public class Broker extends Actor {
       error(new Exception("protocol error"));
     numReceived += 1;
 
-    //Log.info(message.toString());
-
     switch (message.getType()) {
 
       // Handle basic messages
       case Message.CHOKE:
         choked = true;
+        updateManager();
         this.signal("broker choked", choked, this);
       break;
       
       case Message.UNCHOKE:
         choked = false;
+        updateManager();
         this.signal("broker choked", choked, this);
       break;
       
       case Message.INTERESTED:
         interesting = true;
+        updateManager();
         this.signal("broker interesting", interesting, this);
         peer.send(Message.createUnchoke());
         choking = false;
@@ -185,8 +216,10 @@ public class Broker extends Actor {
       
       case Message.NOT_INTERESTED:
         interesting = false;
+        updateManager();
         this.signal("broker interesting", interesting, this);
       break;
+
       case Message.BITFIELD:       
         pieces = message.getBitfield();
         manager.post(new Memo("bitfield", pieces, this));
@@ -203,6 +236,7 @@ public class Broker extends Actor {
       // Send pieces to our `Manager`.
       case Message.PIECE:
         numQueued -= 1;
+        piecesReceived += 1;
         this.signal("broker numQueued", numQueued, this);
         requests.remove(message.getIndex() + ":" + message.getBegin());
         manager.post(new Memo("block", message, this));
@@ -212,14 +246,23 @@ public class Broker extends Actor {
         // Post a "request" memo to Manager, which passes it on as
         // a "block" memo to Funnel, who grabs the block and forwards
         // it to the requesting Broker
-        manager.post(new Memo("request", message, this));
+        if (!choking) manager.post(new Memo("request", message, this));
+
+        // Be an asshole and drop peers who attempt to request from us when
+        // we're choking them.  They should know better.
+        else error(new Exception("protocol error"));
       break;
     }
 
     if (choked) {
+      // If we're choked, assume any pending requests have been discarded by
+      // the peer.
       if (requests.size() > 0) {
-        for (Message m : requests.values()) {
-          manager.post(new Memo("blockFail", m, this));
+        Iterator <Message> i = requests.values().iterator();
+        while (i.hasNext()) {
+          Message item = i.next();
+          manager.post(new Memo("blockFail", item, this));
+          i.remove();
         }
       }
     }
@@ -247,6 +290,7 @@ public class Broker extends Actor {
           "error: " + peer.exception);
       }
       state = "error";
+      updateManager();
       this.signal("broker state", state, this);
     }
 
@@ -269,7 +313,7 @@ public class Broker extends Actor {
       this.signal("broker interested", interested, this);
       choking = false;
       this.signal("broker choking", choking, this);
-      peer.send(Message.createUnchoke());
+      //peer.send(Message.createUnchoke());
       peer.send(Message.createInterested());
     }
   }
@@ -298,4 +342,25 @@ public class Broker extends Actor {
   public ByteBuffer peerId () { return peer.getPeerId(); }
   public String address() { return peer.getAddress(); }
   public BitSet bitfield() { return this.pieces; }
+  
+  /**
+   * Checks to see if an object is equal to this.
+   * @return false if not a broker or peer IDs are not equal
+   */
+  public boolean equals(Object o) {
+    if(o == null || !(o instanceof Broker)) {
+      return false;
+    }
+    else {
+      Broker b = (Broker) o;
+      return b.peerId().equals(this.peerId());
+    }
+  }
+
+  /**
+   * @return a String representation of this object.
+   */
+  public String toString () {
+    return "Broker [" + Util.buff2str(peer.getPeerId()) + "] choked: " + choked + " choking: " + choking +" interested: " + interested +" interesting: " + interesting + " speed: " + speed;
+  }
 }

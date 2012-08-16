@@ -34,12 +34,17 @@ import java.net.*;
 
 public class Manager extends Actor implements Communicator {
 
+  private Broker optimisticUnchoke = null;
+  private ArrayList<Broker> preferred; // preferred peers
+
+  private int uploadSlots = 4;
+
   private final int blockSize = 16384;
   private String state;
 
   // the contents of the metainfo file
   private TorrentInfo metainfo;
-  
+
   // destination file
   private File dest;
 
@@ -70,7 +75,7 @@ public class Manager extends Actor implements Communicator {
   private UserInterface ui;
 
   private Funnel funnel;
-  
+
   // true if the torrent was already done when we started.
   // This is for suppressing "completed" messages when we're already seeding.
   boolean startedSeeding = false;
@@ -90,11 +95,13 @@ public class Manager extends Actor implements Communicator {
 
     Log.info("Manager init");
 
+    preferred = new ArrayList<Broker>();
+
     this.metainfo = metainfo;
     this.dest = dest;
     this.downloaded = 0;
     this.ui = ui;
-    
+
     this.setLeft(metainfo.file_length);
 
     overlord = new Overlord();
@@ -109,11 +116,11 @@ public class Manager extends Actor implements Communicator {
       System.exit(1);
     }
     funnel.start();
-    
+
     // generate peer ID if we haven't already
     this.peerId = generatePeerID();
     peersByAddress = new HashMap<String, Broker>();
-    
+
     Log.info("Our peer id: " + Util.buff2str(peerId));
 
     int i, total = metainfo.file_length;
@@ -128,6 +135,9 @@ public class Manager extends Actor implements Communicator {
       ));
       total -= metainfo.piece_length;
     }
+
+    Util.setTimeout(30000, new Memo("optimisticUnchoke", null, this));
+    Util.setTimeout(60000, new Memo("status", null, this));
   }
 
   private void initialize() {
@@ -136,7 +146,7 @@ public class Manager extends Actor implements Communicator {
     }
     // We have all the piece objects, now populate our RPF array
     piecesByAvailability = pieces.toArray();
-    
+
     // listen for connections, try ports 6881-6889, quite if all taken
     for(int i = 6881; i < 6890; ++i)
     {
@@ -160,15 +170,15 @@ public class Manager extends Actor implements Communicator {
 
     state = "downloading";
     Janitor.getInstance().register(this);
-    
+
     ui.addManager(this);    
     deputy = new Deputy(metainfo, listen.socket().getLocalPort(), this);
     deputy.start();
   }
-  
+
   @SuppressWarnings("unchecked")
   protected void receive (Memo memo) {
-    
+
     /*
      * Messages received from our Deputy.
      */
@@ -179,22 +189,22 @@ public class Manager extends Actor implements Communicator {
         Log.info("Received peer list");
         peers = (ArrayList<Map<String, Object>>) memo.getPayload();
         if (peers.isEmpty()) Log.warning("Peer list empty!");
-        
+
         Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
-        
+
         for(int i = 0; i < peers.size(); i++)
         {
           // find the right peer for part one
           Map<String,Object> currPeer = peers.get(i);
           String ip = (String) currPeer.get("ip");
           String address = ip + ":" + currPeer.get("port");
-  
+
           if ((ip.equals("128.6.5.130") || ip.equals("128.6.5.131"))
               && peersByAddress.get(address) == null)
           {
             try {
               InetAddress inetip = InetAddress.getByName(ip);
-  
+
               // set up a broker
               Broker b = new Broker(
                 inetip,
@@ -207,20 +217,20 @@ public class Manager extends Actor implements Communicator {
               
               this.signal("broker added", b, this);
             } 
-  
+
             catch (UnknownHostException e) {
               // Malformed ip, just ignore it
             }
           }
         }
       }
-      
+
       // Part 2: Deputy is done telling the tracker we're shutting down
       else if (memo.getType().equals("done")) {
         funnel.post(new Memo("halt", null, this));
       }
     }
-    
+
     /*
      * Messages received from our Brokers.
      */
@@ -229,7 +239,7 @@ public class Manager extends Actor implements Communicator {
       if (memo.getType().equals("block")) {
         Message msg = (Message) memo.getPayload();
         Piece p = pieces.get(msg.getIndex());
-  
+
         if (p.addBlock(msg.getBegin(), msg.getBlock())) {
           downloaded += msg.getBlockLength();
           left -= msg.getBlockLength();
@@ -244,7 +254,7 @@ public class Manager extends Actor implements Communicator {
             info.put("left", left);
           this.signal("block received", info, this);
         }
-  
+
         if (p.finished()) {
           Log.info("Posting piece " + p.getNumber() + " to funnel");
           funnel.post(new Memo("piece", p, this));
@@ -258,13 +268,59 @@ public class Manager extends Actor implements Communicator {
             info.put("left", left);
           this.signal("piece received", info, this);
         }
-  
-        Log.info("Got block, " + left + " left to download.");
-        
+
+        //Broker b = (Broker) memo.getSender();
+
+        //Log.info("Got block of piece " + p.getNumber() + " from " + Util.buff2str(b.peerId()) + " who has speed " + b.speed);
+
         // request more shit
-        request((Broker)memo.getSender());
+        //request((Broker)memo.getSender());
       }
-      
+
+      else if (memo.getType().equals("stateChanged")) {
+        if (state.equals("seeding")) return;
+
+        Broker b = (Broker) memo.getSender();
+        // determine if we want to interact with this peer
+        // If we don't have all upload slots filled and we are interested
+        if (preferred.size() < uploadSlots && !b.choked() && b.interested()) {
+          // Add them to the preferred set and return
+          Log.info("Not enough upload slots filled so immediately communicating with " + Util.buff2str(b.peerId()));
+          preferred.add(b);
+          b.post(new Memo("unchoke", null, this));
+          return;
+        }
+
+        // If it's a choke message or the optimistic unchoke has disconnected
+        if(optimisticUnchoke != null && b.equals(optimisticUnchoke) 
+            && (b.choked() || b.state().equals("error"))) {
+          b.post(new Memo("choke", null, this));
+          optimisticUnchoke = null;
+        }
+
+
+        // If it's a choke message or the peer has disconnected and peer is 
+        // preferred
+        if (preferred.contains(b) && (b.choked() || b.state().equals("error"))) {
+          // Find a new peer to fill the upload slot and fill it
+          Log.info("We are choked or peer is in an error state. Ceasing communication with " + Util.buff2str(b.peerId()));
+          preferred.remove(b);
+          b.post(new Memo("choke", null, this));
+          
+          for (Broker n : brokers) {
+            if (
+              !preferred.contains(n) && !n.choked() && n.interested() && 
+              n != optimisticUnchoke
+            ) {
+              Log.info("Filling vacant slot with " + Util.buff2str(n.peerId()));
+              preferred.add(n);
+              n.post(new Memo("unchoke", null, this));
+              return;
+            }
+          }
+        }
+      }
+
       // sent when a Broker gets a bitfield message
       else if(memo.getType().equals("bitfield")) {
         BitSet field = (BitSet) memo.getPayload();
@@ -276,7 +332,7 @@ public class Manager extends Actor implements Communicator {
         }
         Arrays.sort(piecesByAvailability);
         // Git dem peecazzz
-        request((Broker)memo.getSender());
+        //request((Broker)memo.getSender());
         
         // Signal bitfield received
         HashMap<String, Object> info = new HashMap<String, Object>();
@@ -284,14 +340,14 @@ public class Manager extends Actor implements Communicator {
           info.put("field", field);
         this.signal("bitfield received", info, this);
       }
-      
+
       // sent when a Broker gets a have message
       else if(memo.getType().equals("have-message")) {
         int piece = (Integer) memo.getPayload();
         Piece p = pieces.get(piece);
         p.incAvailable();
         Arrays.sort(piecesByAvailability);
-        request((Broker)memo.getSender());
+        //request((Broker)memo.getSender());
         
         // Signal have received
         HashMap<String, Object> info = new HashMap<String, Object>();
@@ -299,7 +355,7 @@ public class Manager extends Actor implements Communicator {
           info.put("piece number", piece);
         this.signal("have received", info, this);
       }
-      
+
       // Received from Brokers when a block has been requested
       else if (memo.getType().equals("request")) {
         Message msg = (Message) memo.getPayload();
@@ -313,7 +369,7 @@ public class Manager extends Actor implements Communicator {
           info.put("uploaded", this.getUploaded());
         this.signal("block sent", info, this);
       }
-      
+
       // Received from Brokers when they can't requested a block from a peer
       // anymore, ie when choked or when the connection is dropped.
       else if (memo.getType().equals("blockFail")) {
@@ -328,14 +384,14 @@ public class Manager extends Actor implements Communicator {
         this.signal("block fail", info, this);
       }
     }
-    
+
     /*
      * Messages sent from the Funnel.
      */
     else if (memo.getSender() == funnel) {
       if (memo.getType().equals("pieces")) {
         ArrayList<Piece> ps = (ArrayList<Piece>) memo.getPayload();
-        
+
         for(int i = 0, l = ps.size(); i < l; ++i) {
           Piece p = ps.get(i);
           int length = p.getData().length;
@@ -355,14 +411,14 @@ public class Manager extends Actor implements Communicator {
           info.put("uploaded", this.getUploaded());
         this.signal("resume", info, this);
       }
-      
+
       // Received from Funnel when we successfully verify and store some piece.
       // We forward the message off to each Broker so they can inform peers.
       else if (memo.getType().equals("have")) {
         for (Broker b : brokers) 
           b.post(new Memo("have", memo.getPayload(), this));
       }
-      
+
       // Part 3: Received from Funnel when we're ready to shut down.
       else if (memo.getType().equals("done") && memo.getSender().equals(funnel)) {
         shutdown();
@@ -405,7 +461,7 @@ public class Manager extends Actor implements Communicator {
         }
       }
     }
-    
+
     else if (memo.getSender() instanceof Janitor) {
       // Part 1: halt message from Janitor
       if (memo.getType().equals("halt"))
@@ -415,15 +471,59 @@ public class Manager extends Actor implements Communicator {
         deputy.post(new Memo("halt", null, this));
       }
     }
+
+    else if (memo.getType().equals("optimisticUnchoke")) {
+      if (state.equals("seeding")) return;
+
+      Log.info("Running optimistic unchoke code");
+
+      // Check status of previous optimistic unchoke, if there was one.
+      if (optimisticUnchoke!= null) {
+        if(preferred.size() < this.uploadSlots) {
+          preferred.add(optimisticUnchoke);
+        }
+        else {
+          Iterator <Broker> i = preferred.iterator();
+          while (i.hasNext()) {
+            Broker item = i.next();
+            // If he's doing better than someone in our current preferred set..
+            if (optimisticUnchoke.speed > item.speed) {
+              // Promote him to a preferred peer.
+              i.remove();
+              item.post(new Memo("choke", null, this));
+              Log.info("Promoting our optimistic unchoke " + Util.buff2str(optimisticUnchoke.peerId()));
+              preferred.add(optimisticUnchoke);
+              break;
+            }
+          }
+        }
+      }
+
+      // Choose a new optimistic unchoke.
+      for (Broker b : brokers) {
+        if (!preferred.contains(b) && b.interested()) {
+          optimisticUnchoke = b;
+          Log.info("Chose a new optimistic unchoke: " + Util.buff2str(optimisticUnchoke.peerId()));
+          b.post(new Memo("unchoke", null, this));
+          break;
+        }
+      }
+    }
+
+    else if (memo.getType().equals("status")) {
+      for (Broker b : preferred) {
+        Log.info("preferred: " + b);
+      }
+    }
   }
-  
+
   private void request(Broker b) {
-    if (b.interested() && b.numQueued() < 5 && left > 0) {
+    if (!b.choking() && !b.choked() && b.interested() && b.numQueued() < 5 && left > 0) {
 
       // We are interested in the peer, we have less than 5 requests
       // queued on the peer, and we have more shit to download.  We should
       // queue up a request on the peer.
-      
+
       Piece p = next(b.bitfield());
 
       if (p != null) {
@@ -444,9 +544,10 @@ public class Manager extends Actor implements Communicator {
     if (state.equals("downloading") || state.equals("seeding")) {
       Iterator<Broker> i = brokers.iterator();
       Broker b;
-      
+
       while (i.hasNext()) {
         b = i.next();
+        request(b);
         b.tick();
         if (b.state().equals("error")) {
           i.remove();
@@ -466,6 +567,28 @@ public class Manager extends Actor implements Communicator {
       }
     }
 
+    if (state.equals("seeding")) {
+      Iterator <Broker> j = preferred.iterator();
+      while (j.hasNext()) {
+        Broker item = j.next();
+        if (!item.interesting() || item.state().equals("error")) {
+          j.remove();
+        }
+      }
+
+      // unchoke interested peers
+      //Log.debug("Seeding, unchoking interested peers. Preferred size: " + preferred.size());
+      Iterator <Broker> i = brokers.iterator();
+      while (i.hasNext()) {
+        if (preferred.size() > uploadSlots) break;
+        Broker item = i.next();
+        if (item.interesting()) {
+          item.post(new Memo("unchoke", null, this));
+          preferred.add(item);
+        }
+      }
+    }
+
     if (left == 0 && !state.equals("shutdown") && !state.equals("seeding")) {
       Log.info("Download complete");
       state = "seeding";
@@ -481,7 +604,7 @@ public class Manager extends Actor implements Communicator {
   public boolean onAcceptable () {
     try {
       Message bitfield = Message.createBitfield(received, metainfo.piece_hashes.length);
-      
+
       SocketChannel newConnection = listen.accept();
       newConnection.configureBlocking(false);
       if (newConnection != null) {
@@ -558,7 +681,7 @@ public class Manager extends Actor implements Communicator {
         break;
       }
     }
-    
+
     if(rpi > 0) {
       Random r = new Random();
       return rarestPieces[r.nextInt(rpi)];
@@ -636,7 +759,7 @@ public class Manager extends Actor implements Communicator {
 
   public String getState () { return state; }
   public Overlord getOverlord () { return overlord; }
-  
+
   public String getFileName() { return dest.getName(); }
 
 }

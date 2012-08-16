@@ -16,7 +16,7 @@ bitstercli:
 test: $(TESTFILES)
 
 run: libbitster bitstercli
-	java -Xmx1024m bitstercli/RUBTClient $(SWITCHES) $(TORRENT) $(OUT)
+	java -Xmx1024m bitstercli/RUBTClient $(SWITCHES) $(TORRENT) $(OUT) -no-cli
 
 $(TESTFILES): 
 	javac $@.java
