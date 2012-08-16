@@ -232,7 +232,7 @@ public class Manager extends Actor implements Communicator {
           received.set(p.getNumber());
         }
 
-        Broker b = (Broker) memo.getSender();
+        //Broker b = (Broker) memo.getSender();
 
         //Log.info("Got block of piece " + p.getNumber() + " from " + Util.buff2str(b.peerId()) + " who has speed " + b.speed);
 
@@ -250,6 +250,7 @@ public class Manager extends Actor implements Communicator {
           // Add them to the preferred set and return
           Log.info("Not enough upload slots filled so immediately communicating with " + Util.buff2str(b.peerId()));
           preferred.add(b);
+          b.post(new Memo("unchoke", null, this));
           return;
         }
 
