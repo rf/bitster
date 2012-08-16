@@ -254,6 +254,14 @@ public class Manager extends Actor implements Communicator {
           return;
         }
 
+        // If it's a choke message or the optimistic unchoke has disconnected
+        if(optimisticUnchoke != null && b.equals(optimisticUnchoke) 
+            && (b.choked() || b.state().equals("error"))) {
+          b.post(new Memo("choke", null, this));
+          optimisticUnchoke = null;
+        }
+
+
         // If it's a choke message or the peer has disconnected and peer is 
         // preferred
         if (preferred.contains(b) && (b.choked() || b.state().equals("error"))) {
@@ -365,24 +373,29 @@ public class Manager extends Actor implements Communicator {
 
       // Check status of previous optimistic unchoke, if there was one.
       if (optimisticUnchoke!= null) {
-        Iterator <Broker> i = preferred.iterator();
-        while (i.hasNext()) {
-          Broker item = i.next();
-          // If he's doing better than someone in our current preferred set..
-          if (optimisticUnchoke.speed > item.speed) {
-            // Promote him to a preferred peer.
-            i.remove();
-            item.post(new Memo("choke", null, this));
-            Log.info("Promoting our optimistic unchoke " + Util.buff2str(optimisticUnchoke.peerId()));
-            preferred.add(optimisticUnchoke);
-            break;
+        if(preferred.size() < this.uploadSlots) {
+          preferred.add(optimisticUnchoke);
+        }
+        else {
+          Iterator <Broker> i = preferred.iterator();
+          while (i.hasNext()) {
+            Broker item = i.next();
+            // If he's doing better than someone in our current preferred set..
+            if (optimisticUnchoke.speed > item.speed) {
+              // Promote him to a preferred peer.
+              i.remove();
+              item.post(new Memo("choke", null, this));
+              Log.info("Promoting our optimistic unchoke " + Util.buff2str(optimisticUnchoke.peerId()));
+              preferred.add(optimisticUnchoke);
+              break;
+            }
           }
         }
       }
 
       // Choose a new optimistic unchoke.
       for (Broker b : brokers) {
-        if (!preferred.contains(b) && b.interested() && !b.choked()) {
+        if (!preferred.contains(b) && b.interested()) {
           optimisticUnchoke = b;
           Log.info("Chose a new optimistic unchoke: " + Util.buff2str(optimisticUnchoke.peerId()));
           b.post(new Memo("unchoke", null, this));
