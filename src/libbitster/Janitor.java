@@ -70,9 +70,11 @@ public class Janitor extends Actor {
         Cli.getInstance().shutdown();
       if(Gui.hasInstance())
         Gui.getInstance().shutdown();
-      Iterator<Manager> it = managers.iterator();
-      while(it.hasNext()) {
-        unregister(it.next());
+      synchronized (managers) {
+        Iterator<Manager> it = managers.iterator();
+        while(it.hasNext()) {
+          unregister(it.next());
+        }
       }
       Util.setTimeout(10000, new Memo("kill", null, this));
     }

@@ -20,7 +20,6 @@ import libbitster.Manager;
 import libbitster.Memo;
 import libbitster.TorrentInfo;
 import libbitster.UserInterface;
-import libbitster.Util;
 
 /**
  * Singleton. Graphical user interface class.
@@ -197,6 +196,11 @@ public class Gui extends Actor implements UserInterface {
       @SuppressWarnings("unchecked")
       HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
         Broker broker = (Broker)info.get("broker");
+
+      int seed = manager.getSeeds();
+      int leech = manager.getBrokerCount() - seed;
+      wnd.tblDls.setSeed(managerToRowIndex.get(manager),seed);
+      wnd.tblDls.setLeech(managerToRowIndex.get(manager),leech);
         
       if(managerSelected(manager)) {
         Integer row = brokerToRowIndex.get(broker);
@@ -211,6 +215,11 @@ public class Gui extends Actor implements UserInterface {
       HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
         Broker broker = (Broker)info.get("broker");
         String state = (String)info.get("state");
+
+        int seed = manager.getSeeds();
+        int leech = manager.getBrokerCount() - seed;
+        wnd.tblDls.setSeed(managerToRowIndex.get(manager),seed);
+        wnd.tblDls.setLeech(managerToRowIndex.get(manager),leech);
         
       if(managerSelected(manager)) {
         Integer row = brokerToRowIndex.get(broker);
@@ -241,7 +250,7 @@ public class Gui extends Actor implements UserInterface {
   }
   
   public void buildPeerTableRowsBySelected() {
-    int row = wnd.tblDls.getSelectedRow();
+    int row = wnd.getSelectedDownloadRowIndex();
     if(row < 0 || row >= rowIndexToManager.size())
       return;
     
