@@ -269,7 +269,7 @@ public class Manager extends Actor implements Communicator {
             ) {
               Log.info("Filling vacant slot with " + Util.buff2str(n.peerId()));
               preferred.add(n);
-              b.post(new Memo("unchoke", null, this));
+              n.post(new Memo("unchoke", null, this));
               return;
             }
           }
