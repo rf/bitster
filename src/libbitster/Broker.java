@@ -282,7 +282,7 @@ public class Broker extends Actor {
       Log.debug("We are interested in " + Util.buff2str(peer.getPeerId()));
       interested = true;
       choking = false;
-      peer.send(Message.createUnchoke());
+      //peer.send(Message.createUnchoke());
       peer.send(Message.createInterested());
     }
   }
