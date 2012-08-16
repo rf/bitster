@@ -1,5 +1,7 @@
 package bitstercli;
 
+import java.io.File;
+
 import libbitster.Manager;
 import libbitster.Memo;
 import libbitster.UserInterface;
@@ -31,5 +33,8 @@ public class RawOutputUI implements UserInterface {
 
   @Override
   public void addManager(Manager m) { }
+
+  @Override
+  public void openFile(File torrent, File dest) { }
 
 }

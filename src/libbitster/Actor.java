@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 //
 // author: Russ Frank
 
-public class Actor implements Runnable {
+public class Actor extends Beacon implements Runnable {
   protected ConcurrentLinkedQueue<Memo> queue;
   private boolean running;
   private Thread thread = null;

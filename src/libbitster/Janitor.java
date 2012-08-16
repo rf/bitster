@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 
 import bitstercli.Cli;
+import bitstergui.Gui;
 
 /**
  * Singleton. Cleans up the program when shutting down.
@@ -45,6 +46,14 @@ public class Janitor extends Actor {
   {
     managers.add(m);
   }
+  
+  public void unregister(Manager m)
+  {
+    managers.remove(m);
+    Log.info("Sending halt memo to manager.");
+    m.post(new Memo("halt", null, this));
+  }
+  
   /**
    * When thread starts, send halt message to Managers
    */
@@ -57,11 +66,17 @@ public class Janitor extends Actor {
     
     if(state.equals("init")) {
       state = "normal";
-      Cli.getInstance().shutdown();
-      Iterator<Manager> it = managers.iterator();
-      while(it.hasNext()) {
-        Log.info("Sending halt memo to manager.");
-        it.next().post(new Memo("halt", null, this));
+      if(Cli.hasInstance())
+        Cli.getInstance().shutdown();
+      if(Gui.hasInstance())
+        Gui.getInstance().shutdown();
+      synchronized (managers) {
+        Iterator<Manager> it = managers.iterator();
+        while(it.hasNext()) {
+          try { //Fix this sometimes get exception
+            unregister(it.next());
+          } catch (Exception e) {}
+        }
       }
       Util.setTimeout(10000, new Memo("kill", null, this));
     }

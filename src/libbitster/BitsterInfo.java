@@ -8,18 +8,22 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Singleton. Stores information external to any given instance of Bitster.
  * Reads info from metadata.bitster.dat, which it expects to find in the
  * pwd.
  * @author Martin Miralles-Cordal
+ * @author Theodore Surgent
  */
 public final class BitsterInfo {
   
   private static BitsterInfo instance = null;
   private File info;
   private HashMap<String, Integer> uploadStats;
+  private HashMap<File, File> downloads;
   
   @SuppressWarnings("unchecked")
   private BitsterInfo() {
@@ -29,11 +33,15 @@ public final class BitsterInfo {
       ObjectInputStream ois;
       try {
         ois = new ObjectInputStream(new FileInputStream(info));
-        Object readIn = ois.readObject();
+        Object readUploadStats = ois.readObject();
+        Object readDownloads = ois.readObject();
         
         // If file is valid
-        if(readIn instanceof HashMap<?,?>) {
-          uploadStats = (HashMap<String, Integer>) readIn;
+        if(readUploadStats instanceof HashMap<?,?>) {
+          uploadStats = (HashMap<String, Integer>) readUploadStats;
+        }
+        if(readDownloads instanceof HashMap<?,?>) {
+          downloads = (HashMap<File, File>) readDownloads;
         }
         
         // File exists but is invalid
@@ -46,6 +54,7 @@ public final class BitsterInfo {
         ois.close();
       } catch (Exception e) {
         uploadStats = new HashMap<String, Integer>();
+        downloads = new HashMap<File, File>();
         info.delete();
       }
     }
@@ -59,6 +68,7 @@ public final class BitsterInfo {
     else {
       Log.w("No metadata.bitster.dat found.");
       uploadStats = new HashMap<String, Integer>();
+      downloads = new HashMap<File, File>();
     }
   }
   
@@ -84,6 +94,27 @@ public final class BitsterInfo {
     uploadStats.put(Util.buff2str(infoHash), upload);
   }
   
+  /**
+   * Saves download file info
+   * @param file The output file
+   * @param torrent The torrent metainfo file
+   */
+  public void addDownload(File file, File torrent) {
+    downloads.put(file, torrent);
+  }
+  
+  public void removeDownload(File file) {
+    downloads.remove(file);
+  }
+  
+  /**
+   * Gets download file info
+   * @return A set of (file, torrent) entries
+   */
+  public Set<Entry<File, File>> getDownloads() {
+    return downloads.entrySet();
+  }
+  
   /** returns instance and instantiates it if called for the first time */ 
   public static BitsterInfo getInstance() {
     if(instance == null) {
@@ -97,6 +128,7 @@ public final class BitsterInfo {
     try {
       ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(info));
       oos.writeObject(uploadStats);
+      oos.writeObject(downloads);
       oos.close();
     } catch (IOException e) {
       Log.e("Couldn't save upload data.");
