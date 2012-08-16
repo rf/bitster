@@ -114,12 +114,14 @@ public class Broker extends Actor {
       Log.info("unchoking peer " + Util.buff2str(peer.getPeerId()));
       peer.send(Message.createUnchoke());
       choking = false;
+      this.signal("broker choking", choking, this);
     }
 
     else if (memo.getType().equals("choke")) {
       Log.info("choking peer " + Util.buff2str(peer.getPeerId()));
       peer.send(Message.createChoke());
       choking = true;
+      this.signal("broker choking", choking, this);
     }
 
     // Get block back from funnel
