@@ -155,7 +155,7 @@ public class Broker extends Actor {
 
     else if (memo.getType().equals("calcSpeed")) {
       // Rough speed calculation
-      speed = (float) piecesReceived / 20000.0f;
+      speed = (float) piecesReceived / 20.0f;
       piecesReceived = 0;
     }
   }
