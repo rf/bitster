@@ -23,8 +23,8 @@ import libbitster.UserInterface;
  */
 public class RUBTClient {
   
-  private static boolean cli = true;
-  private static boolean gui = false;
+  private static boolean cli = false;
+  private static boolean gui = true;
   
   private static boolean processSwitch(String arg) {
     if(arg.equals("-color")) {
@@ -34,8 +34,13 @@ public class RUBTClient {
       gui = true;
       cli = false;
     }
+    else if(arg.equals("-cli")) {
+      gui = false;
+      cli = true;
+    }
     else if(arg.equals("-no-cli")) {
       cli = false;
+      gui = false;
     }
     else {
       return false;
