@@ -39,7 +39,7 @@ final class DownloadTable extends JTable {
   int addRow(String file, String status, String size, int progress, int seed, int leech, double ratio) {
     Object[] row = {file, status, size, progress, seed, leech, ratio};
     mdl.addRow(row);
-    return this.getRowCount() - 1;
+    return mdl.getRowCount() - 1;
   }
   
   void setRow(int row, String file, String status, String size, int progress, int seed, int leech, double ratio) {

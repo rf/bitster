@@ -18,6 +18,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.KeyStroke;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -45,7 +47,7 @@ public class MainWindow extends JFrame {
   PeerTable tblPeers;
   JScrollPane spPeers;
   
-  public MainWindow(Gui gui) {
+  public MainWindow(final Gui gui) {
     super("bitster");
     this.gui = gui;
     GridBagLayout gb = new GridBagLayout();
@@ -91,6 +93,13 @@ public class MainWindow extends JFrame {
       tblDls = new DownloadTable();
       spDls = new JScrollPane(tblDls);
       spDls.setBorder(BorderFactory.createTitledBorder("Downloads"));
+      tblDls.getSelectionModel().addListSelectionListener(new ListSelectionListener(){
+        @Override
+        public void valueChanged(ListSelectionEvent e) {
+          // TODO Auto-generated method stub
+          gui.buildPeerTableRowsBySelected();
+        }
+      });
     
     // Peers
       tblPeers = new PeerTable();
@@ -131,5 +140,13 @@ public class MainWindow extends JFrame {
       File file = fc.getSelectedFile();
       gui.openFile(file, null);
     }
+  }
+  
+  public int getSelectedDownloadRowIndex() {
+    int idx = tblDls.getSelectedRow();
+    
+    if(idx < 0) return 0;
+    
+    return tblDls.convertRowIndexToModel(idx);
   }
 }

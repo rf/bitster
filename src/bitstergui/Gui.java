@@ -19,6 +19,7 @@ import libbitster.Manager;
 import libbitster.Memo;
 import libbitster.TorrentInfo;
 import libbitster.UserInterface;
+import libbitster.Util;
 
 /**
  * Singleton. Graphical user interface class.
@@ -26,8 +27,10 @@ import libbitster.UserInterface;
  */
 public class Gui extends Actor implements UserInterface {
   private ArrayList<Manager> managers; //Downloads
-  private HashMap<Manager, Integer> downloadTblRows; //Manager (download) to table row index mapping
-  private HashMap<Broker, Integer> peerInfoRows; //Broker (peer) to table row index mapping for selected download
+  private HashMap<Manager, Integer> managerToRowIndex;
+  private HashMap<Integer, Manager> rowIndexToManager;
+  private HashMap<Broker, Integer> brokerToRowIndex;
+  private HashMap<Integer, Broker> rowIndexToBroker;
   
   private MainWindow wnd;
   private static Gui instance = null;
@@ -35,8 +38,10 @@ public class Gui extends Actor implements UserInterface {
   private Gui() {
     super();
     managers = new ArrayList<Manager>();
-    downloadTblRows = new HashMap<Manager, Integer>();
-    peerInfoRows = new HashMap<Broker, Integer>();
+    managerToRowIndex = new HashMap<Manager, Integer>();
+    rowIndexToManager = new HashMap<Integer, Manager>();
+    brokerToRowIndex = new HashMap<Broker, Integer>();
+    rowIndexToBroker = new HashMap<Integer, Broker>();
     nimbusLookAndFeel();
     wnd = new MainWindow(this);
   }
@@ -61,7 +66,8 @@ public class Gui extends Actor implements UserInterface {
     }
     
     int index = wnd.tblDls.addRow(file, status, size, progress, seed, leech, ratio);
-    downloadTblRows.put(manager, index);
+    managerToRowIndex.put(manager, index);
+    rowIndexToManager.put(index, manager);
 
     //Watch download progress
       //manager.watch("bitfield received", this);
@@ -69,15 +75,12 @@ public class Gui extends Actor implements UserInterface {
       manager.watch("block received", this);
       manager.watch("block sent", this);
       manager.watch("broker added", this);
-      //manager.watch("broker choked", this);
-      //manager.watch("broker choking", this);
-      //manager.watch("broker interested", this);
-      //manager.watch("broker interesting", this);
-      //manager.watch("numQueued", this);
+      manager.watch("broker choked", this);
+      manager.watch("broker choking", this);
+      manager.watch("broker interested", this);
+      manager.watch("broker interesting", this);
       //manager.watch("broker state", this);
       //manager.watch("have received", this);
-      //manager.watch("piece received", this);
-      //manager.watch("resume", this);
   }
   
   protected void receive (Memo memo) {
@@ -85,11 +88,9 @@ public class Gui extends Actor implements UserInterface {
       @SuppressWarnings("unchecked")
       HashMap<String, Object> payload = (HashMap<String, Object>)memo.getPayload();
       Manager manager = (Manager)memo.getSender();
-      //Broker broker = (Broker)payload.get("broker");
-      //int piece = (Integer)payload.get("piece number");
       int uploaded = (Integer)payload.get("uploaded");
       
-      int row = downloadTblRows.get(manager);
+      int row = managerToRowIndex.get(manager);
       
       wnd.tblDls.setRatio(row, ((int)(((double)uploaded / (double)manager.getDownloaded())*100))/100.0);
     }
@@ -97,12 +98,10 @@ public class Gui extends Actor implements UserInterface {
       @SuppressWarnings("unchecked")
       HashMap<String, Object> payload = (HashMap<String, Object>)memo.getPayload();
       Manager manager = (Manager)memo.getSender();
-      //Broker broker = (Broker)payload.get("broker");
-      //int piece = (Integer)payload.get("piece number");
       int downloaded = (Integer)payload.get("downloaded");
       int left = (Integer)payload.get("left");
 
-      int row = downloadTblRows.get(manager);
+      int row = managerToRowIndex.get(manager);
 
       wnd.tblDls.setStatus(row, left > 0 ? "downloading" : "seeding");
       wnd.tblDls.setProgress(row, (int)(((double)downloaded / (double)manager.getSize()) * 100));
@@ -110,18 +109,80 @@ public class Gui extends Actor implements UserInterface {
     }
     else if(memo.getType() == "broker added") {
       Manager manager = (Manager)memo.getSender();
-      //Broker broker = (Broker)memo.getPayload();
+      Broker broker = (Broker)memo.getPayload();
       
       int seed = manager.getSeeds();
       int leech = manager.getBrokerCount() - seed;
 
-      int row = downloadTblRows.get(manager);
+      int row = managerToRowIndex.get(manager);
       
       wnd.tblDls.setSeed(row, seed);
       wnd.tblDls.setLeech(row, leech);
       
-      buildPeerTabelRows(manager);
+      if(managerSelected(manager))
+        addPeer(manager, broker);
     }
+    else if(memo.getType().equals("broker choked")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        boolean choked = (Boolean)info.get("choked");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setChoked(row, choked);
+        }
+      }
+    }
+    else if(memo.getType().equals("broker choking")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        boolean choking = (Boolean)info.get("choking");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setChoking(row, choking);
+        }
+      }
+    }
+    else if(memo.getType().equals("broker interested")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        boolean interested = (Boolean)info.get("interested");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setInterested(row, interested);
+        }
+      }
+    }
+    else if(memo.getType().equals("broker interesting")) {
+      Manager manager = (Manager)memo.getSender();
+      @SuppressWarnings("unchecked")
+      HashMap<String, Object> info = (HashMap<String, Object>) memo.getPayload();
+        Broker broker = (Broker)info.get("broker");
+        boolean interesting = (Boolean)info.get("interesting");
+        
+      if(managerSelected(manager)) {
+        Integer row = brokerToRowIndex.get(broker);
+        if(row != null) { //Should not be the case though
+          wnd.tblPeers.setInteresting(row, interesting);
+        }
+      }
+    }
+  }
+  
+  public boolean managerSelected(Manager manager) {
+    return managerToRowIndex.containsKey(manager) &&
+    managerToRowIndex.get(manager) == wnd.getSelectedDownloadRowIndex();
   }
   
   public static Gui getInstance() {
@@ -136,12 +197,39 @@ public class Gui extends Actor implements UserInterface {
     return instance != null;
   }
   
+  public void buildPeerTableRowsBySelected() {
+    int row = wnd.tblDls.getSelectedRow();
+    if(row < 0 || row >= rowIndexToManager.size())
+      return;
+    
+    Manager manager = rowIndexToManager.get(row);
+    buildPeerTableRows(manager);
+  }
+  
+  public void addPeer(Manager manager, Broker peer) {
+    String address = Util.buff2str(peer.peerId());
+    String state = peer.state();
+    int progress = 0;
+    if(peer.bitfield() != null)
+      progress = (peer.bitfield().cardinality()*100) / manager.getPieceCount();
+    boolean choked = peer.choked();
+    boolean choking = peer.choking();
+    boolean interested = peer.interested();
+    boolean interesting = peer.interesting();
+    
+    int row = wnd.tblPeers.addRow(address, state, progress, choked, choking, interested, interesting);
+  
+    brokerToRowIndex.put(peer, row);
+    rowIndexToBroker.put(row, peer);
+  }
+  
   //Helper method to build the peer table rows when a different Manager (download) is selected from the downloads list.
-  private void buildPeerTabelRows(Manager manager) {
+  public void buildPeerTableRows(Manager manager) {
     //Clear out old info
     while(wnd.tblPeers.mdl.getRowCount() > 0)
       wnd.tblPeers.mdl.removeRow(0);
-    peerInfoRows.clear();
+    brokerToRowIndex.clear();
+    rowIndexToBroker.clear();
 
     // peers list may change when this is called, so we need to clone the list
     @SuppressWarnings("unchecked")
@@ -149,21 +237,7 @@ public class Gui extends Actor implements UserInterface {
     
     if(peers != null) {
       for(Broker peer : peers) {
-        String address = peer.address();
-        String state = peer.state();
-        int progress = 0;
-        if(peer.bitfield() != null)
-          progress = (peer.bitfield().cardinality()*100) / manager.getPieceCount();
-        String lastSent = "";
-        String lastReceived = "";
-        boolean choked = peer.choked();
-        boolean choking = peer.choking();
-        boolean interested = peer.interested();
-        boolean interesting = peer.interesting();
-        
-        int row = wnd.tblPeers.addRow(address, state, progress, lastSent, lastReceived, choked, choking, interested, interesting);
-
-        peerInfoRows.put(peer, row);
+        addPeer(manager, peer);
       }
     }
   }

@@ -46,6 +46,14 @@ public class Janitor extends Actor {
   {
     managers.add(m);
   }
+  
+  public void unregister(Manager m)
+  {
+    managers.remove(m);
+    Log.info("Sending halt memo to manager.");
+    m.post(new Memo("halt", null, this));
+  }
+  
   /**
    * When thread starts, send halt message to Managers
    */
@@ -64,8 +72,7 @@ public class Janitor extends Actor {
         Gui.getInstance().shutdown();
       Iterator<Manager> it = managers.iterator();
       while(it.hasNext()) {
-        Log.info("Sending halt memo to manager.");
-        it.next().post(new Memo("halt", null, this));
+        unregister(it.next());
       }
       Util.setTimeout(10000, new Memo("kill", null, this));
     }
